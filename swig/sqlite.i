@@ -1,8 +1,13 @@
-%module sqlite
+%module SQLite
 %include "sqliteConstants.i"
 %{
-#include "../sqlite/sqlite3.h"
+#include <sqlite3.h>
 %}
+
+//%typemap(in) sqlite3* {
+//  
+//}
+
 
 #ifdef SQLITE_INT64_TYPE
  typedef SQLITE_INT64_TYPE sqlite_int64;
@@ -58,6 +63,7 @@ static int  global_callback(void* arg, int columnsNumber, char** columns, char**
 
 %native (sqlite3_exec) int sqlite3_exec(sqlite3* db, const char *sql, void* callback, char**errmsg);
 %{
+/*
 JNIEXPORT void JNICALL Java_sqlite4java_sqlite4javaJNIsqlite3_1exec(
   sqlite3* db, const char *sql, void* callback, char**errmsg
 ) {
@@ -91,5 +97,6 @@ int sqlite3_exec(sqlite3* db, const char *sql,
 	  char **errmsg
 );
 }
+*/
 %}
 

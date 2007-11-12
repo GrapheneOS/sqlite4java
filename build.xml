@@ -1,30 +1,69 @@
 <project basedir="." name="sqlite4java" default="swig">
-  <property name="target.package" value="sqlite4java"/>
-  <property name="os.type" value="mac"/>
-
-  <target name="init">
-    <fail message="no java.home" unless="java.home"/>
-    <fail message="no os.type" unless="os.type"/>
-    <mkdir dir="build"/>
+  <property name="target.package" value="sqlite"/>
+  
+  <target name="linux">
+    <property name="os" value="linux"/>
+    <property name="os.linux" value="true"/>
+    <property name="gcc.params" value="
+ -fpic -Di586 -DARCH='&quot;i586&quot;' -DLINUX 
+ -D_LARGEFILE64_SOURCE -D_GNU_SOURCE -D_LITTLE_ENDIAN
+ -fno-omit-frame-pointer -fno-strict-aliasing 
+ -static-libgcc"/>
   </target>
 
-  <target name="swig">
+  <target name="init">
+    <fail message="no jdk.home" unless="jdk.home"/>
+    <fail message="no os" unless="os"/>
+    <echo message="jdk.home=${jdk.home}"/>
+    <echo message="os=${os}"/>
+    <delete dir="build"/>
+    <mkdir dir="build"/>
+    <mkdir dir="build/java/sqlite"/>
+    <mkdir dir="build/native"/>
+    <mkdir dir="build/classes"/>
+    <mkdir dir="build/test"/>
+  </target>
+
+  <target name="swig" depends="init">
     <exec executable="swig">
       <arg value="-java"/>
       <arg value="-package"/>
       <arg value="${target.package}"/>
       <arg value="-outdir"/>
-      <arg value="build"/>
+      <arg value="build/java/sqlite"/>
+      <arg value="-o"/>
+      <arg value="build/native/sqlite_wrap.c"/>
+      <arg value="swig/sqlite.i"/>
     </exec>
   </target>
 
   <target name="gcc" depends="swig, init">
-    <exec executable="gcc">
-      <arg value="-c"/>
-      <arg value="-fpic"/> 
-      <arg value="-I${java.home}/include"/>
-      <arg value="-I${java.home}/include/${os.type}"/>
-    </exec>
+    <exec command="gcc ${gcc.params} -W -Wall -Wno-unused -Wno-parentheses -Werror -I./sqlite -I${jdk.home}/include -I${jdk.home}/include/${os} -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
+    <exec command="gcc ${gcc.params} -I./sqlite -I${jdk.home}/include -I${jdk.home}/include/${os} -c sqlite/sqlite3.c -o build/sqlite3.o"/>
+  </target>
+  
+  <target name="lib" depends="gcc, init">
+    <exec command="gcc ${gcc.params} -shared -mno-cygwin -Wl,-soname=sqlite -o build/libsqlite.so build/sqlite3.o build/sqlite_wrap.o"/>
+  </target>
+  
+  <target name="javac" depends="gcc, init">
+    <javac srcdir="build/java" destdir="build/classes" debug="on"/>
+  </target>
+  
+  <target name="jar" depends="javac, init">
+    <jar destfile="build/sqlite.jar" basedir="build/classes"/>
+  </target>
+
+  <target name="test" depends="jar, lib">
+    <javac srcdir="test" destdir="build/test" classpath="build/sqlite.jar" debug="on"/>
+    <java classname="Test" fork="yes">
+      <!--<jvmarg value="-verbose:jni"/>-->
+      <classpath>
+        <pathelement location="build/test"/>
+        <pathelement location="build/sqlite.jar"/>
+      </classpath>
+      <sysproperty key="java.library.path" value="build"/>
+    </java>
   </target>
 
   <!--

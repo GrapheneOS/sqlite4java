@@ -1,4 +1,4 @@
-%module sqliteConstants
+%module SQLiteConstants
 
 #define SQLITE_OK           0   /* Successful result */
 #define SQLITE_ERROR        1   /* SQL error or missing database */
