@@ -1,4 +1,9 @@
 * text=auto !eol
+/build.xml -text
+idea/sqlite4java.iml -text
+idea/sqlite4java.ipr -text
 sqlite/sqlite3.c -text
 sqlite/sqlite3.h -text
+swig/sqlite.i -text
 swig/sqlite4java.i -text
+swig/sqliteConstants.i -text

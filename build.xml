@@ -1,0 +1,56 @@
+<project basedir="." name="sqlite4java" default="swig">
+  <property name="target.package" value="sqlite4java"/>
+  <property name="os.type" value="mac"/>
+
+  <target name="init">
+    <fail message="no java.home" unless="java.home"/>
+    <fail message="no os.type" unless="os.type"/>
+    <mkdir dir="build"/>
+  </target>
+
+  <target name="swig">
+    <exec executable="swig">
+      <arg value="-java"/>
+      <arg value="-package"/>
+      <arg value="${target.package}"/>
+      <arg value="-outdir"/>
+      <arg value="build"/>
+    </exec>
+  </target>
+
+  <target name="gcc" depends="swig, init">
+    <exec executable="gcc">
+      <arg value="-c"/>
+      <arg value="-fpic"/> 
+      <arg value="-I${java.home}/include"/>
+      <arg value="-I${java.home}/include/${os.type}"/>
+    </exec>
+  </target>
+
+  <!--
+  Linux with gcc:
+
+  x86:
+    -Di586 -DARCH='"i586"' -DLINUX -D_LARGEFILE64_SOURCE -D_GNU_SOURCE -D_LITTLE_ENDIAN
+
+  amd64:
+    -DAMD64 -DARCH='"AMD64"' -D_LP64=1
+
+  -fno-omit-frame-pointer
+  -fno-strict-aliasing
+  -O2
+  -W -Wall -Wno-unused -Wno-parentheses -Werror
+  -Wl,-soname=LibraryName
+  -Xlinker -version-script=mapfile
+  -static-libgcc -mimpure-text
+
+  Windows:
+  /Op
+  /O1
+  /W3 /WX
+  /opt:REF /incremental:no
+  /MD  
+  -->
+
+
+</project>
