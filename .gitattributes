@@ -1,1 +1,4 @@
 * text=auto !eol
+sqlite/sqlite3.c -text
+sqlite/sqlite3.h -text
+swig/sqlite4java.i -text
