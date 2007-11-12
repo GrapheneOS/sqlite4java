@@ -24,9 +24,29 @@ int sqlite3_threadsafe();
 int sqlite3_close(sqlite3* db);
 int sqlite3_extended_result_codes(sqlite3*, int onoff);
 sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+int sqlite3_changes(sqlite3*);
+int sqlite3_total_changes(sqlite3*);
+void sqlite3_interrupt(sqlite3*);
+int sqlite3_busy_timeout(sqlite3*, int ms);
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+int sqlite3_open_v2(
+  const char *filename,   /* Database filename (UTF-8) */
+  sqlite3 **ppDb,         /* OUT: SQLite db handle */
+  int flags,              /* Flags */
+  const char *zVfs        /* Name of VFS module to use */
+);
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
 
 
-// todo exec
+
+// todo sqlite3_exec
+// todo sqlite3_busy_handler
+// todo sqlite3_trace
+// todo sqlite3_profile
+// todo sqlite3_progress_handler
+//
 
 %{
 static int  global_callback(void* arg, int columnsNumber, char** columns, char** columnNames) {
