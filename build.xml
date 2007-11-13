@@ -1,17 +1,58 @@
-<project basedir="." name="sqlite4java" default="swig">
+<project basedir="." name="sqlite4java" default="test">
   <property name="target.package" value="sqlite"/>
-  
-  <target name="linux">
+
+  <property name="gcc.warnings" value="-W -Wall -Wno-unused -Wno-parentheses -Werror"/>
+  <property name="gcc.include" value="-I./sqlite -I${jdk.home}/include"/>
+
+
+
+  <target name="linux" if="os.linux">
     <property name="os" value="linux"/>
-    <property name="os.linux" value="true"/>
     <property name="gcc.params" value="
  -fpic -Di586 -DARCH='&quot;i586&quot;' -DLINUX 
  -D_LARGEFILE64_SOURCE -D_GNU_SOURCE -D_LITTLE_ENDIAN
  -fno-omit-frame-pointer -fno-strict-aliasing 
  -static-libgcc"/>
+    <property name="gcc.include.os" value="-I${jdk.home}/include/linux"/>
+    <property name="swig" value="swig"/>
   </target>
 
-  <target name="init">
+  <target name="mac" if="os.mac">
+    <property name="os" value="mac"/>
+    <property name="gcc.params" value="
+ -fPIC
+ -D_LARGEFILE64_SOURCE -D_GNU_SOURCE
+ -fno-omit-frame-pointer -fno-strict-aliasing
+ -static-libgcc"/>
+    <property name="gcc.include.os" value=""/>
+    <property name="swig" value="/Users/sereda/bin/swig"/>
+  </target>
+
+  <target name="windows" if="os.windows">
+    <property name="os" value="windows"/>
+    <property name="gcc.params" value=""/>
+    <property name="gcc.include.os" value=""/>
+  </target>
+
+  <target name="guessPlatform" unless="os">
+    <echo message="os.name=${os.name}"/>
+    <condition property="os.linux">
+      <equals arg1="${os.name}" arg2="Linux" casesensitive="false"/>
+    </condition>
+    <condition property="os.mac">
+      <equals arg1="${os.name}" arg2="Mac OS X" casesensitive="false"/>
+    </condition>
+    <condition property="os.windows">
+      <not>
+        <or>
+          <isset property="os.linux"/>
+          <isset property="os.mac"/>
+        </or>
+      </not>
+    </condition>
+  </target>
+
+  <target name="init" depends="guessPlatform, linux, mac, windows">
     <fail message="no jdk.home" unless="jdk.home"/>
     <fail message="no os" unless="os"/>
     <echo message="jdk.home=${jdk.home}"/>
@@ -25,10 +66,10 @@
   </target>
 
   <target name="swig" depends="init">
-    <exec executable="swig">
+    <exec executable="${swig}">
       <arg value="-java"/>
       <arg value="-package"/>
-      <arg value="${target.package}"/>
+      <arg value="sqlite"/>
       <arg value="-outdir"/>
       <arg value="build/java/sqlite"/>
       <arg value="-o"/>
@@ -38,8 +79,8 @@
   </target>
 
   <target name="gcc" depends="swig, init">
-    <exec command="gcc ${gcc.params} -W -Wall -Wno-unused -Wno-parentheses -Werror -I./sqlite -I${jdk.home}/include -I${jdk.home}/include/${os} -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
-    <exec command="gcc ${gcc.params} -I./sqlite -I${jdk.home}/include -I${jdk.home}/include/${os} -c sqlite/sqlite3.c -o build/sqlite3.o"/>
+    <exec command="gcc ${gcc.params} ${gcc.warnings} ${gcc.include} ${gcc.include.os} -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
+    <exec command="gcc ${gcc.params} ${gcc.include} ${gcc.include.os} -c sqlite/sqlite3.c -o build/sqlite3.o"/>
   </target>
   
   <target name="lib" depends="gcc, init">

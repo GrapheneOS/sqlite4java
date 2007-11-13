@@ -7,7 +7,9 @@
       <antReference projectDefault="true" />
       <customJdkName value="" />
       <maximumHeapSize value="128" />
-      <properties />
+      <properties>
+        <property name="jdk.home" value="/Library/Java/Home" />
+      </properties>
     </buildFile>
   </component>
   <component name="BuildJarProjectSettings">
