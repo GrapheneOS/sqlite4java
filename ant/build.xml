@@ -76,7 +76,7 @@
     </condition>
   </target>
 
-  <target name="init" depends="props, uptodate">
+  <target name="init" depends="props, uptodate, not.production">
     <mkdir dir="build"/>
     <mkdir dir="build/java/${java.package}"/>
     <mkdir dir="build/native"/>
