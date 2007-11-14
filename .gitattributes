@@ -12,4 +12,9 @@ swig/sqlite3_manual.h -text
 swig/sqlite3_swig.c -text
 swig/sqlite3_swig.h -text
 swig/sqlite3_swigged.h -text
+swig/stub/sqlite/internal/SQLiteSwigged.java -text
+swig/stub/sqlite/internal/SQLiteSwiggedJNI.java -text
+swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3.java -text
+swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3_blob.java -text
+swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3_stmt.java -text
 test/Test.java -text
