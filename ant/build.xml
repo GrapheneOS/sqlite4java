@@ -44,6 +44,16 @@
     <delete dir="dist"/>
   </target>
 
+  <target name="production" depends="clean">
+    <property name="production" value="true"/>
+    <property name="cc.buildtype" value="-DNDEBUG"/>
+  </target>
+
+  <target name="not.production" unless="production">
+    <property name="debug" value="true"/>
+    <property name="cc.buildtype" value="-DSQLITE_DEBUG=1"/>
+  </target>
+
   <target name="uptodate">
     <uptodate property="lib.uptodate" targetfile="build/${lib}">
       <srcfiles dir="swig"/>
@@ -80,7 +90,7 @@
   </target>
 
   <target name="lib.compile" depends="init" unless="sqlite.uptodate">
-    <exec command="${cc} ${cc.args} ${sqlite.cc.args} ${cc.include} -c sqlite/sqlite3.c -o build/sqlite3.o"/>
+    <exec command="${cc} ${cc.args} ${sqlite.cc.args} ${cc.buildtype} ${cc.include} -c sqlite/sqlite3.c -o build/sqlite3.o"/>
   </target>
 
   <target name="lib.wrap.compile" depends="lib.swig" unless="lib.uptodate">
