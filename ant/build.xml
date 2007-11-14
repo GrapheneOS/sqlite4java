@@ -37,7 +37,6 @@
     <property file="ant/${os}.properties"/>
     <fail message="no jdk.home" unless="jdk.home"/>
     <echo message="jdk.home=${jdk.home}"/>
-    <echo message="buildtype=${buildtype}"/>
   </target>
 
   <target name="clean">
@@ -79,7 +78,8 @@
     </condition>
   </target>
 
-  <target name="init" depends="not.production, props, uptodate">
+  <target name="init" depends="props, not.production, uptodate">
+    <echo message="buildtype=${buildtype}"/>
     <mkdir dir="build"/>
     <mkdir dir="build/java/${java.package.dir}"/>
     <mkdir dir="build/native"/>
