@@ -1,0 +1,121 @@
+<project basedir=".." name="sqlite4java" default="test">
+  <presetdef name="exec">
+    <exec failifexecutionfails="true" failonerror="true"/>
+  </presetdef>
+
+  <property file="ant/default.properties"/>
+
+  <target name="os">
+    <echo message="os.name=${os.name}"/>
+    <echo message="os.arch=${os.arch}"/>
+    <echo message="os.version=${os.version}"/>
+    <condition property="os" value="linux">
+      <os family="unix" name="Linux"/>
+    </condition>
+    <condition property="os" value="mac">
+      <os family="mac"/>
+    </condition>
+    <condition property="os" value="windows">
+      <os family="windows"/>
+    </condition>
+    <condition property="os.undefined">
+      <not>
+        <isset property="os"/>
+      </not>
+    </condition>
+  </target>
+
+  <target name="os.check" depends="os" if="os.undefined">
+    <fail message="Unrecognized operating system"/>
+  </target>
+
+  <target name="init" depends="os.check">
+    <fail message="no jdk.home" unless="jdk.home"/>
+    <echo message="jdk.home=${jdk.home}"/>
+    <echo message="os=${os}"/>
+    <property file="ant/${os}.properties"/>
+
+    <mkdir dir="build"/>
+    <mkdir dir="build/java/${java.package}"/>
+    <mkdir dir="build/native"/>
+    <mkdir dir="build/classes"/>
+    <mkdir dir="build/test"/>
+  </target>
+
+  <target name="clean">
+    <delete dir="build"/>
+    <delete dir="dist"/>
+  </target>
+
+  <target name="lib.swig" depends="init">
+    <exec command="${swig} -java -package ${java.package} 
+    -outdir build/java/${java.package} -o build/native/sqlite_wrap.c swig/sqlite.i"/>
+  </target>
+
+  <target name="lib.compile" depends="lib.swig">
+    <exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include}
+    -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
+    <exec command="${cc} ${cc.args} ${cc.include}
+    -c sqlite/sqlite3.c -o build/sqlite3.o"/>
+  </target>
+
+  <target name="lib.link" depends="lib.compile">
+    <exec command="${cc} ${cc.args} ${cc.link}
+    -o build/${lib} build/sqlite3.o build/sqlite_wrap.o"/>
+  </target>
+  
+  <target name="java.compile" depends="lib.compile">
+    <javac srcdir="build/java" destdir="build/classes" debug="on"/>
+  </target>
+  
+  <target name="java.jar" depends="java.compile">
+    <jar destfile="build/${libname}.jar" basedir="build/classes"/>
+  </target>
+
+  <target name="dist" depends="lib.link, java.jar">
+    <property name="dist.prefix" value="${os}-${os.arch}"/>
+    <mkdir dir="dist"/>
+    <mkdir dir="dist/${dist.prefix}"/>
+    <copy todir="dist" file="build/${libname}.jar"/>
+    <copy todir="dist/${dist.prefix}" file="build/${lib}"/>
+  </target>
+
+  <target name="test" depends="dist">
+    <javac srcdir="test" destdir="build/test" classpath="build/sqlite.jar" debug="on"/>
+    <java classname="Test" fork="yes">
+      <!--<jvmarg value="-verbose:jni"/>-->
+      <classpath>
+        <pathelement location="build/test"/>
+        <pathelement location="build/sqlite.jar"/>
+      </classpath>
+      <sysproperty key="java.library.path" value="build"/>
+    </java>
+  </target>
+
+  <!--
+  Linux with gcc:
+
+  x86:
+    -Di586 -DARCH='"i586"' -DLINUX -D_LARGEFILE64_SOURCE -D_GNU_SOURCE -D_LITTLE_ENDIAN
+
+  amd64:
+    -DAMD64 -DARCH='"AMD64"' -D_LP64=1
+
+  -fno-omit-frame-pointer
+  -fno-strict-aliasing
+  -O2
+  -W -Wall -Wno-unused -Wno-parentheses -Werror
+  -Wl,-soname=LibraryName
+  -Xlinker -version-script=mapfile
+  -static-libgcc -mimpure-text
+
+  Windows:
+  /Op
+  /O1
+  /W3 /WX
+  /opt:REF /incremental:no
+  /MD  
+  -->
+
+
+</project>
