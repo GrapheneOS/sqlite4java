@@ -2,6 +2,9 @@
   <presetdef name="exec">
     <exec failifexecutionfails="true" failonerror="true"/>
   </presetdef>
+  <presetdef name="copy">
+    <copy overwrite="true" failonerror="true"/>
+  </presetdef>
 
   <property file="ant/default.properties"/>
 
@@ -29,17 +32,11 @@
     <fail message="Unrecognized operating system"/>
   </target>
 
-  <target name="init" depends="os.check">
-    <fail message="no jdk.home" unless="jdk.home"/>
-    <echo message="jdk.home=${jdk.home}"/>
+  <target name="props" depends="os.check">
     <echo message="os=${os}"/>
     <property file="ant/${os}.properties"/>
-
-    <mkdir dir="build"/>
-    <mkdir dir="build/java/${java.package}"/>
-    <mkdir dir="build/native"/>
-    <mkdir dir="build/classes"/>
-    <mkdir dir="build/test"/>
+    <fail message="no jdk.home" unless="jdk.home"/>
+    <echo message="jdk.home=${jdk.home}"/>
   </target>
 
   <target name="clean">
@@ -47,28 +44,60 @@
     <delete dir="dist"/>
   </target>
 
-  <target name="lib.swig" depends="init">
+  <target name="uptodate">
+    <uptodate property="lib.uptodate" targetfile="build/${lib}">
+      <srcfiles dir="swig"/>
+      <srcfiles dir="build" includes="**/*.c"/>
+      <srcfiles dir="build" includes="**/*.o"/>
+    </uptodate>
+    <uptodate property="sqlite.uptodate" targetfile="build/sqlite3.o">
+      <srcfiles dir="sqlite"/>
+    </uptodate>
+    <uptodate property="jar.uptodate" targetfile="build/${libname}.jar">
+      <srcfiles dir="swig"/>
+      <srcfiles dir="build/java"/>
+      <srcfiles dir="build/classes"/>
+    </uptodate>
+    <condition property="all.uptodate">
+      <and>
+        <isset property="lib.uptodate"/>
+        <isset property="jar.uptodate"/>
+      </and>
+    </condition>
+  </target>
+
+  <target name="init" depends="props, uptodate">
+    <mkdir dir="build"/>
+    <mkdir dir="build/java/${java.package}"/>
+    <mkdir dir="build/native"/>
+    <mkdir dir="build/classes"/>
+    <mkdir dir="build/test"/>
+  </target>
+
+  <target name="lib.swig" depends="init" unless="all.uptodate">
     <exec command="${swig} -java -package ${java.package} 
     -outdir build/java/${java.package} -o build/native/sqlite_wrap.c swig/sqlite.i"/>
   </target>
 
-  <target name="lib.compile" depends="lib.swig">
-    <exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include}
-    -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
-    <exec command="${cc} ${cc.args} ${cc.include}
-    -c sqlite/sqlite3.c -o build/sqlite3.o"/>
+  <target name="lib.compile" depends="init" unless="sqlite.uptodate">
+    <exec command="${cc} ${cc.args} ${sqlite.cc.args} ${cc.include} -c sqlite/sqlite3.c -o build/sqlite3.o"/>
   </target>
 
-  <target name="lib.link" depends="lib.compile">
+  <target name="lib.wrap.compile" depends="lib.swig" unless="lib.uptodate">
+    <exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include}
+      -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
+  </target>
+
+  <target name="lib.link" depends="lib.compile, lib.wrap.compile" unless="lib.uptodate">
     <exec command="${cc} ${cc.args} ${cc.link}
     -o build/${lib} build/sqlite3.o build/sqlite_wrap.o"/>
   </target>
   
-  <target name="java.compile" depends="lib.compile">
+  <target name="java.compile" depends="lib.wrap.compile" unless="jar.uptodate">
     <javac srcdir="build/java" destdir="build/classes" debug="on"/>
   </target>
   
-  <target name="java.jar" depends="java.compile">
+  <target name="java.jar" depends="java.compile" unless="jar.uptodate">
     <jar destfile="build/${libname}.jar" basedir="build/classes"/>
   </target>
 
@@ -86,9 +115,9 @@
       <!--<jvmarg value="-verbose:jni"/>-->
       <classpath>
         <pathelement location="build/test"/>
-        <pathelement location="build/sqlite.jar"/>
+        <pathelement location="dist/sqlite.jar"/>
       </classpath>
-      <sysproperty key="java.library.path" value="build"/>
+      <sysproperty key="java.library.path" value="dist/${dist.prefix}"/>
     </java>
   </target>
 
