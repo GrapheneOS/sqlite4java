@@ -8,8 +8,8 @@ idea/sqlite4java.ipr -text
 sqlite/sqlite3.c -text
 sqlite/sqlite3.h -text
 swig/sqlite.i -text
-swig/sqlite3_adapted.h -text
 swig/sqlite3_manual.h -text
 swig/sqlite3_swig.c -text
 swig/sqlite3_swig.h -text
+swig/sqlite3_swigged.h -text
 test/Test.java -text

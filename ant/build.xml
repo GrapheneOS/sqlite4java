@@ -81,7 +81,7 @@
 
   <target name="init" depends="not.production, props, uptodate">
     <mkdir dir="build"/>
-    <mkdir dir="build/java/${java.package}"/>
+    <mkdir dir="build/java/${java.package.dir}"/>
     <mkdir dir="build/native"/>
     <mkdir dir="build/classes"/>
     <mkdir dir="build/test"/>
@@ -89,7 +89,7 @@
 
   <target name="lib.swig" depends="init" unless="all.uptodate">
     <exec command="${swig} -java -package ${java.package} 
-    -outdir build/java/${java.package} -o build/native/sqlite_wrap.c swig/sqlite.i"/>
+    -outdir build/java/${java.package.dir} -o build/native/sqlite_wrap.c swig/sqlite.i"/>
   </target>
 
   <target name="lib.compile" depends="init" unless="sqlite.uptodate">

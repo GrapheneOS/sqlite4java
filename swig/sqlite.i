@@ -1,9 +1,9 @@
-%module SQLite
+%module SQLiteSwigged
 %{
 #include <sqlite3.h>
 %}
 
-%include "sqlite3_adapted.h"
+%include "sqlite3_swigged.h"
 //
 //
 //%typemap(in) sqlite3** (sqlite3* temp) {
