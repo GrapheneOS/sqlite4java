@@ -37,11 +37,12 @@
     <property file="ant/${os}.properties"/>
     <fail message="no jdk.home" unless="jdk.home"/>
     <echo message="jdk.home=${jdk.home}"/>
+    <echo message="buildtype=${buildtype}"/>
   </target>
 
   <target name="clean">
     <delete dir="build"/>
-    <delete dir="dist"/>
+    <!--<delete dir="dist"/>-->
   </target>
 
   <target name="production" depends="clean">
@@ -52,8 +53,8 @@
 
   <target name="not.production" unless="production">
     <property name="debug" value="true"/>
-      <property name="buildtype" value="debug"/>
-    <property name="cc.buildtype" value="-DSQLITE_DEBUG=1"/>
+    <property name="buildtype" value="debug"/>
+    <property name="cc.buildtype" value="-DSQLITE_DEBUG=1 ${cc.debug}"/>
   </target>
 
   <target name="uptodate">
@@ -78,7 +79,7 @@
     </condition>
   </target>
 
-  <target name="init" depends="props, uptodate, not.production">
+  <target name="init" depends="not.production, props, uptodate">
     <mkdir dir="build"/>
     <mkdir dir="build/java/${java.package}"/>
     <mkdir dir="build/native"/>
