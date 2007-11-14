@@ -2948,7 +2948,7 @@ void sqlite3_soft_heap_limit(int);
 ** Call this routine with onoff==1 to turn extension loading on
 ** and call it with onoff==0 to turn it back off again.
 */
-int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+// --OUT-- int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
 
 /*
 ** CAPI3REF: Make Arrangements To Automatically Load An Extension
@@ -2991,7 +2991,8 @@ int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
 ** This interface is experimental and is subject to change or
 ** removal in future releases of SQLite.
 */
-void sqlite3_reset_auto_extension(void);
+// --OUT--
+//void sqlite3_reset_auto_extension(void);
 
 
 /*
