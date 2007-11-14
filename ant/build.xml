@@ -46,11 +46,13 @@
 
   <target name="production" depends="clean">
     <property name="production" value="true"/>
+    <property name="buildtype" value="release"/>
     <property name="cc.buildtype" value="-DNDEBUG"/>
   </target>
 
   <target name="not.production" unless="production">
     <property name="debug" value="true"/>
+      <property name="buildtype" value="debug"/>
     <property name="cc.buildtype" value="-DSQLITE_DEBUG=1"/>
   </target>
 
@@ -113,10 +115,9 @@
 
   <target name="dist" depends="lib.link, java.jar">
     <property name="dist.prefix" value="${os}-${os.arch}"/>
-    <mkdir dir="dist"/>
-    <mkdir dir="dist/${dist.prefix}"/>
+    <mkdir dir="dist/${buildtype}/${dist.prefix}"/>
     <copy todir="dist" file="build/${libname}.jar"/>
-    <copy todir="dist/${dist.prefix}" file="build/${lib}"/>
+    <copy todir="dist/${buildtype}/${dist.prefix}" file="build/${lib}"/>
   </target>
 
   <target name="test" depends="dist">
@@ -127,7 +128,7 @@
         <pathelement location="build/test"/>
         <pathelement location="dist/sqlite.jar"/>
       </classpath>
-      <sysproperty key="java.library.path" value="dist/${dist.prefix}"/>
+      <sysproperty key="java.library.path" value="dist/${buildtype}/${dist.prefix}"/>
     </java>
   </target>
 
