@@ -10,7 +10,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JN
 {
   if (!filename) return -1;
   if (!result) return -2;
-  jsize sz = GetArrayLength(jenv, result);
+  jsize sz = (*jenv)->GetArrayLength(jenv, result);
   if (sz != 1) return -3;
   const char *fn = (*jenv)->GetStringUTFChars(jenv, filename, 0);
   sqlite3* db = 0;
