@@ -12,14 +12,14 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JN
   if (!result) return -2;
   jsize sz = GetArrayLength(jenv, result);
   if (sz != 1) return -3;
-  const char *fn = GetStringUTFChars(jenv, filename, 0);
+  const char *fn = (*jenv)->GetStringUTFChars(jenv, filename, 0);
   sqlite3* db = 0;
   int rc = sqlite3_open_v2(fn, &db, (int)flags, 0);
   if (db) {
     jlong r = *((jlong*)&db);
-    SetLongArrayRegion(jenv, result, 0, 1, &r);
+    (*jenv)->SetLongArrayRegion(jenv, result, 0, 1, &r);
   }
-  ReleaseStringUTFChars(jenv, filename, fn);
+  (*jenv)->ReleaseStringUTFChars(jenv, filename, fn);
   return rc;
 }
 
