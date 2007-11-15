@@ -14,13 +14,6 @@ void *sqlite3_profile(sqlite3*,
 
 void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 
-int sqlite3_open_v2(
-  const char *filename,   /* Database filename (UTF-8) */
-  sqlite3 **ppDb,         /* OUT: SQLite db handle */
-  int flags,              /* Flags */
-  const char *zVfs        /* Name of VFS module to use */
-);
-
 int sqlite3_prepare_v2(
   sqlite3 *db,            /* Database handle */
   const char *zSql,       /* SQL statement, UTF-8 encoded */
@@ -60,3 +53,15 @@ int sqlite3_blob_open(
 
 int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
 int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+// done:
+
+int sqlite3_open_v2(
+  const char *filename,   /* Database filename (UTF-8) */
+  sqlite3 **ppDb,         /* OUT: SQLite db handle */
+  int flags,              /* Flags */
+  const char *zVfs        /* Name of VFS module to use */
+);
+
