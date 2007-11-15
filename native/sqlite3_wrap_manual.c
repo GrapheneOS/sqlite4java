@@ -17,7 +17,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JN
   int rc = sqlite3_open_v2(fn, &db, (int)flags, 0);
   if (db) {
     jlong r = 0;
-    *((sqlite**)&r) = db;
+    *((sqlite3**)&r) = db;
     (*jenv)->SetLongArrayRegion(jenv, result, 0, 1, &r);
   }
   (*jenv)->ReleaseStringUTFChars(jenv, filename, fn);
