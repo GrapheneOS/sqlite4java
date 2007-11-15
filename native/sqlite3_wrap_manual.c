@@ -93,9 +93,9 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1prepare_1v2
 JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jstring jvalue)
 {
-  if (!jstmt) return -1;
-  if (!jstring) return -2;
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
+  if (!stmt) return -1;
+  if (!jvalue) return -2;
   int length = (*jenv)->GetStringLength(jenv, jvalue) * sizeof(jchar);
   jboolean copied;
   const jchar *value;
@@ -109,7 +109,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(
   }
   if (!value) return -3;
 
-  int rc = sqlite3_bind_text16(sqlite3_stmt*, jindex, value, length, destructor);
+  int rc = sqlite3_bind_text16(stmt, jindex, value, length, destructor);
 
   if (length > 0) {
     (*jenv)->ReleaseStringCritical(jenv, jvalue, value);
