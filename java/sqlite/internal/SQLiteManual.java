@@ -33,4 +33,10 @@ public class SQLiteManual {
     long ptr = ppStmt[0];
     return ptr == 0 ? null : new SWIGTYPE_p_sqlite3_stmt(ptr, true);
   }
+
+  public static int sqlite3_bind_text(SWIGTYPE_p_sqlite3_stmt stmt, int index, String value) {
+    assert value != null;
+    assert index >= 1;
+    return SQLiteManualJNI.sqlite3_bind_text(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), index, value);
+  }
 }

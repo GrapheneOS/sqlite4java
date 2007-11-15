@@ -1,6 +1,25 @@
 SQLite Java adapter implementation notes.
 
+UTF Note: In most cases, we (or swig) convert from Java String to char*
+using GetStringUTFChars and back using NewStringUTF. The problem is that
+modified UTF-8 is used by Java JNI, which is somewhat different from
+standard UTF-8. This shouldn't be a problem because the methods we intentionally
+use it should normally contain only ASCII chars. Safe methods for passing characters
+is sqlite3_bind_text and sqlite3_column_text.
+
+
 Not implemented:
-* vfs in sqlite3_open_v2
-* callbacks in sqlite3_exec
-* pzTail in sqlite3_prepare_v2
+* sqlite3_open_v2: does not support vfs
+* sqlite3_exec: no callbacks
+* sqlite3_prepare_v2: pzTail is ignored
+
+
+Swig-created risky UTF methods:
+* sqlite3_complete
+* sqlite3_bind_parameter_name
+* sqlite3_bind_parameter_index
+* sqlite3_column_name
+* sqlite3_column_database_name
+* sqlite3_column_table_name
+* sqlite3_column_origin_name
+* sqlite3_column_decltype_name

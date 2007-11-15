@@ -1,6 +1,9 @@
 package sqlite.internal;
 
-import static sqlite.internal.SQLiteConstants.*;
+import static sqlite.internal.SQLiteConstants.Open;
+import static sqlite.internal.SQLiteConstants.Result;
+
+import java.util.Random;
 
 public class SQLiteBasicTests extends SQLiteTestFixture {
   private static final int RW = Open.SQLITE_OPEN_READWRITE | Open.SQLITE_OPEN_CREATE;
@@ -110,4 +113,32 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     finalize(stmt);
     assertOk();
   }
+
+  public void testBindText() {
+    open(tempName("db"), RW);
+    exec("create table x (x)");
+    SWIGTYPE_p_sqlite3_stmt stmt = prepare("insert into x (x) values (?)");
+    assertOk();
+    bsr(stmt, "");
+    bsr(stmt, "short text");
+    StringBuilder b = new StringBuilder();
+    Random r = new Random();
+    for (int i = 0; i < 100000; i++) {
+      int c = r.nextInt(0x110000);
+      b.appendCodePoint(c);
+    }
+    bsr(stmt, b.toString());
+    finalize(stmt);
+    close();
+  }
+
+  private void bsr(SWIGTYPE_p_sqlite3_stmt stmt, String value) {
+    bindText(stmt, 1, value);
+    assertOk();
+    step(stmt);
+    assertOk();
+    reset(stmt);
+    assertOk();
+  }
+
 }

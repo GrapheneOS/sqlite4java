@@ -112,4 +112,8 @@ public abstract class SQLiteTestFixture extends TestCase {
   protected void finalize(SWIGTYPE_p_sqlite3_stmt stmt) {
     myLastResult = SQLiteSwigged.sqlite3_finalize(stmt);
   }
+
+  protected void bindText(SWIGTYPE_p_sqlite3_stmt stmt, int index, String value) {
+    myLastResult = SQLiteManual.sqlite3_bind_text(stmt, index, value);
+  }
 }

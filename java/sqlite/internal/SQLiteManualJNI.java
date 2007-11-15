@@ -24,4 +24,12 @@ class SQLiteManualJNI {
    * @return result code
    */
   public final static native int sqlite3_prepare_v2(long db, String sql, long[] ppStmt);
+
+  /**
+   * @param stmt prepared statement
+   * @param index index of param, 1-based
+   * @param value string value, UTF-safe
+   * @return result code
+   */
+  public final static native int sqlite3_bind_text(long stmt, int index, String value);
 }

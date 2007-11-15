@@ -10,10 +10,12 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JN
 {
   if (!jfilename) return -1;
   if (!jresult) return -2;
-  const char *fn = (*jenv)->GetStringUTFChars(jenv, jfilename, 0);
+  const char *filename = (*jenv)->GetStringUTFChars(jenv, jfilename, 0);
+  if (!filename) return -3;
   sqlite3* db = 0;
 
-  int rc = sqlite3_open_v2(fn, &db, (int)jflags, 0);
+  // todo(maybe) call jresult's getBytes("UTF-8") method to get filename in correct UTF-8
+  int rc = sqlite3_open_v2(filename, &db, (int)jflags, 0);
 
   if (db && rc != SQLITE_OK) {
     // on error, open returns db anyway
@@ -26,7 +28,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JN
     *((sqlite3**)&r) = db;
     (*jenv)->SetLongArrayRegion(jenv, jresult, 0, 1, &r);
   }
-  (*jenv)->ReleaseStringUTFChars(jenv, jfilename, fn);
+  (*jenv)->ReleaseStringUTFChars(jenv, jfilename, filename);
   return rc;
 }
 
@@ -36,7 +38,11 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv
   if (!jdb) return -1;
   if (!jsql) return -2;
   sqlite3* db = *(sqlite3**)&jdb;
+
+  // todo(maybe) as in open_v2, convert to correct UTF-8
   const char *sql = (*jenv)->GetStringUTFChars(jenv, jsql, 0);
+  if (!sql) return -3;
+
   char* msg = 0;
   char** msgPtr = (joutError) ? &msg : 0;
 
@@ -49,7 +55,9 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv
       jsize sz = (*jenv)->GetArrayLength(jenv, joutError);
       if (sz == 1) {
         jstring err = (*jenv)->NewStringUTF(jenv, msg);
-        (*jenv)->SetObjectArrayElement(jenv, joutError, 0, err);
+        if (err) {
+          (*jenv)->SetObjectArrayElement(jenv, joutError, 0, err);
+        }
       }
     }
     sqlite3_free(msg);
@@ -66,6 +74,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1prepare_1v2
   if (!jresult) return -3;
   sqlite3* db = *(sqlite3**)&jdb;
   const char *sql = (*jenv)->GetStringUTFChars(jenv, jsql, 0);
+  if (!sql) return -4;
   sqlite3_stmt* stmt = (sqlite3_stmt*)0;
   const char *tail = 0;
 
@@ -81,13 +90,33 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1prepare_1v2
   return rc;
 }
 
-int sqlite3_prepare_v2(
-  sqlite3 *db,            /* Database handle */
-  const char *zSql,       /* SQL statement, UTF-8 encoded */
-  int nByte,              /* Maximum length of zSql in bytes. */
-  sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-  const char **pzTail     /* OUT: Pointer to unused portion of zSql */
-);
+JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
+  jlong jstmt, jint jindex, jstring jvalue)
+{
+  if (!jstmt) return -1;
+  if (!jstring) return -2;
+  sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
+  int length = (*jenv)->GetStringLength(jenv, jvalue) * sizeof(jchar);
+  jboolean copied;
+  const jchar *value;
+  void (*destructor)(void*);
+  if (length > 0) {
+    value = (*jenv)->GetStringCritical(jenv, jvalue, &copied);
+    destructor = SQLITE_TRANSIENT;
+  } else {
+    value = (jchar*)"";
+    destructor = SQLITE_STATIC;
+  }
+  if (!value) return -3;
+
+  int rc = sqlite3_bind_text16(sqlite3_stmt*, jindex, value, length, destructor);
+
+  if (length > 0) {
+    (*jenv)->ReleaseStringCritical(jenv, jvalue, value);
+  }
+
+  return rc;
+}
 
 
 #ifdef __cplusplus
