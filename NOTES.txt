@@ -1,0 +1,6 @@
+SQLite Java adapter implementation notes.
+
+Not implemented:
+* vfs in sqlite3_open_v2
+* callbacks in sqlite3_exec
+* pzTail in sqlite3_prepare_v2

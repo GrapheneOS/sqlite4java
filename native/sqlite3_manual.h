@@ -1,11 +1,3 @@
-int sqlite3_exec(
-   sqlite3*,                                  /* An open database */
-   const char *sql,                           /* SQL to be evaluted */
-   int (*callback)(void*,int,char**,char**),  /* Callback function */
-   void *,                                    /* 1st argument to callback */
-   char **errmsg                              /* Error msg written here */
-);
-
 int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
 
 void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
@@ -14,13 +6,6 @@ void *sqlite3_profile(sqlite3*,
 
 void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 
-int sqlite3_prepare_v2(
-  sqlite3 *db,            /* Database handle */
-  const char *zSql,       /* SQL statement, UTF-8 encoded */
-  int nByte,              /* Maximum length of zSql in bytes. */
-  sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-  const char **pzTail     /* OUT: Pointer to unused portion of zSql */
-);
 
 int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
 int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
@@ -64,4 +49,13 @@ int sqlite3_open_v2(
   int flags,              /* Flags */
   const char *zVfs        /* Name of VFS module to use */
 );
+
+int sqlite3_exec(
+   sqlite3*,                                  /* An open database */
+   const char *sql,                           /* SQL to be evaluted */
+   int (*callback)(void*,int,char**,char**),  /* Callback function */
+   void *,                                    /* 1st argument to callback */
+   char **errmsg                              /* Error msg written here */
+);
+
 

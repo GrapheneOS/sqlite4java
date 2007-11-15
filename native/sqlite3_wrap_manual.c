@@ -54,6 +54,28 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv
   return rc;
 }
 
+JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
+  jlong jdb, jstring jsql, jlongArray jresult)
+{
+  if (!jdb) return -1;
+  if (!jsql) return -2;
+  if (!jresult) return -3;
+  sqlite3* db = *(sqlite3**)&jdb;
+  const char *sql = (*jenv)->GetStringUTFChars(jenv, jsql, 0);
+  sqlite3_stmt* stmt = (sqlite3_stmt*)0;
+
+  int rc = sqlite3_prepare_v2(db, sql, )
+}
+
+int sqlite3_prepare_v2(
+  sqlite3 *db,            /* Database handle */
+  const char *zSql,       /* SQL statement, UTF-8 encoded */
+  int nByte,              /* Maximum length of zSql in bytes. */
+  sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
+  const char **pzTail     /* OUT: Pointer to unused portion of zSql */
+);
+
+
 #ifdef __cplusplus
 }
 #endif
