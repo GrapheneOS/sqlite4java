@@ -100,12 +100,12 @@
 
   <target name="lib.wrap.compile" depends="lib.swig" unless="lib.uptodate">
     <exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include} -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
-    <exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include} -c native/sqlite_wrap_manual.c -o build/sqlite_wrap_manual.o"/>
+    <exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include} -c native/sqlite3_wrap_manual.c -o build/sqlite3_wrap_manual.o"/>
   </target>
 
   <target name="lib.link" depends="lib.compile, lib.wrap.compile" unless="lib.uptodate">
     <exec command="${cc} ${cc.args} ${cc.link} -o build/${lib}
-    build/sqlite3.o build/sqlite_wrap.o build/sqlite_wrap_manual.o"/>
+    build/sqlite3.o build/sqlite_wrap.o build/sqlite3_wrap_manual.o"/>
   </target>
   
   <target name="java.compile" depends="lib.swig" unless="jar.uptodate">
