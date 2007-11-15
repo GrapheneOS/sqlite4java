@@ -136,7 +136,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     bindText(stmt, 1, value);
     assertOk();
     step(stmt);
-    assertOk();
+    assertResult(Result.SQLITE_DONE);
     reset(stmt);
     assertOk();
   }
