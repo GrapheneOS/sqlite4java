@@ -10,7 +10,6 @@ native/sqlite3_wrap_manual.c -text
 sqlite/sqlite3.c -text
 sqlite/sqlite3.h -text
 swig/sqlite.i -text
-swig/sqlite3_swig.h -text
 swig/sqlite3_swigged.h -text
 swig/stub/sqlite/internal/SQLiteSwigged.java -text
 swig/stub/sqlite/internal/SQLiteSwiggedJNI.java -text
