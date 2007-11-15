@@ -27,7 +27,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JN
 }
 
 JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
-  jlong jdb, jstring jsql, jstringArray jparseError)
+  jlong jdb, jstring jsql, jobjectArray jparseError)
 {
   if (!jdb) return -1;
   if (!jsql) return -2;
@@ -41,10 +41,11 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv
   (*jenv)->ReleaseStringUTFChars(jenv, jsql, sql);
   if (msg) {
     if (jparseError) {
+      // warning! can fail with exception here if bad array is passed
       jsize sz = (*jenv)->GetArrayLength(jenv, jparseError);
       if (sz == 1) {
         jstring err = (*jenv)->NewStringUTF(jenv, msg);
-        (*jenv)->SetStringArrayRegion(jenv, jparseError, 0, 1, &err);
+        (*jenv)->SetObjectArrayElement(jenv, jparseError, 0, err);
       }
     }
     sqlite3_free(msg);
