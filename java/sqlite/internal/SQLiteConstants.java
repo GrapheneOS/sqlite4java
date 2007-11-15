@@ -16,7 +16,7 @@ public interface SQLiteConstants {
     public static final int SQLITE_OPEN_MASTER_JOURNAL = 0x00004000;
   }
 
-  interface Return {
+  interface Result {
     public static final int SQLITE_OK = 0;   /* Successful result */
     public static final int SQLITE_ERROR = 1;   /* SQL error or missing database */
     public static final int SQLITE_INTERNAL = 2;   /* NOT USED. Internal logic error in SQLite */

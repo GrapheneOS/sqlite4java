@@ -4,6 +4,7 @@ import static sqlite.internal.SQLiteConstants.*;
 public class Test {
   public static void main(String[] args) {
     System.loadLibrary("sqlite");
+
     System.out.println("SQLiteSwigged.sqlite3_libversion()=" + SQLiteSwigged.sqlite3_libversion());
     System.out.println("SQLiteSwigged.sqlite3_libversion_number()=" + SQLiteSwigged.sqlite3_libversion_number());
     System.out.println("SQLiteSwigged.sqlite3_threadsafe()=" + SQLiteSwigged.sqlite3_threadsafe());
@@ -22,6 +23,12 @@ public class Test {
 
     rc[0] = SQLiteManual.sqlite3_exec(db, "create blablabla; select * from xxx;", parseError);
     System.out.println("SQLiteSwigged.exec()=" + rc[0] + ", parseError=" + parseError[0]);
+
+    SWIGTYPE_p_sqlite3_stmt stmt = SQLiteManual.sqlite3_prepare_v2(db, "insert into xxx (xxx) values(?)", rc);
+    System.out.println("SQLiteManual.sqlite3_prepare_v2()=" + rc[0] + ",stmt=" + stmt);
+
+    rc[0] = SQLiteSwigged.sqlite3_finalize(stmt);
+    System.out.println("SQLiteManual.sqlite3_prepare_v2()=" + rc[0] + ",stmt=" + stmt);
 
     rc[0] = SQLiteSwigged.sqlite3_close(db);
     System.out.println("SQLiteSwigged.sqlite3_close()=" + rc[0]);

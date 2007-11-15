@@ -16,4 +16,12 @@ class SQLiteManualJNI {
    * @return
    */
   public final static native int sqlite3_exec(long db, String sql, String[] ppParseError);
+
+  /**
+   * @param db handle
+   * @param sql sql statement
+   * @param ppStmt long[1] container for statement handle
+   * @return result code
+   */
+  public final static native int sqlite3_prepare_v2(long db, String sql, long[] ppStmt);
 }

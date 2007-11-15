@@ -127,6 +127,31 @@
   </target>
 
   <target name="test" depends="dist">
+    <javac srcdir="test" destdir="build/test" debug="on">
+      <classpath>
+        <pathelement location="build/sqlite.jar"/>
+        <pathelement location="lib/junit.jar"/>
+      </classpath>
+    </javac>
+    <mkdir dir="build/testrun"/>
+    <junit fork="yes" printsummary="true" haltonfailure="true" showoutput="true">
+      <formatter type="plain"/>
+      <!--<jvmarg value="-verbose:jni"/>-->
+      <jvmarg value="-Djava.awt.headless=true"/>
+      <jvmarg value="-ea"/>
+      <classpath>
+        <pathelement location="build/test"/>
+        <pathelement location="dist/sqlite.jar"/>
+        <pathelement location="lib/junit.jar"/>
+      </classpath>
+      <sysproperty key="java.library.path" value="dist/${buildtype}/${dist.prefix}"/>
+      <batchtest todir="build/testrun">
+        <fileset dir="test" includes="**/*Tests.java"/>
+      </batchtest>
+    </junit>
+  </target>
+
+  <target name="test2" depends="dist">
     <javac srcdir="test" destdir="build/test" classpath="build/sqlite.jar" debug="on"/>
     <java classname="Test" fork="yes">
       <!--<jvmarg value="-verbose:jni"/>-->
