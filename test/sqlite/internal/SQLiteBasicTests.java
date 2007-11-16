@@ -4,6 +4,7 @@ import static sqlite.internal.SQLiteConstants.Open;
 import static sqlite.internal.SQLiteConstants.Result;
 
 import java.util.Random;
+import java.io.*;
 
 public class SQLiteBasicTests extends SQLiteTestFixture {
   private static final int RW = Open.SQLITE_OPEN_READWRITE | Open.SQLITE_OPEN_CREATE;
@@ -130,6 +131,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
   public void testTextBindAndColumn() {
     String name = tempName("db");
     open(name, RW);
+//    exec("PRAGMA encoding = \"UTF-16\";"); 
     exec("create table x (x)");
     SWIGTYPE_p_sqlite3_stmt stmt = prepare("insert into x (x) values (?)");
     String v = garbageString();
@@ -146,19 +148,46 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     assertOk();
     step(stmt);
     assertResult(Result.SQLITE_DONE);
+    
+    write(v, "/tmp/v1.utf16", "UTF-16");
+    write(v2, "/tmp/v2.utf16", "UTF-16");
+    write(v, "/tmp/v1.utf8", "UTF-8");
+    write(v2, "/tmp/v2.utf8", "UTF-8");
 
     assertEquals(v.length(), v2.length());
     assertEquals(v, v2);
   }
 
+  private void write(String s, String f, String encoding) {
+  try {
+    FileOutputStream out = new FileOutputStream(new File(f));
+    BufferedOutputStream bout = new BufferedOutputStream(out);
+    DataOutputStream dout = new DataOutputStream(bout);
+    try {
+      byte[] bytes = s.getBytes(encoding);
+      dout.write(bytes);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    dout.close();
+    bout.close();
+    out.close();
+  } catch (IOException e) {
+    e.printStackTrace();
+  }
+  }
+  
   private static String garbageString() {
     StringBuilder b = new StringBuilder();
     Random r = new Random();
-    for (int i = 0; i < 100000; i++) {
-      int c = r.nextInt(0x110000);
-      b.appendCodePoint(c);
-    }
-    b.setCharAt(b.length() / 2, (char)0);
+//    for (int i = 0; i < 1000; i++) {
+//      int c = r.nextInt(0x10000);
+//      int c = r.nextInt(0x110000);
+//      b.appendCodePoint(c);
+//    }
+//    b.setCharAt(b.length() / 2, (char)0);
+    b.appendCodePoint(0x1D11E);
+    b.appendCodePoint(0x10000);
     String v = b.toString();
     return v;
   }
