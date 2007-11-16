@@ -143,6 +143,9 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     step(stmt);
     assertResult(Result.SQLITE_ROW);
     String v2 = columnText(stmt, 0);
+    assertOk();
+    step(stmt);
+    assertResult(Result.SQLITE_DONE);
 
     assertEquals(v, v2);
   }
