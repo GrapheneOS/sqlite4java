@@ -149,27 +149,26 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     step(stmt);
     assertResult(Result.SQLITE_DONE);
     
-    write(v, "/tmp/v1.utf16", "UTF-16");
-    write(v2, "/tmp/v2.utf16", "UTF-16");
-    write(v, "/tmp/v1.utf8", "UTF-8");
-    write(v2, "/tmp/v2.utf8", "UTF-8");
+    write(v, "/tmp/v1");
+    write(v2, "/tmp/v2");
+//    write(v, "/tmp/v1.utf8", "UTF-8");
+//    write(v2, "/tmp/v2.utf8", "UTF-8");
 
-    assertEquals(v.length(), v2.length());
+//    assertEquals(v.length(), v2.length());
+
+    
     assertEquals(v, v2);
   }
 
-  private void write(String s, String f, String encoding) {
+  private void write(String s, String f) {
   try {
     FileOutputStream out = new FileOutputStream(new File(f));
     BufferedOutputStream bout = new BufferedOutputStream(out);
-    DataOutputStream dout = new DataOutputStream(bout);
-    try {
-      byte[] bytes = s.getBytes(encoding);
-      dout.write(bytes);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    dout.close();
+    PrintWriter writer = new PrintWriter(bout);
+    int len = s.length();
+    for (int i = 0; i < len; i++)
+      writer.println(s.codePointAt(i));
+    writer.close();
     bout.close();
     out.close();
   } catch (IOException e) {
