@@ -47,4 +47,16 @@ public interface SQLiteConstants {
     public static final int SQLITE_ROW = 100;  /* sqlite=3;_step() has another row ready */
     public static final int SQLITE_DONE = 101;  /* sqlite=3;_step() has finished executing */
   }
+
+  interface Wrapper {
+    /**
+     * Something strange happened.
+     */
+    public static final int WRAPPER_WEIRD = -99;
+
+    /**
+     * Method called in thread that wasn't allowed.
+     */
+    public static final int WRAPPER_CONFINEMENT_VIOLATED = -98;
+  }
 }

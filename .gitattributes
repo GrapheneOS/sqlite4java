@@ -5,6 +5,8 @@ ant/linux.properties -text
 ant/mac.properties -text
 idea/sqlite4java.iml -text
 idea/sqlite4java.ipr -text
+java/sqlite/DBConnection.java -text
+java/sqlite/DBException.java -text
 lib/junit.jar -text
 native/sqlite3_manual.h -text
 native/sqlite3_wrap_manual.c -text
@@ -18,5 +20,6 @@ swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3.java -text
 swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3_blob.java -text
 swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3_stmt.java -text
 test/Test.java -text
+test/sqlite/DBConnectionTests.java -text
 test/sqlite/internal/SQLiteBasicTests.java -text
 test/sqlite/internal/SQLiteTestFixture.java -text

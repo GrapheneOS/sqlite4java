@@ -122,7 +122,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     assertOk();
     bsr(stmt, "");
     bsr(stmt, "short text");
-    String v = garbageString();
+    String v = garbageString(100000);
     bsr(stmt, v);
     finalize(stmt);
     close();
@@ -134,7 +134,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
 //    exec("PRAGMA encoding = \"UTF-16\";"); 
     exec("create table x (x)");
     SWIGTYPE_p_sqlite3_stmt stmt = prepare("insert into x (x) values (?)");
-    String v = garbageString();
+    String v = garbageString(100000);
     bsr(stmt, v);
     finalize(stmt);
     close();
@@ -149,15 +149,21 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     step(stmt);
     assertResult(Result.SQLITE_DONE);
 
-    write(v, "/tmp/v1");
-    write(v2, "/tmp/v2");
-//    write(v, "/tmp/v1.utf8", "UTF-8");
-//    write(v2, "/tmp/v2.utf8", "UTF-8");
-
-//    assertEquals(v.length(), v2.length());
-
-
-    assertEquals(v, v2);
+    if (!v.equals(v2)) {
+      // detect bad code points
+      int i = 0, i2 = 0;
+      int len = v.length(), len2 = v2.length();
+      while (i < len || i2 < len2) {
+        int c = i < len ? v.codePointAt(i) : 0;
+        int c2 = i2 < len2 ? v2.codePointAt(i2) : 0;
+        if (c != c2)
+          assertEquals("[" + i + "][" + i2 + "]", "0x" + Integer.toHexString(c).toUpperCase(), "0x" + Integer.toHexString(c2).toUpperCase());
+        if (i < len)
+          i = v.offsetByCodePoints(i, 1);
+        if (i2 < len2)
+          i2 = v2.offsetByCodePoints(i2, 1);
+      }
+    }
   }
 
   private void write(String s, String f) {
@@ -176,21 +182,22 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     }
   }
 
-  private static String garbageString() {
+  private static String garbageString(int count) {
     StringBuilder b = new StringBuilder();
     Random r = new Random();
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < count; i++) {
       if (i == 500) {
         b.appendCodePoint(0);
         continue;
       }
       int c = r.nextInt(0x110000);
-      if (c >= 0xD800 && c < 0xDFFF) {
+      if (c >= 0xD800 && c <= 0xDFFF) {
         // surrogate
         continue;
       }
-      if (c == 0xFFFF || c == 0xFFFE || c == 0xFEFF)
+      if (c == 0xFFFF || c == 0xFFFE || c == 0xFEFF) {
         continue;
+      }
 //      int c = r.nextInt(0x110000);
       b.appendCodePoint(c);
     }
