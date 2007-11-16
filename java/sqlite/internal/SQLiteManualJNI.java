@@ -32,4 +32,12 @@ class SQLiteManualJNI {
    * @return result code
    */
   public final static native int sqlite3_bind_text(long stmt, int index, String value);
+
+  /**
+   * @param stmt executed statement
+   * @param column index of column, 0-based
+   * @param ppValue String[1] container for the result
+   * @return result code
+   */
+  public final static native int sqlite3_column_text(long stmt, int column, String[] ppValue);
 }

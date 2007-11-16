@@ -39,4 +39,17 @@ public class SQLiteManual {
     assert index >= 1;
     return SQLiteManualJNI.sqlite3_bind_text(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), index, value);
   }
+
+  public static String sqlite3_column_text(SWIGTYPE_p_sqlite3_stmt stmt, int column, int[] returnCode) {
+    String[] ppResult = {null};
+    int rc = SQLiteManualJNI.sqlite3_column_text(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), column, ppResult);
+    if (returnCode != null) {
+      if (returnCode.length == 1) {
+        returnCode[0] = rc;
+      } else {
+        assert false : returnCode.length;
+      }
+    }
+    return ppResult[0];
+  }
 }

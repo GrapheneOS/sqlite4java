@@ -118,6 +118,30 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(
   return rc;
 }
 
+JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1column_1text(JNIEnv *jenv, jclass jcls,
+  jlong jstmt, jint jcolumn, jobjectArray joutValue)
+{
+  sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
+  if (!stmt) return -1;
+  if (!joutValue) return -5;
+  const jchar *text = sqlite3_column_text16(stmt, jcolumn);
+  jstring result = 0;
+  if (!text) {
+    // maybe we're out of memory
+    sqlite3* db = sqlite3_db_handle(stmt);
+    if (!db) return -2;
+    int err = sqlite3_errcode(db);
+    if (err == SQLITE_NOMEM) return err;
+  } else {
+    int length = sqlite3_column_bytes16(stmt, jcolumn);
+    if (length < 0) return -4;
+    result = (*jenv)->NewString(jenv, text, length / sizeof (jchar));
+    if (!result) return -3;
+  }
+  (*jenv)->SetObjectArrayElement(jenv, joutValue, 0, result);
+  return SQLITE_OK;
+}
+
 
 #ifdef __cplusplus
 }

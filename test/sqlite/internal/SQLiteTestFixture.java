@@ -116,4 +116,11 @@ public abstract class SQLiteTestFixture extends TestCase {
   protected void bindText(SWIGTYPE_p_sqlite3_stmt stmt, int index, String value) {
     myLastResult = SQLiteManual.sqlite3_bind_text(stmt, index, value);
   }
+
+  protected String columnText(SWIGTYPE_p_sqlite3_stmt stmt, int column) {
+    int[] rc = {0};
+    String r = SQLiteManual.sqlite3_column_text(stmt, column, rc);
+    myLastResult = rc[0];
+    return r;
+  }
 }

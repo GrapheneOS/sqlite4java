@@ -121,15 +121,42 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     assertOk();
     bsr(stmt, "");
     bsr(stmt, "short text");
+    String v = garbageString();
+    bsr(stmt, v);
+    finalize(stmt);
+    close();
+  }
+
+  public void testTextBindAndColumn() {
+    String name = tempName("db");
+    open(name, RW);
+    exec("create table x (x)");
+    SWIGTYPE_p_sqlite3_stmt stmt = prepare("insert into x (x) values (?)");
+    String v = garbageString();
+    bsr(stmt, v);
+    finalize(stmt);
+    close();
+
+    open(name, Open.SQLITE_OPEN_READONLY);
+    stmt = prepare("select x from x");
+    assertOk();
+    step(stmt);
+    assertResult(Result.SQLITE_ROW);
+    String v2 = columnText(stmt, 0);
+
+    assertEquals(v, v2);
+  }
+
+  private static String garbageString() {
     StringBuilder b = new StringBuilder();
     Random r = new Random();
     for (int i = 0; i < 100000; i++) {
       int c = r.nextInt(0x110000);
       b.appendCodePoint(c);
     }
-    bsr(stmt, b.toString());
-    finalize(stmt);
-    close();
+    b.setCharAt(b.length() / 2, (char)0);
+    String v = b.toString();
+    return v;
   }
 
   private void bsr(SWIGTYPE_p_sqlite3_stmt stmt, String value) {

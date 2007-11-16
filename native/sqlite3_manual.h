@@ -10,8 +10,6 @@ void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
 
 const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
-int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
-const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
 
 int sqlite3_table_column_metadata(
   sqlite3 *db,                /* Connection handle */
@@ -65,4 +63,7 @@ int sqlite3_prepare_v2(
   const char **pzTail     /* OUT: Pointer to unused portion of zSql */
 );
 
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
 
