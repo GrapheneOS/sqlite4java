@@ -180,6 +180,10 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     StringBuilder b = new StringBuilder();
     Random r = new Random();
     for (int i = 0; i < 1000; i++) {
+      if (i == 500) {
+        b.appendCodePoint(0);
+        continue;
+      }
       int c = r.nextInt(0x110000);
       if (c >= 0xD800 && c < 0xDFFF) {
         // surrogate
@@ -188,7 +192,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
 //      int c = r.nextInt(0x110000);
       b.appendCodePoint(c);
     }
-    b.setCharAt(b.length() / 2, (char) 0);
+
 //    b.appendCodePoint(0x1D11E);
 //    b.appendCodePoint(0x10000);
     String v = b.toString();
