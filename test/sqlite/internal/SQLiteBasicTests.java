@@ -148,7 +148,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     assertOk();
     step(stmt);
     assertResult(Result.SQLITE_DONE);
-    
+
     write(v, "/tmp/v1");
     write(v2, "/tmp/v2");
 //    write(v, "/tmp/v1.utf8", "UTF-8");
@@ -156,35 +156,39 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
 
 //    assertEquals(v.length(), v2.length());
 
-    
+
     assertEquals(v, v2);
   }
 
   private void write(String s, String f) {
-  try {
-    FileOutputStream out = new FileOutputStream(new File(f));
-    BufferedOutputStream bout = new BufferedOutputStream(out);
-    PrintWriter writer = new PrintWriter(bout);
-    int len = s.length();
-    for (int i = 0; i < len; i = s.offsetByCodePoints(i, 1))
-      writer.println("0x" + Integer.toHexString(s.codePointAt(i)));
-    writer.close();
-    bout.close();
-    out.close();
-  } catch (IOException e) {
-    e.printStackTrace();
+    try {
+      FileOutputStream out = new FileOutputStream(new File(f));
+      BufferedOutputStream bout = new BufferedOutputStream(out);
+      PrintWriter writer = new PrintWriter(bout);
+      int len = s.length();
+      for (int i = 0; i < len; i = s.offsetByCodePoints(i, 1))
+        writer.println("0x" + Integer.toHexString(s.codePointAt(i)));
+      writer.close();
+      bout.close();
+      out.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
-  }
-  
+
   private static String garbageString() {
     StringBuilder b = new StringBuilder();
     Random r = new Random();
     for (int i = 0; i < 1000; i++) {
-      int c = r.nextInt(0x10000);
+      int c = r.nextInt(0x110000);
+      if (c >= 0xD800 && c < 0xDFFF) {
+        // surrogate
+        continue;
+      }
 //      int c = r.nextInt(0x110000);
       b.appendCodePoint(c);
     }
-    b.setCharAt(b.length() / 2, (char)0);
+    b.setCharAt(b.length() / 2, (char) 0);
 //    b.appendCodePoint(0x1D11E);
 //    b.appendCodePoint(0x10000);
     String v = b.toString();
