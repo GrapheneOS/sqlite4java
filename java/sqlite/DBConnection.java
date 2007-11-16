@@ -216,4 +216,17 @@ public final class DBConnection {
   public String toString() {
     return "sqlite[" + getSqliteDbName() + "]";
   }
+
+  protected void finalize() throws Throwable {
+    super.finalize();
+    SWIGTYPE_p_sqlite3 handle = myHandle;
+    if (handle != null) {
+      recoverableError(this + " wasn't closed before disposal", true);
+      try {
+        closeByEmergency();
+      } catch (Throwable e) {
+        // ignore
+      }
+    }
+  }
 }
