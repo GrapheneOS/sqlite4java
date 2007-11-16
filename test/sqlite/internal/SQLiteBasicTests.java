@@ -189,6 +189,8 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
         // surrogate
         continue;
       }
+      if (c == 0xFFFF || c == 0xFFFE || c == 0xFEFF)
+        continue;
 //      int c = r.nextInt(0x110000);
       b.appendCodePoint(c);
     }
