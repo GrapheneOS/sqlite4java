@@ -166,7 +166,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     BufferedOutputStream bout = new BufferedOutputStream(out);
     PrintWriter writer = new PrintWriter(bout);
     int len = s.length();
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < len; i = s.offsetByCodePoints(i, 1))
       writer.println(s.codePointAt(i));
     writer.close();
     bout.close();
