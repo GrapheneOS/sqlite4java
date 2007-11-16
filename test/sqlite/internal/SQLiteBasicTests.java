@@ -167,7 +167,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     PrintWriter writer = new PrintWriter(bout);
     int len = s.length();
     for (int i = 0; i < len; i = s.offsetByCodePoints(i, 1))
-      writer.println(s.codePointAt(i));
+      writer.println("0x" + Integer.toHexString(s.codePointAt(i)));
     writer.close();
     bout.close();
     out.close();
@@ -179,14 +179,14 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
   private static String garbageString() {
     StringBuilder b = new StringBuilder();
     Random r = new Random();
-//    for (int i = 0; i < 1000; i++) {
-//      int c = r.nextInt(0x10000);
+    for (int i = 0; i < 1000; i++) {
+      int c = r.nextInt(0x10000);
 //      int c = r.nextInt(0x110000);
-//      b.appendCodePoint(c);
-//    }
-//    b.setCharAt(b.length() / 2, (char)0);
-    b.appendCodePoint(0x1D11E);
-    b.appendCodePoint(0x10000);
+      b.appendCodePoint(c);
+    }
+    b.setCharAt(b.length() / 2, (char)0);
+//    b.appendCodePoint(0x1D11E);
+//    b.appendCodePoint(0x10000);
     String v = b.toString();
     return v;
   }
