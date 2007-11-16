@@ -1,14 +1,10 @@
 package sqlite;
 
-import sqlite.internal.SQLiteTestFixture;
-
 import java.io.File;
 
-public class DBConnectionTests extends SQLiteTestFixture {
+public class DBConnectionTests extends DBConnectionFixture {
   public void testOpenFile() throws DBException {
-    String filename = tempName("db");
-    File dbfile = new File(filename);
-    DBConnection connection = new DBConnection(dbfile);
+    DBConnection connection = fileDb();
     assertFalse(connection.isOpen());
     try {
       connection.openReadonly();
@@ -30,14 +26,14 @@ public class DBConnectionTests extends SQLiteTestFixture {
 
     connection.open(true);
     assertTrue(connection.isOpen());
-    assertEquals(dbfile, connection.getDatabaseFile());
+    assertEquals(dbFile(), connection.getDatabaseFile());
 
     connection.close();
     assertFalse(connection.isOpen());
   }
 
   public void testOpenMemory() throws DBException {
-    DBConnection connection = new DBConnection();
+    DBConnection connection = memDb();
     assertFalse(connection.isOpen());
     try {
       connection.openReadonly();
@@ -64,4 +60,26 @@ public class DBConnectionTests extends SQLiteTestFixture {
     connection.close();
     assertFalse(connection.isOpen());
   }
+
+  public void testExec() throws DBException {
+    DBConnection db = fileDb();
+    try {
+      db.exec("create table xxx (x)");
+      fail("exec unopened");
+    } catch (DBException e) {
+      // ok
+    }
+
+    db.open();
+    db.exec("pragma encoding=\"UTF-8\";");
+    db.exec("create table x (x)");
+    db.exec("insert into x values (1)");
+    try {
+      db.exec("blablabla");
+      fail("execed bad sql");
+    } catch (DBException e) {
+      // ok
+    }
+  }
+
 }

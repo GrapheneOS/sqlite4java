@@ -58,5 +58,10 @@ public interface SQLiteConstants {
      * Method called in thread that wasn't allowed.
      */
     public static final int WRAPPER_CONFINEMENT_VIOLATED = -98;
+
+    /**
+     * Wasn't opened
+     */
+    public static final int WRAPPER_NOT_OPENED = -97;
   }
 }

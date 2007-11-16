@@ -142,6 +142,23 @@ public final class DBConnection {
     }
   }
 
+  public void exec(String sql) throws DBException {
+    checkThread();
+    String[] error = {null};
+    int rc = SQLiteManual.sqlite3_exec(handle(), sql, error);
+    throwResult(rc, "exec()", error[0]);
+  }
+
+  
+
+  private SWIGTYPE_p_sqlite3 handle() throws DBException {
+    assert Thread.currentThread() == myConfinement;
+    SWIGTYPE_p_sqlite3 handle = myHandle;
+    if (handle == null)
+      throw new DBException(Wrapper.WRAPPER_NOT_OPENED, null);
+    return handle;
+  }
+
   private void closeX() throws DBException {
     SWIGTYPE_p_sqlite3 handle = myHandle;
     if (handle == null)
@@ -154,12 +171,21 @@ public final class DBConnection {
   }
 
   private void throwResult(int resultCode, String operation) throws DBException {
+    throwResult(resultCode, operation, null);
+  }
+
+  private void throwResult(int resultCode, String operation, String additional) throws DBException {
     if (resultCode != SQLiteConstants.Result.SQLITE_OK) {
       SWIGTYPE_p_sqlite3 handle = myHandle;
       String message = this + " " + operation;
+      if (additional != null)
+        message += " " + additional;
       if (handle != null) {
         try {
-          message += ": " + SQLiteSwigged.sqlite3_errmsg(handle);
+          String errmsg = SQLiteSwigged.sqlite3_errmsg(handle);
+          if (additional == null || !additional.equals(errmsg)) {
+            message += " [" + errmsg + "]";
+          }
         } catch (Exception e) {
           logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
         }
