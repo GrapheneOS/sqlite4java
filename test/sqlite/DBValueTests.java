@@ -53,13 +53,13 @@ public class DBValueTests extends DBConnectionFixture {
 
     st = insertAndSelect(con, Integer.MIN_VALUE, false);
     assertEquals(Integer.MIN_VALUE, st.columnInt(0));
-    assertEquals((long)Integer.MIN_VALUE, st.columnLong(0));
+    assertEquals((long) Integer.MIN_VALUE, st.columnLong(0));
     assertFalse(st.columnNull(0));
     st.clear();
 
     st = insertAndSelect(con, Integer.MAX_VALUE, false);
     assertEquals(Integer.MAX_VALUE, st.columnInt(0));
-    assertEquals((long)Integer.MAX_VALUE, st.columnLong(0));
+    assertEquals((long) Integer.MAX_VALUE, st.columnLong(0));
     assertFalse(st.columnNull(0));
     st.clear();
 
@@ -83,7 +83,7 @@ public class DBValueTests extends DBConnectionFixture {
     st = con.prepare("select x from x");
     st.step();
     assertEquals(Integer.MIN_VALUE + 1, st.columnInt(0));
-    assertEquals(((long)Integer.MAX_VALUE) + 2L, st.columnLong(0));
+    assertEquals(((long) Integer.MAX_VALUE) + 2L, st.columnLong(0));
     assertFalse(st.columnNull(0));
     st.clear();
 
@@ -97,10 +97,33 @@ public class DBValueTests extends DBConnectionFixture {
     st.clear();
   }
 
+  public void testFloats() throws DBException {
+    DBConnection con = fileDb().open();
+    DBStatement st;
+
+    double v = 1.1;
+    st = insertAndSelect(con, v);
+    assertEquals(v, st.columnDouble(0));
+    assertFalse(st.columnNull(0));
+    st.clear();
+  }
+
   private static DBStatement insertNullAndSelect(DBConnection con) throws DBException {
     recreateX(con);
     DBStatement st = con.prepare("insert into x values (?)");
     st.bindNull(1);
+    st.step();
+    st.clear();
+    st = con.prepare("select x from x");
+    st.step();
+    assertTrue(st.hasRow());
+    return st;
+  }
+
+  private static DBStatement insertAndSelect(DBConnection con, double value) throws DBException {
+    recreateX(con);
+    DBStatement st = con.prepare("insert into x values (?)");
+    st.bind(1, value);
     st.step();
     st.clear();
     st = con.prepare("select x from x");
@@ -127,7 +150,7 @@ public class DBValueTests extends DBConnectionFixture {
     if (useLong) {
       st.bind(1, value);
     } else {
-      st.bind(1, (int)value);
+      st.bind(1, (int) value);
     }
     st.step();
     st.clear();
