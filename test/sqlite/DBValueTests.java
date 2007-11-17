@@ -8,20 +8,24 @@ public class DBValueTests extends DBConnectionFixture {
     st = insertAndSelect(con, "xyz");
     assertEquals("xyz", st.columnString(0));
     assertFalse(st.columnNull(0));
+    st.reset();
 
     st = insertAndSelect(con, "1");
     assertEquals("1", st.columnString(0));
     assertEquals(1, st.columnInt(0));
     assertEquals(1, st.columnLong(0));
     assertFalse(st.columnNull(0));
+    st.reset();
 
     st = insertAndSelect(con, "");
     assertEquals("", st.columnString(0));
     assertFalse(st.columnNull(0));
+    st.reset();
 
     st = insertAndSelect(con, null);
     assertNull(st.columnString(0));
     assertTrue(st.columnNull(0));
+    st.reset();
   }
 
   private static DBStatement insertAndSelect(DBConnection con, String value) throws DBException {
