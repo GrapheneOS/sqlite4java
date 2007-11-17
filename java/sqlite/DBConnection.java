@@ -319,6 +319,12 @@ public final class DBConnection {
     return myFile == null ? ":memory:" : myFile.getAbsolutePath();
   }
 
+  int getStatementCount() {
+    synchronized (myLock) {
+      return myStatements.size();
+    }
+  }
+
   void checkThread() throws DBException {
     Thread thread = Thread.currentThread();
     if (thread != myConfinement) {
