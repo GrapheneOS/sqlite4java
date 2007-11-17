@@ -136,6 +136,8 @@ public final class DBStatement {
   }
 
   public DBStatement bind(int index, String value) throws DBException {
+    if (value == null)
+      return bindNull(index);
     myConnection.checkThread();
     int rc = SQLiteManual.sqlite3_bind_text(handle(), index, value);
     myConnection.throwResult(rc, "bind(String)", this);
