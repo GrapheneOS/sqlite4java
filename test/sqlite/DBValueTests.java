@@ -83,7 +83,7 @@ public class DBValueTests extends DBConnectionFixture {
     st = con.prepare("select x from x");
     st.step();
     assertEquals(Integer.MIN_VALUE + 1, st.columnInt(0));
-    assertEquals(((long)Integer.MAX_VALUE) + 1L, st.columnLong(0));
+    assertEquals(((long)Integer.MAX_VALUE) + 2L, st.columnLong(0));
     assertFalse(st.columnNull(0));
     st.clear();
 
