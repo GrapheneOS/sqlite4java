@@ -95,6 +95,20 @@ public class DBStatementTests extends DBConnectionFixture {
     assertFalse(st.isUsable());
   }
 
+  public void testCloseFromCorrectThreadWithOpenStatement() throws DBException {
+    DBConnection connection = fileDb().open().exec("create table x (x, y)");
+    connection.exec("insert into x values (2, '3');");
+    DBStatement st = connection.prepare("select x, y from x");
+    st.step();
+
+    assertTrue(st.hasRow());
+    connection.close();
+
+    assertFalse(connection.isOpen());
+    assertTrue(st.isDisposed());
+    assertFalse(st.hasRow());
+  }
+
   public void testBadBindIndexes() throws DBException {
     DBConnection connection = fileDb().open().exec("create table x (x, y)");
     DBStatement st = connection.prepare("insert into x values (?, ?)");
