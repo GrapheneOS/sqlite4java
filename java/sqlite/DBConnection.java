@@ -77,8 +77,8 @@ public final class DBConnection {
    *
    * @see #open(boolean)
    */
-  public void open() throws DBException {
-    open(true);
+  public DBConnection open() throws DBException {
+    return open(true);
   }
 
   /**
@@ -88,7 +88,7 @@ public final class DBConnection {
    * @param allowCreate if true, database file may be created. For in-memory database, must
    *                    be true
    */
-  public void open(boolean allowCreate) throws DBException {
+  public DBConnection open(boolean allowCreate) throws DBException {
     int flags = Open.SQLITE_OPEN_READWRITE;
     if (!allowCreate) {
       if (isMemoryDatabase()) {
@@ -98,16 +98,18 @@ public final class DBConnection {
       flags |= Open.SQLITE_OPEN_CREATE;
     }
     openX(flags);
+    return this;
   }
 
   /**
    * Opens database is read-only mode. Not applicable for in-memory database.
    */
-  public void openReadonly() throws DBException {
+  public DBConnection openReadonly() throws DBException {
     if (isMemoryDatabase()) {
       throw new DBException(Wrapper.WRAPPER_WEIRD, "cannot open memory database in read-only mode");
     }
     openX(Open.SQLITE_OPEN_READONLY);
+    return this;
   }
 
   /**
@@ -150,44 +152,12 @@ public final class DBConnection {
     DBGlobal.logger.info(this + " closed");
   }
 
-  private void disposeStatements(DBStatement[] statements) {
-    if (statements != null) {
-      for (DBStatement statement : statements) {
-        try {
-          statement.dispose();
-        } catch (DBException e) {
-          DBGlobal.logger.log(Level.WARNING, "dispose(" + statement + ") during close()", e);
-        }
-      }
-    }
-    synchronized (myLock) {
-      if (!myStatements.isEmpty()) {
-        DBGlobal.recoverableError(this, "not all statements disposed (" + myStatements + ")", true);
-        myStatements.clear();
-      }
-      if (!myStatementCache.isEmpty()) {
-        DBGlobal.recoverableError(this, "statement cache not empty (" + myStatementCache + ")", true);
-        myStatementCache.clear();
-      }
-    }
-  }
-
-  private DBStatement[] getStatementsForDisposeOnClose(DBStatement[] statements) {
-    if (!myStatements.isEmpty()) {
-      if (myConfinement == Thread.currentThread()) {
-        statements = myStatements.toArray(new DBStatement[myStatements.size()]);
-      } else {
-        DBGlobal.logger.warning(this + " cannot clear " + myStatements.size() + " statements when closing from alien threads");
-      }
-    }
-    return statements;
-  }
-
-  public void exec(String sql) throws DBException {
+  public DBConnection exec(String sql) throws DBException {
     checkThread();
     String[] error = {null};
     int rc = SQLiteManual.sqlite3_exec(handle(), sql, error);
     throwResult(rc, "exec()", error[0]);
+    return this;
   }
 
   public DBStatement prepare(String sql) throws DBException {
@@ -233,6 +203,39 @@ public final class DBConnection {
       throw new DBException(Wrapper.WRAPPER_NOT_OPENED, "connection closed while prepare() was in progress");
     }
     return statement;
+  }
+
+  private void disposeStatements(DBStatement[] statements) {
+    if (statements != null) {
+      for (DBStatement statement : statements) {
+        try {
+          statement.dispose();
+        } catch (DBException e) {
+          DBGlobal.logger.log(Level.WARNING, "dispose(" + statement + ") during close()", e);
+        }
+      }
+    }
+    synchronized (myLock) {
+      if (!myStatements.isEmpty()) {
+        DBGlobal.recoverableError(this, "not all statements disposed (" + myStatements + ")", true);
+        myStatements.clear();
+      }
+      if (!myStatementCache.isEmpty()) {
+        DBGlobal.recoverableError(this, "statement cache not empty (" + myStatementCache + ")", true);
+        myStatementCache.clear();
+      }
+    }
+  }
+
+  private DBStatement[] getStatementsForDisposeOnClose(DBStatement[] statements) {
+    if (!myStatements.isEmpty()) {
+      if (myConfinement == Thread.currentThread()) {
+        statements = myStatements.toArray(new DBStatement[myStatements.size()]);
+      } else {
+        DBGlobal.logger.warning(this + " cannot clear " + myStatements.size() + " statements when closing from alien threads");
+      }
+    }
+    return statements;
   }
 
   void statementDisposed(DBStatement statement, String sql) {

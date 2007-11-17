@@ -63,4 +63,20 @@ public class DBStatementTests extends DBConnectionFixture {
     assertTrue(st2.isDisposed());
     assertTrue(st3.isDisposed());
   }
+
+  public void testCloseFromAnotherThread() throws DBException, InterruptedException {
+    final DBConnection connection = fileDb().open().exec("create table x (x)");
+    DBStatement st = connection.prepare("insert into x values (?)");
+    Thread closer = new Thread() {
+      public void run() {
+        connection.close();
+      }
+    };
+    closer.start();
+    closer.join();
+    assertFalse(connection.isOpen());
+
+    // cannot dispose from another thread actually:
+    assertFalse(st.isDisposed());
+  }
 }
