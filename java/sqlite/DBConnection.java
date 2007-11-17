@@ -1,35 +1,42 @@
 package sqlite;
 
+import sqlite.internal.*;
 import static sqlite.internal.SQLiteConstants.*;
-import sqlite.internal.SQLiteManual;
-import sqlite.internal.SQLiteSwigged;
-import sqlite.internal.SWIGTYPE_p_sqlite3;
-import sqlite.internal.SQLiteConstants;
 
 import java.io.File;
-import java.util.logging.Logger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
  * DBConnection is a single connection to sqlite database. Most methods are thread-confined,
  * and will throw errors if called from alien thread. Confinement thread is defined at the
  * construction time.
- * <p>
+ * <p/>
  * DBConnection should be expicitly closed before the object is disposed. Failing to do so
- * may result in unpredictable behavior from sqlite. 
+ * may result in unpredictable behavior from sqlite.
  */
 public final class DBConnection {
-  private static final Logger logger = Logger.getLogger("sqlite");
   /**
    * The database file, or null if it is memory database
    */
   private final File myFile;
   private final Thread myConfinement;
+  private final int myNumber = ++DBGlobal.lastConnectionNumber;
+  private final Object myLock = new Object();
 
   /**
-   * Handle to the db. Confined.
+   * Handle to the db. Almost confined: usually not changed outside the confining thread, except for close() method.
    */
   private SWIGTYPE_p_sqlite3 myHandle;
+
+  /**
+   * Prepared statements. Almost confined.
+   */
+  private final Map<String, DBStatement> myStatementCache = new HashMap<String, DBStatement>();
+  private final List<DBStatement> myStatements = new ArrayList<DBStatement>();
 
   /**
    * Create connection to database located in the specified file.
@@ -42,6 +49,7 @@ public final class DBConnection {
   public DBConnection(File dbfile) {
     myFile = dbfile;
     myConfinement = Thread.currentThread();
+    DBGlobal.logger.info(this + " created(" + myFile + "," + myConfinement + ")");
   }
 
   /**
@@ -78,7 +86,7 @@ public final class DBConnection {
    * to continue in production mode.
    *
    * @param allowCreate if true, database file may be created. For in-memory database, must
-   * be true
+   *                    be true
    */
   public void open(boolean allowCreate) throws DBException {
     int flags = Open.SQLITE_OPEN_READWRITE;
@@ -102,44 +110,77 @@ public final class DBConnection {
     openX(Open.SQLITE_OPEN_READONLY);
   }
 
+  /**
+   * Tells whether database is open. May be called from another thread.
+   */
   public boolean isOpen() {
-    try {
-      checkThread();
-    } catch (DBException e) {
-      recoverableError("isOpen() " + e.getMessage(), true);
+    synchronized (myLock) {
+      return myHandle != null;
     }
-    return myHandle != null;
   }
 
   /**
    * Closes database. After database is closed, it may be reopened again. In case of in-memory
    * database, the reopened database will be empty.
-   *
-   * @throws DBException may be thrown if closing from alien thread, or if uncontrolled statement was not
-   * released
-   * @see #closeByEmergency()
+   * <p/>
+   * This method may be called from another thread.
    */
-  public void close() throws DBException {
-    checkThread();
-    closeX();
+  public void close() {
+    SWIGTYPE_p_sqlite3 handle;
+    DBStatement[] statements = null;
+    synchronized (myLock) {
+      handle = myHandle;
+      if (handle == null)
+        return;
+      myHandle = null;
+      statements = getStatementsForDisposeOnClose(statements);
+    }
+    disposeStatements(statements);
+    int rc = SQLiteSwigged.sqlite3_close(handle);
+    // rc may be SQLiteConstants.Result.SQLITE_BUSY if statements are open
+    if (rc != SQLiteConstants.Result.SQLITE_OK) {
+      String errmsg = null;
+      try {
+        errmsg = SQLiteSwigged.sqlite3_errmsg(handle);
+      } catch (Exception e) {
+        DBGlobal.logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
+      }
+      DBGlobal.logger.warning(this + " close error " + rc + (errmsg == null ? "" : ": " + errmsg));
+    }
+    DBGlobal.logger.info(this + " closed");
   }
 
-  /**
-   * Attempts to close database. May be called from another thread, for example if database
-   * thread is dead.
-   */
-  public void closeByEmergency() {
-    logger.warning(this + " performing emergency close");
-    try {
-      checkThread();
-    } catch (DBException e) {
-      recoverableError("closeByEmergency() " + e.getMessage(), false);
+  private void disposeStatements(DBStatement[] statements) {
+    if (statements != null) {
+      for (DBStatement statement : statements) {
+        try {
+          statement.dispose();
+        } catch (DBException e) {
+          DBGlobal.logger.log(Level.WARNING, "dispose(" + statement + ") during close()", e);
+        }
+      }
     }
-    try {
-      closeX();
-    } catch (Exception e) {
-      recoverableError("closeByEmergency() " + e.getMessage(), false);
+    synchronized (myLock) {
+      if (!myStatements.isEmpty()) {
+        DBGlobal.recoverableError(this, "not all statements disposed (" + myStatements + ")", true);
+        myStatements.clear();
+      }
+      if (!myStatementCache.isEmpty()) {
+        DBGlobal.recoverableError(this, "statement cache not empty (" + myStatementCache + ")", true);
+        myStatementCache.clear();
+      }
     }
+  }
+
+  private DBStatement[] getStatementsForDisposeOnClose(DBStatement[] statements) {
+    if (!myStatements.isEmpty()) {
+      if (myConfinement == Thread.currentThread()) {
+        statements = myStatements.toArray(new DBStatement[myStatements.size()]);
+      } else {
+        DBGlobal.logger.warning(this + " cannot clear " + myStatements.size() + " statements when closing from alien threads");
+      }
+    }
+    return statements;
   }
 
   public void exec(String sql) throws DBException {
@@ -149,33 +190,80 @@ public final class DBConnection {
     throwResult(rc, "exec()", error[0]);
   }
 
-  
-
-  private SWIGTYPE_p_sqlite3 handle() throws DBException {
-    assert Thread.currentThread() == myConfinement;
-    SWIGTYPE_p_sqlite3 handle = myHandle;
-    if (handle == null)
-      throw new DBException(Wrapper.WRAPPER_NOT_OPENED, null);
-    return handle;
+  public DBStatement prepare(String sql) throws DBException {
+    return prepare(sql, true);
   }
 
-  private void closeX() throws DBException {
-    SWIGTYPE_p_sqlite3 handle = myHandle;
-    if (handle == null)
-      return;
-    int rc = SQLiteSwigged.sqlite3_close(handle);
-    // rc may be SQLiteConstants.Result.SQLITE_BUSY if statements are open
-    throwResult(rc, "close()");
-    myHandle = null;
-    logger.info(this + " closed");
+  public DBStatement prepare(String sql, boolean useCache) throws DBException {
+    checkThread();
+    SWIGTYPE_p_sqlite3 handle;
+    synchronized (myLock) {
+      if (useCache) {
+        DBStatement statement = myStatementCache.get(sql);
+        if (statement != null) {
+          return statement;
+        }
+      }
+      handle = handle();
+    }
+    int[] rc = {Integer.MIN_VALUE};
+    SWIGTYPE_p_sqlite3_stmt stmt = SQLiteManual.sqlite3_prepare_v2(handle, sql, rc);
+    throwResult(rc[0], "prepare()", sql);
+    if (stmt == null)
+      throw new DBException(Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
+    DBStatement statement = null;
+    synchronized (myLock) {
+      // the connection may close while prepare in progress
+      // most probably that would throw DBException earlier, but we'll check anyway
+      if (myHandle != null) {
+        statement = new DBStatement(this, stmt, sql);
+        myStatements.add(statement);
+        if (useCache) {
+          myStatementCache.put(sql, statement);
+        }
+      }
+    }
+    if (statement == null) {
+      // connection closed
+      try {
+        throwResult(SQLiteSwigged.sqlite3_finalize(stmt), "finalize() in prepare()");
+      } catch (Exception e) {
+        // ignore
+      }
+      throw new DBException(Wrapper.WRAPPER_NOT_OPENED, "connection closed while prepare() was in progress");
+    }
+    return statement;
+  }
+
+  void statementDisposed(DBStatement statement, String sql) {
+    synchronized (myLock) {
+      if (!myStatements.remove(statement)) {
+        DBGlobal.recoverableError(statement, "unknown statement disposed", true);
+      }
+      DBStatement removed = myStatementCache.remove(sql);
+      if (removed != null && removed != statement) {
+        // statement wasn't cached, but another statement with the same sql was cached
+        myStatementCache.put(sql, removed);
+      }
+    }
+  }
+
+  private SWIGTYPE_p_sqlite3 handle() throws DBException {
+    synchronized (myLock) {
+      SWIGTYPE_p_sqlite3 handle = myHandle;
+      if (handle == null)
+        throw new DBException(Wrapper.WRAPPER_NOT_OPENED, null);
+      return handle;
+    }
   }
 
   private void throwResult(int resultCode, String operation) throws DBException {
     throwResult(resultCode, operation, null);
   }
 
-  private void throwResult(int resultCode, String operation, String additional) throws DBException {
+  void throwResult(int resultCode, String operation, String additional) throws DBException {
     if (resultCode != SQLiteConstants.Result.SQLITE_OK) {
+      // ignore sync
       SWIGTYPE_p_sqlite3 handle = myHandle;
       String message = this + " " + operation;
       if (additional != null)
@@ -187,7 +275,7 @@ public final class DBConnection {
             message += " [" + errmsg + "]";
           }
         } catch (Exception e) {
-          logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
+          DBGlobal.logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
         }
       }
       throw new DBException(resultCode, message);
@@ -196,17 +284,21 @@ public final class DBConnection {
 
   private void openX(int flags) throws DBException {
     checkThread();
-    if (myHandle != null) {
-      recoverableError("already opened", true);
+    SWIGTYPE_p_sqlite3 handle;
+    synchronized (myLock) {
+      handle = myHandle;
+    }
+    if (handle != null) {
+      DBGlobal.recoverableError(this, "already opened", true);
       return;
     }
     String dbname = getSqliteDbName();
     int[] rc = {Integer.MIN_VALUE};
-    SWIGTYPE_p_sqlite3 dbHandle = SQLiteManual.sqlite3_open_v2(dbname, flags, rc);
+    handle = SQLiteManual.sqlite3_open_v2(dbname, flags, rc);
     if (rc[0] != Result.SQLITE_OK) {
-      if (dbHandle != null) {
+      if (handle != null) {
         try {
-          SQLiteSwigged.sqlite3_close(dbHandle);
+          SQLiteSwigged.sqlite3_close(handle);
         } catch (Exception e) {
           // ignore
         }
@@ -214,18 +306,20 @@ public final class DBConnection {
       String errorMessage = SQLiteSwigged.sqlite3_errmsg(null);
       throw new DBException(rc[0], errorMessage);
     }
-    if (dbHandle == null) {
+    if (handle == null) {
       throw new DBException(Wrapper.WRAPPER_WEIRD, "sqlite didn't return db handle");
     }
-    myHandle = dbHandle;
-    logger.info(this + " opened(" + flags + ")");
+    synchronized (myLock) {
+      myHandle = handle;
+    }
+    DBGlobal.logger.info(this + " opened(" + flags + ")");
   }
 
   private String getSqliteDbName() {
     return myFile == null ? ":memory:" : myFile.getAbsolutePath();
   }
 
-  private void checkThread() throws DBException {
+  void checkThread() throws DBException {
     Thread thread = Thread.currentThread();
     if (thread != myConfinement) {
       String message = this + " confined(" + myConfinement + ") used(" + thread + ")";
@@ -233,23 +327,17 @@ public final class DBConnection {
     }
   }
 
-  private void recoverableError(String message, boolean throwAssertion) {
-    message = this + " " + message;
-    assert !throwAssertion : message;
-    logger.warning(message);
-  }
-
   public String toString() {
-    return "sqlite[" + getSqliteDbName() + "]";
+    return "sqlite[" + myNumber + "]";
   }
 
   protected void finalize() throws Throwable {
     super.finalize();
     SWIGTYPE_p_sqlite3 handle = myHandle;
     if (handle != null) {
-      recoverableError(this + " wasn't closed before disposal", true);
+      DBGlobal.recoverableError(this, "wasn't closed before disposal", true);
       try {
-        closeByEmergency();
+        close();
       } catch (Throwable e) {
         // ignore
       }
