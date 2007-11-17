@@ -123,7 +123,8 @@
     <property name="dist.suffix" value="${os}-${os.arch}"/>
     <mkdir dir="dist/${buildtype}"/>
     <copy todir="dist" file="build/${libname}.jar"/>
-    <copy todir="dist/${buildtype}" file="build/${lib}">
+    <copy todir="dist/${buildtype}">
+      <fileset dir="build" includes="${lib}"/>
       <mapper type="regexp" from="^(.*)${libname}(.*)$$" to="\1${libname}-${dist.suffix}\2"/>
     </copy>
   </target>
