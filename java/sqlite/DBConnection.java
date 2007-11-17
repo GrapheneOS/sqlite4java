@@ -175,30 +175,22 @@ public final class DBConnection {
     checkThread();
     SWIGTYPE_p_sqlite3 handle;
     int openCounter;
+    DBStatement statement = null;
     synchronized (myLock) {
       if (useCache) {
-        DBStatement statement = myStatementCache.get(sql);
-        if (statement != null) {
-          boolean hasRow = statement.hasRow();
-          boolean hasBindings = statement.hasBindings();
-          if (hasRow || hasBindings) {
-            String msg = hasRow ? (hasBindings ? "rows and bindings" : "rows") : "bindings";
-            msg = statement + ": retrieved from cache with " + msg + ", clearing";
-            DBGlobal.logger.log(Level.WARNING, msg, new IllegalStateException(msg));
-            statement.clear();
-          }
-          return statement;
-        }
+        statement = myStatementCache.get(sql);
       }
       handle = handle();
       openCounter = myOpenCounter;
+    }
+    if (statement != null) {
+      return validateCachedStatement(statement);
     }
     int[] rc = {Integer.MIN_VALUE};
     SWIGTYPE_p_sqlite3_stmt stmt = SQLiteManual.sqlite3_prepare_v2(handle, sql, rc);
     throwResult(rc[0], "prepare()", sql);
     if (stmt == null)
       throw new DBException(Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
-    DBStatement statement = null;
     synchronized (myLock) {
       // the connection may close while prepare in progress
       // most probably that would throw DBException earlier, but we'll check anyway
@@ -218,6 +210,22 @@ public final class DBConnection {
         // ignore
       }
       throw new DBException(Wrapper.WRAPPER_NOT_OPENED, "connection closed while prepare() was in progress");
+    }
+    return statement;
+  }
+
+  private DBStatement validateCachedStatement(DBStatement statement) throws DBException {
+    boolean hasRow = statement.hasRow();
+    boolean hasBindings = statement.hasBindings();
+    if (hasRow || hasBindings) {
+      String msg = hasRow ? (hasBindings ? "rows and bindings" : "rows") : "bindings";
+      msg = statement + ": retrieved from cache with " + msg + ", clearing";
+
+      // todo not sure if we need stack trace in log files here
+//            IllegalStateException thrown = new IllegalStateException(msg);
+      IllegalStateException thrown = null;
+      DBGlobal.logger.log(Level.WARNING, msg, thrown);
+      statement.clear();
     }
     return statement;
   }
