@@ -24,13 +24,14 @@ public final class DBConnection {
    */
   private final File myFile;
   private final Thread myConfinement;
-  private final int myNumber = ++DBGlobal.lastConnectionNumber;
+  private final int myNumber = DBGlobal.nextConnectionNumber();
   private final Object myLock = new Object();
 
   /**
    * Handle to the db. Almost confined: usually not changed outside the confining thread, except for close() method.
    */
   private SWIGTYPE_p_sqlite3 myHandle;
+  private int myOpenCounter;
 
   /**
    * Prepared statements. Almost confined.
@@ -121,6 +122,12 @@ public final class DBConnection {
     }
   }
 
+  boolean isOpen(int openCounter) {
+    synchronized (myLock) {
+      return myHandle != null && myOpenCounter == openCounter;
+    }
+  }
+
   /**
    * Closes database. After database is closed, it may be reopened again. In case of in-memory
    * database, the reopened database will be empty.
@@ -167,6 +174,7 @@ public final class DBConnection {
   public DBStatement prepare(String sql, boolean useCache) throws DBException {
     checkThread();
     SWIGTYPE_p_sqlite3 handle;
+    int openCounter;
     synchronized (myLock) {
       if (useCache) {
         DBStatement statement = myStatementCache.get(sql);
@@ -175,6 +183,7 @@ public final class DBConnection {
         }
       }
       handle = handle();
+      openCounter = myOpenCounter;
     }
     int[] rc = {Integer.MIN_VALUE};
     SWIGTYPE_p_sqlite3_stmt stmt = SQLiteManual.sqlite3_prepare_v2(handle, sql, rc);
@@ -185,8 +194,8 @@ public final class DBConnection {
     synchronized (myLock) {
       // the connection may close while prepare in progress
       // most probably that would throw DBException earlier, but we'll check anyway
-      if (myHandle != null) {
-        statement = new DBStatement(this, stmt, sql);
+      if (myHandle != null && myOpenCounter == openCounter) {
+        statement = new DBStatement(this, stmt, sql, openCounter);
         myStatements.add(statement);
         if (useCache) {
           myStatementCache.put(sql, statement);
@@ -217,13 +226,10 @@ public final class DBConnection {
     }
     synchronized (myLock) {
       if (!myStatements.isEmpty()) {
-        DBGlobal.recoverableError(this, "not all statements disposed (" + myStatements + ")", true);
+        DBGlobal.recoverableError(this, "not all statements disposed (" + myStatements + ")", false);
         myStatements.clear();
       }
-      if (!myStatementCache.isEmpty()) {
-        DBGlobal.recoverableError(this, "statement cache not empty (" + myStatementCache + ")", true);
-        myStatementCache.clear();
-      }
+      myStatementCache.clear();
     }
   }
 
@@ -260,21 +266,22 @@ public final class DBConnection {
     }
   }
 
-  private void throwResult(int resultCode, String operation) throws DBException {
+  void throwResult(int resultCode, String operation) throws DBException {
     throwResult(resultCode, operation, null);
   }
 
-  void throwResult(int resultCode, String operation, String additional) throws DBException {
+  void throwResult(int resultCode, String operation, Object additional) throws DBException {
     if (resultCode != SQLiteConstants.Result.SQLITE_OK) {
       // ignore sync
       SWIGTYPE_p_sqlite3 handle = myHandle;
       String message = this + " " + operation;
-      if (additional != null)
-        message += " " + additional;
+      String additionalMessage = additional == null ? null : String.valueOf(additional);
+      if (additionalMessage != null)
+        message += " " + additionalMessage;
       if (handle != null) {
         try {
           String errmsg = SQLiteSwigged.sqlite3_errmsg(handle);
-          if (additional == null || !additional.equals(errmsg)) {
+          if (additionalMessage == null || !additionalMessage.equals(errmsg)) {
             message += " [" + errmsg + "]";
           }
         } catch (Exception e) {
@@ -313,6 +320,7 @@ public final class DBConnection {
       throw new DBException(Wrapper.WRAPPER_WEIRD, "sqlite didn't return db handle");
     }
     synchronized (myLock) {
+      myOpenCounter++;
       myHandle = handle;
     }
     DBGlobal.logger.info(this + " opened(" + flags + ")");

@@ -63,5 +63,25 @@ public interface SQLiteConstants {
      * Wasn't opened
      */
     public static final int WRAPPER_NOT_OPENED = -97;
+
+    /**
+     * Statement disposed
+     */
+    public static final int WRAPPER_STATEMENT_DISPOSED = -96;
+
+    /**
+     * column() requested when no row returned
+     */
+    public static final int WRAPPER_NO_ROW = -95;
+
+    public static final int WRAPPER_COLUMN_OUT_OF_RANGE = -94;
+  }
+
+  interface ValueType {
+    public static final int SQLITE_INTEGER = 1;
+    public static final int SQLITE_FLOAT = 2;
+    public static final int SQLITE_TEXT = 3;
+    public static final int SQLITE_BLOB = 4;
+    public static final int SQLITE_NULL = 5;
   }
 }

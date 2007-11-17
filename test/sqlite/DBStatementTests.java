@@ -66,9 +66,19 @@ public class DBStatementTests extends DBConnectionFixture {
 
   public void testCloseFromAnotherThread() throws DBException, InterruptedException {
     final DBConnection connection = fileDb().open().exec("create table x (x)");
-    DBStatement st = connection.prepare("insert into x values (?)");
+    final DBStatement st = connection.prepare("insert into x values (?)");
+    assertFalse(st.isDisposed());
+    assertTrue(st.isUsable());
+
     Thread closer = new Thread() {
       public void run() {
+        try {
+          st.dispose();
+          fail("disposed " + st + " from another thread");
+        } catch (DBException e) {
+          // ok
+        }
+
         connection.close();
       }
     };
@@ -78,5 +88,87 @@ public class DBStatementTests extends DBConnectionFixture {
 
     // cannot dispose from another thread actually:
     assertFalse(st.isDisposed());
+    assertFalse(st.isUsable());
+
+    connection.open();
+    assertTrue(connection.isOpen());
+    assertFalse(st.isUsable());
+  }
+
+  public void testBadBindIndexes() throws DBException {
+    DBConnection connection = fileDb().open().exec("create table x (x, y)");
+    DBStatement st = connection.prepare("insert into x values (?, ?)");
+    try {
+      st.bind(0, "0");
+      fail("bound to 0");
+    } catch (DBException e) {
+      // norm
+    }
+    st.bind(1, "1");
+    st.bind(2, "2");
+    try {
+      st.bind(3, "3");
+      fail("bound to 3");
+    } catch (DBException e) {
+      // norm
+    }
+    try {
+      st.bind(-99999, "-99999");
+      fail("bound to 0-99999");
+    } catch (DBException e) {
+      // norm
+    }
+    try {
+      st.bind(99999, "99999");
+      fail("bound to 99999");
+    } catch (DBException e) {
+      // norm
+    }
+  }
+
+  public void testBadColumnUse() throws DBException {
+    DBConnection connection = fileDb().open().exec("create table x (x, y)");
+    connection.exec("insert into x values (2, '3');");
+    DBStatement st = connection.prepare("select x, y from x");
+
+    assertFalse(st.hasRow());
+    try {
+      st.columnInt(0);
+      fail("got column before step");
+    } catch (DBException e) {
+      // norm
+    }
+
+    boolean r = st.step();
+    assertTrue(r);
+    assertTrue(st.hasRow());
+
+    st.columnInt(0);
+    st.columnString(1);
+
+    try {
+      st.columnInt(-1);
+      fail("got column -1");
+    } catch (DBException e) {
+      // norm
+    }
+    try {
+      st.columnInt(-999999);
+      fail("got column -999999");
+    } catch (DBException e) {
+      // norm
+    }
+    try {
+      st.columnInt(3);
+      fail("got column 3");
+    } catch (DBException e) {
+      // norm
+    }
+    try {
+      st.columnInt(999999);
+      fail("got column 999999");
+    } catch (DBException e) {
+      // norm
+    }
   }
 }
