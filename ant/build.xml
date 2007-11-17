@@ -147,7 +147,7 @@
         <pathelement location="dist/sqlite.jar"/>
         <pathelement location="lib/junit.jar"/>
       </classpath>
-      <sysproperty key="java.library.path" value="dist/${buildtype}/${dist.prefix}"/>
+      <sysproperty key="java.library.path" value="dist/${buildtype}"/>
       <batchtest todir="build/testrun">
         <fileset dir="test" includes="**/*Tests.java"/>
       </batchtest>
@@ -162,7 +162,7 @@
         <pathelement location="build/test"/>
         <pathelement location="dist/sqlite.jar"/>
       </classpath>
-      <sysproperty key="java.library.path" value="dist/${buildtype}/${dist.prefix}"/>
+      <sysproperty key="java.library.path" value="dist/${buildtype}"/>
     </java>
   </target>
 

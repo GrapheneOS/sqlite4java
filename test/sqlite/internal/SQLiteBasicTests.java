@@ -1,10 +1,11 @@
 package sqlite.internal;
 
+import sqlite.DBGlobal;
 import static sqlite.internal.SQLiteConstants.Open;
 import static sqlite.internal.SQLiteConstants.Result;
 
-import java.util.Random;
 import java.io.*;
+import java.util.Random;
 
 public class SQLiteBasicTests extends SQLiteTestFixture {
   private static final int RW = Open.SQLITE_OPEN_READWRITE | Open.SQLITE_OPEN_CREATE;

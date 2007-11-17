@@ -4,13 +4,15 @@ import junit.framework.TestCase;
 
 import java.io.File;
 
+import sqlite.DBGlobal;
+
 public abstract class SQLiteTestFixture extends TestCase {
   private File myTempDir;
   private int myLastResult;
   private SWIGTYPE_p_sqlite3 myLastDb;
 
   protected void setUp() throws Exception {
-    System.loadLibrary("sqlite");
+    DBGlobal.loadLibrary();
     String name = getClass().getName();
     File dir = File.createTempFile(name.substring(name.lastIndexOf('.') + 1) + "_", ".test");
     boolean success = dir.delete();

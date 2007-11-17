@@ -309,6 +309,7 @@ public final class DBConnection {
   }
 
   private void openX(int flags) throws DBException {
+    DBGlobal.loadLibrary();
     checkThread();
     SWIGTYPE_p_sqlite3 handle;
     synchronized (myLock) {
