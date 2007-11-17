@@ -35,8 +35,6 @@ public class SQLiteManual {
   }
 
   public static int sqlite3_bind_text(SWIGTYPE_p_sqlite3_stmt stmt, int index, String value) {
-//    assert value != null;
-//    assert index >= 1;
     return SQLiteManualJNI.sqlite3_bind_text(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), index, value);
   }
 
