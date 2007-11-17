@@ -24,7 +24,7 @@ public final class DBGlobal {
     if (libraryLoaded)
       return;
     Throwable t;
-    getSqliteVersion();
+    SQLiteSwigged.sqlite3_libversion();
   }
 
   public static String getSqliteVersion() {
