@@ -1,4 +1,5 @@
 #include "jni_setup.h"
+#include "sqlite3_wrap_manual.h"
 #include <sqlite3.h>
 
 #ifdef __cplusplus
@@ -8,10 +9,10 @@ extern "C" {
 JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
   jstring jfilename, jlongArray jresult, jint jflags)
 {
-  if (!jfilename) return -1;
-  if (!jresult) return -2;
+  if (!jfilename) return WRAPPER_INVALID_ARG_1;
+  if (!jresult) return WRAPPER_INVALID_ARG_2;
   const char *filename = (*jenv)->GetStringUTFChars(jenv, jfilename, 0);
-  if (!filename) return -3;
+  if (!filename) return WRAPPER_CANNOT_TRANSFORM_STRING;
   sqlite3* db = 0;
 
   // todo(maybe) call jresult's getBytes("UTF-8") method to get filename in correct UTF-8
@@ -35,13 +36,13 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JN
 JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jobjectArray joutError)
 {
-  if (!jdb) return -1;
-  if (!jsql) return -2;
+  if (!jdb) return WRAPPER_INVALID_ARG_1;
+  if (!jsql) return WRAPPER_INVALID_ARG_2;
   sqlite3* db = *(sqlite3**)&jdb;
 
   // todo(maybe) as in open_v2, convert to correct UTF-8
   const char *sql = (*jenv)->GetStringUTFChars(jenv, jsql, 0);
-  if (!sql) return -3;
+  if (!sql) return WRAPPER_CANNOT_TRANSFORM_STRING;
 
   char* msg = 0;
   char** msgPtr = (joutError) ? &msg : 0;
@@ -69,12 +70,12 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv
 JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jlongArray jresult)
 {
-  if (!jdb) return -1;
-  if (!jsql) return -2;
-  if (!jresult) return -3;
+  if (!jdb) return WRAPPER_INVALID_ARG_1;
+  if (!jsql) return WRAPPER_INVALID_ARG_2;
+  if (!jresult) return WRAPPER_INVALID_ARG_3;
   sqlite3* db = *(sqlite3**)&jdb;
   const char *sql = (*jenv)->GetStringUTFChars(jenv, jsql, 0);
-  if (!sql) return -4;
+  if (!sql) return WRAPPER_CANNOT_TRANSFORM_STRING;
   sqlite3_stmt* stmt = (sqlite3_stmt*)0;
   const char *tail = 0;
 
@@ -94,8 +95,8 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(
   jlong jstmt, jint jindex, jstring jvalue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
-  if (!stmt) return -1;
-  if (!jvalue) return -2;
+  if (!stmt) return WRAPPER_INVALID_ARG_1;
+  if (!jvalue) return WRAPPER_INVALID_ARG_3;
   int length = (*jenv)->GetStringLength(jenv, jvalue) * sizeof(jchar);
   jboolean copied;
   const jchar *value;
@@ -107,7 +108,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(
     value = (jchar*)"";
     destructor = SQLITE_STATIC;
   }
-  if (!value) return -3;
+  if (!value) return WRAPPER_CANNOT_TRANSFORM_STRING;
 
   int rc = sqlite3_bind_text16(stmt, jindex, value, length, destructor);
 
@@ -122,21 +123,21 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1column_1tex
   jlong jstmt, jint jcolumn, jobjectArray joutValue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
-  if (!stmt) return -1;
-  if (!joutValue) return -5;
+  if (!stmt) return WRAPPER_INVALID_ARG_1;
+  if (!joutValue) return WRAPPER_INVALID_ARG_3;
   const jchar *text = sqlite3_column_text16(stmt, jcolumn);
   jstring result = 0;
   if (!text) {
     // maybe we're out of memory
     sqlite3* db = sqlite3_db_handle(stmt);
-    if (!db) return -2;
+    if (!db) return WRAPPER_WEIRD;
     int err = sqlite3_errcode(db);
     if (err == SQLITE_NOMEM) return err;
   } else {
     int length = sqlite3_column_bytes16(stmt, jcolumn);
-    if (length < 0) return -4;
+    if (length < 0) return WRAPPER_WEIRD_2;
     result = (*jenv)->NewString(jenv, text, length / sizeof (jchar));
-    if (!result) return -3;
+    if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
   }
   (*jenv)->SetObjectArrayElement(jenv, joutValue, 0, result);
   return SQLITE_OK;

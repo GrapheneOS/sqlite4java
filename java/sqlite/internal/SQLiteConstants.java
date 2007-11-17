@@ -75,6 +75,17 @@ public interface SQLiteConstants {
     public static final int WRAPPER_NO_ROW = -95;
 
     public static final int WRAPPER_COLUMN_OUT_OF_RANGE = -94;
+
+    public static final int WRAPPER_INVALID_ARG_1 = -11;
+    public static final int WRAPPER_INVALID_ARG_2 = -12;
+    public static final int WRAPPER_INVALID_ARG_3 = -13;
+    public static final int WRAPPER_INVALID_ARG_4 = -14;
+    public static final int WRAPPER_INVALID_ARG_5 = -15;
+
+    public static final int WRAPPER_CANNOT_TRANSFORM_STRING = -20;
+    public static final int WRAPPER_CANNOT_ALLOCATE_STRING = -21;
+
+    public static final int WRAPPER_WEIRD_2 = -199;
   }
 
   interface ValueType {
