@@ -8,29 +8,29 @@ public class DBValueTests extends DBConnectionFixture {
     st = insertAndSelect(con, "xyz");
     assertEquals("xyz", st.columnString(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertAndSelect(con, "1");
     assertEquals("1", st.columnString(0));
     assertEquals(1, st.columnInt(0));
     assertEquals(1, st.columnLong(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertAndSelect(con, "");
     assertEquals("", st.columnString(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertAndSelect(con, null);
     assertNull(st.columnString(0));
     assertTrue(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertNullAndSelect(con);
     assertNull(st.columnString(0));
     assertTrue(st.columnNull(0));
-    st.reset();
+    st.clear();
   }
 
   public void testIntegerAndLong() throws DBException {
@@ -42,26 +42,26 @@ public class DBValueTests extends DBConnectionFixture {
     assertEquals(1L, st.columnLong(0));
     assertEquals("1", st.columnString(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertAndSelect(con, 1, true);
     assertEquals(1, st.columnInt(0));
     assertEquals(1L, st.columnLong(0));
     assertEquals("1", st.columnString(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertAndSelect(con, Integer.MIN_VALUE, false);
     assertEquals(Integer.MIN_VALUE, st.columnInt(0));
     assertEquals((long)Integer.MIN_VALUE, st.columnLong(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertAndSelect(con, Integer.MAX_VALUE, false);
     assertEquals(Integer.MAX_VALUE, st.columnInt(0));
     assertEquals((long)Integer.MAX_VALUE, st.columnLong(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     long v = Integer.MAX_VALUE;
     v += 2;
@@ -69,32 +69,32 @@ public class DBValueTests extends DBConnectionFixture {
     assertEquals(Integer.MIN_VALUE + 1, st.columnInt(0));
     assertEquals(v, st.columnLong(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertNullAndSelect(con);
     assertEquals(0, st.columnInt(0));
     assertEquals(0, st.columnLong(0));
     assertTrue(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertAndSelect(con, Integer.MAX_VALUE, false);
-    st.reset();
+    st.clear();
     con.exec("update x set x = x + 2");
     st = con.prepare("select x from x");
     st.step();
     assertEquals(Integer.MIN_VALUE + 1, st.columnInt(0));
     assertEquals(((long)Integer.MAX_VALUE) + 1L, st.columnLong(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
 
     st = insertAndSelect(con, Long.MAX_VALUE, true);
-    st.reset();
+    st.clear();
     con.exec("update x set x = x + 2");
     st = con.prepare("select x from x");
     st.step();
     assertEquals(Long.MIN_VALUE + 1L, st.columnLong(0));
     assertFalse(st.columnNull(0));
-    st.reset();
+    st.clear();
   }
 
   private static DBStatement insertNullAndSelect(DBConnection con) throws DBException {
@@ -102,7 +102,7 @@ public class DBValueTests extends DBConnectionFixture {
     DBStatement st = con.prepare("insert into x values (?)");
     st.bindNull(1);
     st.step();
-    st.reset();
+    st.clear();
     st = con.prepare("select x from x");
     st.step();
     assertTrue(st.hasRow());
@@ -114,7 +114,7 @@ public class DBValueTests extends DBConnectionFixture {
     DBStatement st = con.prepare("insert into x values (?)");
     st.bind(1, value);
     st.step();
-    st.reset();
+    st.clear();
     st = con.prepare("select x from x");
     st.step();
     assertTrue(st.hasRow());
@@ -130,7 +130,7 @@ public class DBValueTests extends DBConnectionFixture {
       st.bind(1, (int)value);
     }
     st.step();
-    st.reset();
+    st.clear();
     st = con.prepare("select x from x");
     st.step();
     assertTrue(st.hasRow());

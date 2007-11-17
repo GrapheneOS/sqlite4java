@@ -134,9 +134,11 @@ public final class DBStatement {
     clearRow();
     int rc = SQLiteSwigged.sqlite3_reset(handle);
     myConnection.throwResult(rc, "clear.reset()", this);
-    rc = SQLiteSwigged.sqlite3_clear_bindings(handle);
-    myConnection.throwResult(rc, "clear.clearBindings()", this);
-    myHasBindings = false;
+    if (myHasBindings) {
+      rc = SQLiteSwigged.sqlite3_clear_bindings(handle);
+      myConnection.throwResult(rc, "clear.clearBindings()", this);
+      myHasBindings = false;
+    }
     return this;
   }
 
