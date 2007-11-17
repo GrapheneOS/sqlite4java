@@ -120,10 +120,12 @@
   </target>
 
   <target name="dist" depends="lib.link, java.jar">
-    <property name="dist.prefix" value="${os}-${os.arch}"/>
-    <mkdir dir="dist/${buildtype}/${dist.prefix}"/>
+    <property name="dist.suffix" value="${os}-${os.arch}"/>
+    <mkdir dir="dist/${buildtype}"/>
     <copy todir="dist" file="build/${libname}.jar"/>
-    <copy todir="dist/${buildtype}/${dist.prefix}" file="build/${lib}"/>
+    <copy todir="dist/${buildtype}" file="build/${lib}">
+      <mapper type="regexp" from="^(.*)${libname}(.*)$$" to="\1${libname}-${dist.suffix}\2"/>
+    </copy>
   </target>
 
   <target name="test" depends="dist">
