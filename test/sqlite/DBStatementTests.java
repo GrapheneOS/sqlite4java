@@ -189,20 +189,28 @@ public class DBStatementTests extends DBConnectionFixture {
   public void testForgottenStatement() throws DBException, InterruptedException {
     DBConnection connection = fileDb().open().exec("create table x (x)");
     connection.exec("insert into x values (1);");
-    DBStatement st = connection.prepare("select x from x");
+    DBStatement st = connection.prepare("select x + ? from x");
+    st.bind(1, 1);
     st.step();
     assertTrue(st.hasRow());
-    st = connection.prepare("select x from x");
+    assertTrue(st.hasBindings());
+    st = connection.prepare("select x + ? from x");
     assertFalse(st.hasRow());
+    assertFalse(st.hasBindings());
+    st.bind(1, 1);
     st.step();
     assertTrue(st.hasRow());
+    assertTrue(st.hasBindings());
     st = null;
     System.gc();
     Thread.sleep(500);
     System.gc();
-    st = connection.prepare("select x from x");
+    st = connection.prepare("select x + ? from x");
     assertFalse(st.hasRow());
+    assertFalse(st.hasBindings());
+    st.bind(1, 1);
     st.step();
     assertTrue(st.hasRow());
+    assertTrue(st.hasBindings());
   }
 }

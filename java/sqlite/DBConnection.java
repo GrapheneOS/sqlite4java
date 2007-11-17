@@ -179,6 +179,14 @@ public final class DBConnection {
       if (useCache) {
         DBStatement statement = myStatementCache.get(sql);
         if (statement != null) {
+          boolean hasRow = statement.hasRow();
+          boolean hasBindings = statement.hasBindings();
+          if (hasRow || hasBindings) {
+            String msg = hasRow ? (hasBindings ? "rows and bindings" : "rows") : "bindings";
+            msg = statement + ": retrieved from cache with " + msg + ", clearing";
+            DBGlobal.logger.log(Level.WARNING, msg, new IllegalStateException(msg));
+            statement.clear();
+          }
           return statement;
         }
       }

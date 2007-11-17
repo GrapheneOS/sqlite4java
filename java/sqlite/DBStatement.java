@@ -28,6 +28,11 @@ public final class DBStatement {
   private boolean myHasRow;
 
   /**
+   * When true, values have been bound to the statement. (and they take up memory)
+   */
+  private boolean myHasBindings;
+
+  /**
    * The number of columns in current result set. When set to COLUMN_COUNT_UNKNOWN, the number of columns should be requested
    * at first need.
    */
@@ -68,6 +73,7 @@ public final class DBStatement {
     myConnection.statementDisposed(this, mySql);
     myHandle = null;
     clearRow();
+    myHasBindings = false;
     int rc = SQLiteSwigged.sqlite3_finalize(handle);
     myConnection.throwResult(rc, "dispose()", this);
     DBGlobal.logger.info(this + " disposed");
@@ -99,6 +105,10 @@ public final class DBStatement {
     return myHasRow;
   }
 
+  public boolean hasBindings() {
+    return myHasBindings;
+  }
+
   public DBStatement reset() throws DBException {
     myConnection.checkThread();
     clearRow();
@@ -111,6 +121,22 @@ public final class DBStatement {
     myConnection.checkThread();
     int rc = SQLiteSwigged.sqlite3_clear_bindings(handle());
     myConnection.throwResult(rc, "clearBindings()", this);
+    myHasBindings = false;
+    return this;
+  }
+
+  /**
+   * A shortcut for reset() and clearBindings()
+   */
+  public DBStatement clear() throws DBException {
+    myConnection.checkThread();
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    clearRow();
+    int rc = SQLiteSwigged.sqlite3_reset(handle);
+    myConnection.throwResult(rc, "clear.reset()", this);
+    rc = SQLiteSwigged.sqlite3_clear_bindings(handle);
+    myConnection.throwResult(rc, "clear.clearBindings()", this);
+    myHasBindings = false;
     return this;
   }
 
@@ -118,6 +144,7 @@ public final class DBStatement {
     myConnection.checkThread();
     int rc = SQLiteSwigged.sqlite3_bind_double(handle(), index, value);
     myConnection.throwResult(rc, "bind(double)", this);
+    myHasBindings = true;
     return this;
   }
 
@@ -125,6 +152,7 @@ public final class DBStatement {
     myConnection.checkThread();
     int rc = SQLiteSwigged.sqlite3_bind_int(handle(), index, value);
     myConnection.throwResult(rc, "bind(int)", this);
+    myHasBindings = true;
     return this;
   }
 
@@ -132,6 +160,7 @@ public final class DBStatement {
     myConnection.checkThread();
     int rc = SQLiteSwigged.sqlite3_bind_int64(handle(), index, value);
     myConnection.throwResult(rc, "bind(long)", this);
+    myHasBindings = true;
     return this;
   }
 
@@ -141,6 +170,7 @@ public final class DBStatement {
     myConnection.checkThread();
     int rc = SQLiteManual.sqlite3_bind_text(handle(), index, value);
     myConnection.throwResult(rc, "bind(String)", this);
+    myHasBindings = true;
     return this;
   }
 
@@ -148,6 +178,7 @@ public final class DBStatement {
     myConnection.checkThread();
     int rc = SQLiteSwigged.sqlite3_bind_null(handle(), index);
     myConnection.throwResult(rc, "bind(null)", this);
+    // specifically does not set myHasBindings to true
     return this;
   }
 
