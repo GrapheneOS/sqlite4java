@@ -54,6 +54,17 @@ public class ParallelAccessTests extends DBConnectionFixture {
     assertFalse(b1);
   }
 
+  public void testWriteWhileReadInProgress() throws Exception {
+    DBStatement st1 = t1.prepare("select x from x order by x");
+    assertTrue(t1.step(st1));
+    t2.exec("begin immediate");
+    assertTrue(t1.step(st1));
+    assertTrue(t1.step(st1));
+    t2.exec("insert into x values (4)");
+    t2.exec("commit");
+    assertFalse(t1.step(st1));
+  }
+
 
   private class TestThread extends Thread {
     private Exception myException;
