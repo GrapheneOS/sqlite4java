@@ -86,6 +86,8 @@ public interface SQLiteConstants {
     public static final int WRAPPER_CANNOT_ALLOCATE_STRING = -21;
 
     public static final int WRAPPER_WEIRD_2 = -199;
+
+    public static final int WRAPPER_CANNOT_LOAD_LIBRARY = -93;
   }
 
   interface ValueType {
