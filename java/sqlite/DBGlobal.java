@@ -33,7 +33,7 @@ public final class DBGlobal {
   }
 
   private static Throwable loadLibraryX() {
-    Throwable x;
+    Throwable bestReason = null;
     if (checkLoaded())
       return null;
     String os;
@@ -52,19 +52,54 @@ public final class DBGlobal {
       os = "linux";
     }
     String arch = System.getProperty("os.arch") + "xxx";
-    Throwable t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-" + arch);
-    if (t != null)
-      t.printStackTrace();
-    return t;
+    Throwable t;
+    t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-" + arch);
+    if (t == null && checkLoaded()) {
+      return null;
+    }
+    bestReason = bestLoadFailureReason(bestReason, t);
+    t = tryLoad(BASE_LIBRARY_NAME + "-" + os);
+    if (t == null && checkLoaded()) {
+      return null;
+    }
+    bestReason = bestLoadFailureReason(bestReason, t);
+    t = tryLoad(BASE_LIBRARY_NAME + "-" + arch);
+    if (t == null && checkLoaded()) {
+      return null;
+    }
+    bestReason = bestLoadFailureReason(bestReason, t);
+    t = tryLoad(BASE_LIBRARY_NAME);
+    if (t == null && checkLoaded()) {
+      return null;
+    }
+    bestReason = bestLoadFailureReason(bestReason, t);
+    if (bestReason == null)
+      bestReason = new DBException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "sqlite.DBGlobal: lib loaded, check failed");
+    return bestReason;
+  }
+
+  private static Throwable bestLoadFailureReason(Throwable t1, Throwable t2) {
+    if (t1 == null)
+      return t2;
+    if (t2 == null)
+      return t1;
+    if (!(t1 instanceof java.lang.UnsatisfiedLinkError))
+      return t1;
+    if (t2 instanceof java.lang.UnsatisfiedLinkError)
+      return t1;
+    return t2;
   }
 
   private static Throwable tryLoad(String libname) {
+    logger.info("sqlite.DBGlobal: trying to load " + libname);
     try {
       System.loadLibrary(libname);
-      return null;
     } catch (Throwable t) {
+      logger.info("sqlite.DBGlobal: cannot load " + libname + ": " + t);
       return t;
     }
+    logger.info("sqlite.DBGlobal: loaded " + libname);
+    return null;
   }
 
   private static boolean checkLoaded() {
