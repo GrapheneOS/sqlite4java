@@ -105,7 +105,7 @@ public final class DBGlobal {
   private static boolean checkLoaded() {
     try {
       String version = SQLiteSwigged.sqlite3_libversion();
-      logger.info("loaded sqlite " + version);
+      logger.info("sqlite.DBGlobal: loaded sqlite " + version);
       return true;
     } catch (LinkageError e) {
       return false;
