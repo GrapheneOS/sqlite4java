@@ -27,7 +27,7 @@ public final class DBGlobal {
     if (!libraryLoaded) {
       Throwable t = loadLibraryX();
       if (t != null)
-        throw new DBException(SQLiteConstants.Wrapper.WRAPPER_CANNOT_LOAD_LIBRARY, "cannot load library", t);
+        throw new DBException(SQLiteConstants.Wrapper.WRAPPER_CANNOT_LOAD_LIBRARY, "cannot load library: " + t, t);
       libraryLoaded = true;
     }
   }
@@ -78,14 +78,21 @@ public final class DBGlobal {
     return bestReason;
   }
 
+  /**
+   * This method is used to decide which exception describes the real problem. If the file is simply not found
+   * (which we gather from the fact that message contains "java.library.path"), then it may or may not be the
+   * real reason. If there is another exception which has something else to say, it's given the priority.
+   */
   private static Throwable bestLoadFailureReason(Throwable t1, Throwable t2) {
     if (t1 == null)
       return t2;
     if (t2 == null)
       return t1;
-    if (!(t1 instanceof java.lang.UnsatisfiedLinkError))
+    String m1 = t1.getMessage();
+    if (m1 == null || !m1.contains("java.library.path"))
       return t1;
-    if (t2 instanceof java.lang.UnsatisfiedLinkError)
+    String m2 = t2.getMessage();
+    if (m2 != null && m2.contains("java.library.path"))
       return t1;
     return t2;
   }
