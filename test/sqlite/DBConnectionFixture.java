@@ -8,6 +8,10 @@ public abstract class DBConnectionFixture extends SQLiteTestFixture {
   private DBConnection myDB;
   private File myDbFile;
 
+  protected DBConnectionFixture() {
+    super(false);
+  }
+
   protected void setUp() throws Exception {
     super.setUp();    
     myDbFile = new File(tempName("db"));

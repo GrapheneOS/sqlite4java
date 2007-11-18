@@ -10,6 +10,10 @@ import java.util.Random;
 public class SQLiteBasicTests extends SQLiteTestFixture {
   private static final int RW = Open.SQLITE_OPEN_READWRITE | Open.SQLITE_OPEN_CREATE;
 
+  public SQLiteBasicTests() {
+    super(true);
+  }
+
   public void testOpen() {
     String name = tempName("db");
     open(name, Open.SQLITE_OPEN_READONLY);

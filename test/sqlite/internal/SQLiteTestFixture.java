@@ -10,9 +10,16 @@ public abstract class SQLiteTestFixture extends TestCase {
   private File myTempDir;
   private int myLastResult;
   private SWIGTYPE_p_sqlite3 myLastDb;
+  private final boolean myAutoLoad;
+
+  public SQLiteTestFixture(boolean autoLoad) {
+    myAutoLoad = autoLoad;
+  }
 
   protected void setUp() throws Exception {
-    DBGlobal.loadLibrary();
+    if (myAutoLoad) {
+      DBGlobal.loadLibrary();
+    }
     String name = getClass().getName();
     File dir = File.createTempFile(name.substring(name.lastIndexOf('.') + 1) + "_", ".test");
     boolean success = dir.delete();

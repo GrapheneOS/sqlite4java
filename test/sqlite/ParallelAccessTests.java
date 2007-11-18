@@ -4,9 +4,10 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class ParallelAccessTests extends DBConnectionFixture {
-  public void testParallelReads() throws DBException, InterruptedException {
+  public void testParallelReads() throws Exception {
     TestThread t1 = new TestThread();
     TestThread t2 = new TestThread();
     t1.exec("create table x (x)");
@@ -15,8 +16,18 @@ public class ParallelAccessTests extends DBConnectionFixture {
     t1.exec("insert into x values (3);");
 
 
-    t1.finish();
-    t2.finish();
+    Exception e1 = t1.finish();
+    if (e1 != null) {
+      e1.printStackTrace();
+    }
+    Exception e2 = t2.finish();
+    if (e2 != null) {
+      e2.printStackTrace();
+    }
+    if (e1 != null)
+      throw e1;
+    if (e2 != null)
+      throw e2;
   }
 
 
@@ -31,7 +42,7 @@ public class ParallelAccessTests extends DBConnectionFixture {
 
     public void run() {
       try {
-        myConnection = fileDb();
+        myConnection = fileDb().open();
         while (true) {
           DBRunnable r;
           synchronized (this) {
@@ -59,6 +70,8 @@ public class ParallelAccessTests extends DBConnectionFixture {
     }
 
     private void perform(boolean wait, final DBRunnable runnable) throws InterruptedException, DBException {
+      if (!isAlive())
+        return;
       if (this == Thread.currentThread()) {
         runnable.dbrun();
         return;
@@ -84,16 +97,20 @@ public class ParallelAccessTests extends DBConnectionFixture {
         notify();
       }
       if (p != null) {
-        p.acquire();
+        while (!p.tryAcquire(500, TimeUnit.MILLISECONDS)) {
+          if (!isAlive())
+            return;
+        }
       }
     }
 
-    public void finish() throws InterruptedException {
+    public Exception finish() throws InterruptedException {
       synchronized (this) {
         myQueue.add(null);
         notify();
       }
       join();
+      return myException;
     }
   }
 }
