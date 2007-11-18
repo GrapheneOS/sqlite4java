@@ -51,7 +51,11 @@ public final class DBGlobal {
       logger.warning("sqlite.DBGlobal: OS not recognized (" + osname + ")");
       os = "linux";
     }
-    String arch = System.getProperty("os.arch") + "xxx";
+    String arch = System.getProperty("os.arch");
+    if (arch == null) {
+      logger.warning("sqlite.DBGlobal: os.arch is null");
+      arch = "x86";
+    }
     Throwable t;
     t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-" + arch);
     if (t == null && checkLoaded()) {
