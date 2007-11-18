@@ -32,6 +32,11 @@ public final class DBGlobal {
     }
   }
 
+  public static String getSqliteVersion() throws DBException {
+    loadLibrary();
+    return SQLiteSwigged.sqlite3_libversion();
+  }
+
   private static Throwable loadLibraryX() {
     Throwable bestReason = null;
     if (checkLoaded())
@@ -121,10 +126,5 @@ public final class DBGlobal {
     } catch (LinkageError e) {
       return false;
     }
-  }
-
-  public static String getSqliteVersion() throws DBException {
-    loadLibrary();
-    return SQLiteSwigged.sqlite3_libversion();
   }
 }
