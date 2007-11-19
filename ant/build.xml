@@ -199,7 +199,7 @@
       <!--<jvmarg value="-verbose:jni"/>-->
       <jvmarg value="-Djava.awt.headless=true"/>
       <jvmarg value="-ea"/>
-      <jvmarg value="-Djava.library.path=${basedir}/dist/${buildtype}"/>
+      <jvmarg value="-Djava.library.path=${basedir}/dist"/>
       <classpath>
         <pathelement location="build/test"/>
         <pathelement location="dist/sqlite.jar"/>
@@ -219,7 +219,7 @@
         <pathelement location="build/test"/>
         <pathelement location="dist/sqlite.jar"/>
       </classpath>
-      <sysproperty key="java.library.path" value="dist/${buildtype}"/>
+      <sysproperty key="java.library.path" value="dist"/>
     </java>
   </target>
 </project>
