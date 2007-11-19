@@ -6,6 +6,11 @@
 extern "C" {
 #endif
 
+JNIEXPORT jstring JNICALL Java_sqlite_internal_SQLiteManualJNI_wrapper_1version(JNIEnv *jenv, jclass jcls) {
+  jstring result = (*jenv)->NewStringUTF(jenv, WRAPPER_VERSION);
+  return result;
+}
+
 JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
   jstring jfilename, jlongArray jresult, jint jflags)
 {

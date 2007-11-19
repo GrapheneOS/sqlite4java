@@ -1,6 +1,8 @@
 package sqlite.internal;
 
 class SQLiteManualJNI {
+  public final static native String wrapper_version();
+
   /**
    * @param filename database file name, not null
    * @param ppDb long[1] container for the db handle

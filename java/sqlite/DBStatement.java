@@ -1,6 +1,5 @@
 package sqlite;
 
-import sqlite.internal.SQLiteConstants;
 import static sqlite.internal.SQLiteConstants.*;
 import sqlite.internal.SQLiteSwigged;
 import sqlite.internal.SWIGTYPE_p_sqlite3_stmt;
@@ -44,14 +43,14 @@ public final class DBStatement {
     myHandle = handle;
     mySql = sql;
     myDbOpenCounter = openCounter;
-    DBGlobal.logger.info(this + " created");
+    DBInternal.logger.info(this + " created");
   }
 
   public boolean isDisposed() {
     try {
       myConnection.checkThread();
     } catch (DBException e) {
-      DBGlobal.recoverableError(this, "isDisposed() " + e.getMessage(), true);
+      DBInternal.recoverableError(this, "isDisposed() " + e.getMessage(), true);
     }
     return myHandle == null;
   }
@@ -76,7 +75,7 @@ public final class DBStatement {
     myHasBindings = false;
     int rc = SQLiteSwigged.sqlite3_finalize(handle);
     myConnection.throwResult(rc, "dispose()", this);
-    DBGlobal.logger.info(this + " disposed");
+    DBInternal.logger.info(this + " disposed");
   }
 
   public boolean step() throws DBException {
@@ -262,7 +261,7 @@ public final class DBStatement {
     super.finalize();
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle != null) {
-      DBGlobal.recoverableError(this, "wasn't disposed", true);
+      DBInternal.recoverableError(this, "wasn't disposed", true);
     }
   }
 }

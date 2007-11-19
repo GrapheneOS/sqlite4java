@@ -119,6 +119,7 @@
         <fail if="execerr" message="${execerr}"/>
       </sequential>
     </macrodef>
+    <exec command="cmd /C echo set | cmd /V:ON /D /K &quot;${msenv}&quot; /${os.arch} /${buildtype} ${msenv.extra}"/>
   </target>
 
   <target name="init.jdk">
@@ -176,12 +177,12 @@
   </target>
 
   <target name="dist" depends="lib.link, java.jar">
-    <property name="dist.suffix" value="${os}-${os.arch}"/>
-    <mkdir dir="dist/${buildtype}"/>
+    <property name="dist.suffix" value="w${os.arch}${dist.buildtype.marker}"/>
+    <mkdir dir="dist/"/>
     <copy todir="dist" file="build/${libname}.jar"/>
-    <copy todir="dist/${buildtype}">
+    <copy todir="dist">
       <fileset dir="build" includes="${lib}"/>
-      <mapper type="regexp" from="^(.*)${libname}(.*)$$" to="\1${libname}-${dist.suffix}\2"/>
+      <mapper type="regexp" from="^(.*)${libname}(.*)$$" to="\1${libname}${dist.suffix}\2"/>
     </copy>
   </target>
 

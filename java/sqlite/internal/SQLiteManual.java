@@ -1,6 +1,10 @@
 package sqlite.internal;
 
 public class SQLiteManual {
+  public static String wrapper_version() {
+    return SQLiteManualJNI.wrapper_version();
+  }
+  
   public static SWIGTYPE_p_sqlite3 sqlite3_open_v2(String filename, int flags, int[] returnCode) {
     long[] ppDb = {0};
     int rc = SQLiteManualJNI.sqlite3_open_v2(filename, ppDb, flags);

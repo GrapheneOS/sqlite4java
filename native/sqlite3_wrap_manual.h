@@ -1,3 +1,5 @@
+#define WRAPPER_VERSION "0.1"
+
 #define WRAPPER_INVALID_ARG_1 (-11)
 #define WRAPPER_INVALID_ARG_2 (-12)
 #define WRAPPER_INVALID_ARG_3 (-13)
@@ -9,3 +11,4 @@
 
 #define WRAPPER_WEIRD (-99)
 #define WRAPPER_WEIRD_2 (-199)
+

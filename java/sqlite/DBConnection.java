@@ -24,7 +24,7 @@ public final class DBConnection {
    */
   private final File myFile;
   private final Thread myConfinement;
-  private final int myNumber = DBGlobal.nextConnectionNumber();
+  private final int myNumber = DBInternal.nextConnectionNumber();
   private final Object myLock = new Object();
 
   /**
@@ -50,7 +50,7 @@ public final class DBConnection {
   public DBConnection(File dbfile) {
     myFile = dbfile;
     myConfinement = Thread.currentThread();
-    DBGlobal.logger.info(this + " created(" + myFile + "," + myConfinement + ")");
+    DBInternal.logger.info(this + " created(" + myFile + "," + myConfinement + ")");
   }
 
   /**
@@ -152,11 +152,11 @@ public final class DBConnection {
       try {
         errmsg = SQLiteSwigged.sqlite3_errmsg(handle);
       } catch (Exception e) {
-        DBGlobal.logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
+        DBInternal.logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
       }
-      DBGlobal.logger.warning(this + " close error " + rc + (errmsg == null ? "" : ": " + errmsg));
+      DBInternal.logger.warning(this + " close error " + rc + (errmsg == null ? "" : ": " + errmsg));
     }
-    DBGlobal.logger.info(this + " closed");
+    DBInternal.logger.info(this + " closed");
   }
 
   public DBConnection exec(String sql) throws DBException {
@@ -224,7 +224,7 @@ public final class DBConnection {
       // todo not sure if we need stack trace in log files here
 //            IllegalStateException thrown = new IllegalStateException(msg);
       IllegalStateException thrown = null;
-      DBGlobal.logger.log(Level.WARNING, msg, thrown);
+      DBInternal.logger.log(Level.WARNING, msg, thrown);
       statement.clear();
     }
     return statement;
@@ -236,13 +236,13 @@ public final class DBConnection {
         try {
           statement.dispose();
         } catch (DBException e) {
-          DBGlobal.logger.log(Level.WARNING, "dispose(" + statement + ") during close()", e);
+          DBInternal.logger.log(Level.WARNING, "dispose(" + statement + ") during close()", e);
         }
       }
     }
     synchronized (myLock) {
       if (!myStatements.isEmpty()) {
-        DBGlobal.recoverableError(this, "not all statements disposed (" + myStatements + ")", false);
+        DBInternal.recoverableError(this, "not all statements disposed (" + myStatements + ")", false);
         myStatements.clear();
       }
       myStatementCache.clear();
@@ -254,7 +254,7 @@ public final class DBConnection {
       if (myConfinement == Thread.currentThread()) {
         statements = myStatements.toArray(new DBStatement[myStatements.size()]);
       } else {
-        DBGlobal.logger.warning(this + " cannot clear " + myStatements.size() + " statements when closing from alien threads");
+        DBInternal.logger.warning(this + " cannot clear " + myStatements.size() + " statements when closing from alien threads");
       }
     }
     return statements;
@@ -263,7 +263,7 @@ public final class DBConnection {
   void statementDisposed(DBStatement statement, String sql) {
     synchronized (myLock) {
       if (!myStatements.remove(statement)) {
-        DBGlobal.recoverableError(statement, "unknown statement disposed", true);
+        DBInternal.recoverableError(statement, "unknown statement disposed", true);
       }
       DBStatement removed = myStatementCache.remove(sql);
       if (removed != null && removed != statement) {
@@ -301,7 +301,7 @@ public final class DBConnection {
             message += " [" + errmsg + "]";
           }
         } catch (Exception e) {
-          DBGlobal.logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
+          DBInternal.logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
         }
       }
       throw new DBException(resultCode, message);
@@ -316,7 +316,7 @@ public final class DBConnection {
       handle = myHandle;
     }
     if (handle != null) {
-      DBGlobal.recoverableError(this, "already opened", true);
+      DBInternal.recoverableError(this, "already opened", true);
       return;
     }
     String dbname = getSqliteDbName();
@@ -340,7 +340,7 @@ public final class DBConnection {
       myOpenCounter++;
       myHandle = handle;
     }
-    DBGlobal.logger.info(this + " opened(" + flags + ")");
+    DBInternal.logger.info(this + " opened(" + flags + ")");
   }
 
   private String getSqliteDbName() {
@@ -369,7 +369,7 @@ public final class DBConnection {
     super.finalize();
     SWIGTYPE_p_sqlite3 handle = myHandle;
     if (handle != null) {
-      DBGlobal.recoverableError(this, "wasn't closed before disposal", true);
+      DBInternal.recoverableError(this, "wasn't closed before disposal", true);
       try {
         close();
       } catch (Throwable e) {
