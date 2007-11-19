@@ -3,6 +3,7 @@ package sqlite;
 import sqlite.internal.SQLiteConstants;
 import sqlite.internal.SQLiteSwigged;
 
+import java.io.File;
 import java.util.Locale;
 import java.util.logging.Logger;
 
@@ -41,6 +42,8 @@ public final class DBGlobal {
     Throwable bestReason = null;
     if (checkLoaded())
       return null;
+    logger.info("java.library.path=" + System.getProperty("java.library.path"));
+    logger.info("cwd=" + new File(".").getAbsolutePath());
     String os;
     String osname = System.getProperty("os.name", "").toUpperCase(Locale.US);
     if (osname.indexOf("WINDOWS") >= 0) {

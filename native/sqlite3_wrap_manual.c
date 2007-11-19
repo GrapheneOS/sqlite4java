@@ -122,7 +122,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(
     value = (*jenv)->GetStringCritical(jenv, jvalue, &copied);
     destructor = SQLITE_TRANSIENT;
   } else {
-    value = (jchar*)"";
+    value = (const jchar*)"";
     destructor = SQLITE_STATIC;
   }
   if (!value) return WRAPPER_CANNOT_TRANSFORM_STRING;
