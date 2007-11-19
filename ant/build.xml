@@ -1,12 +1,12 @@
 <project basedir=".." name="sqlite4java" default="test">
+  <property file="ant/global.properties"/>
+
   <presetdef name="exec">
     <exec failifexecutionfails="true" failonerror="true"/>
   </presetdef>
   <presetdef name="copy">
     <copy overwrite="true" failonerror="true"/>
   </presetdef>
-
-  <property file="ant/default.properties"/>
 
   <target name="os">
     <echo message="os.name=${os.name}"/>
@@ -32,9 +32,45 @@
     <fail message="Unrecognized operating system"/>
   </target>
 
-  <target name="props" depends="os.check">
+  <target name="release" depends="clean">
+    <fail if="buildtype" message="buildtype is already set to ${buildtype}"/>
+    <property name="production" value="true"/>
+    <property name="buildtype" value="release"/>
+    <property name="cc.buildtype" value="-DNDEBUG"/>
+    <property name="ms.buildtype" value="RELEASE"/>
+  </target>
+
+  <target name="debug">
+    <property name="debug" value="true"/>
+    <property name="buildtype" value="debug"/>
+    <property name="cc.buildtype" value="-DSQLITE_DEBUG=1 ${cc.debug}"/>
+    <property name="ms.buildtype" value="DEBUG"/>
+  </target>
+
+  <target name="buildtype.check" depends="debug"/>
+
+  <target name="props" depends="os.check, buildtype.check">
     <echo message="os=${os}"/>
-    <property file="ant/${os}.properties"/>
+    <echo message="arch=${os.arch}"/>
+    <echo message="buildtype=${buildtype}"/>
+    <macrodef name="loadprop">
+      <attribute name="file"/>
+      <sequential>
+        <available file="@{file}" property="available.@{file}" value="++ loading: "/>
+        <property name="available.@{file}" value="            "/>
+        <echo message="${available.@{file}} @{file}"/>
+        <property file="@{file}"/>
+      </sequential>
+    </macrodef>
+    <loadprop file="ant/${os}-${os.arch}-${buildtype}.properties"/>
+    <loadprop file="ant/${os}-${os.arch}.properties"/>
+    <loadprop file="ant/${os}-${buildtype}.properties"/>
+    <loadprop file="ant/${os}.properties"/>
+    <loadprop file="ant/${buildtype}.properties"/>
+    <loadprop file="ant/default.properties"/>
+  </target>
+
+  <target name="check.jdk">
     <fail message="no jdk.home" unless="jdk.home"/>
     <echo message="jdk.home=${jdk.home}"/>
   </target>
@@ -44,17 +80,8 @@
     <!--<delete dir="dist"/>-->
   </target>
 
-  <target name="production" depends="clean">
-    <property name="production" value="true"/>
-    <property name="buildtype" value="release"/>
-    <property name="cc.buildtype" value="-DNDEBUG"/>
-  </target>
 
-  <target name="not.production" unless="production">
-    <property name="debug" value="true"/>
-    <property name="buildtype" value="debug"/>
-    <property name="cc.buildtype" value="-DSQLITE_DEBUG=1 ${cc.debug}"/>
-  </target>
+
 
   <target name="uptodate">
     <uptodate property="lib.uptodate" targetfile="build/${lib}">
@@ -80,7 +107,7 @@
     </condition>
   </target>
 
-  <target name="init" depends="props, not.production, uptodate">
+  <target name="init" depends="props, uptodate">
     <echo message="buildtype=${buildtype}"/>
     <mkdir dir="build"/>
     <mkdir dir="build/java/${java.package.dir}"/>
@@ -90,31 +117,70 @@
   </target>
 
   <target name="lib.swig" depends="init" unless="all.uptodate">
-    <exec command="${swig} -java -package ${java.package} 
-    -outdir build/java/${java.package.dir} -o build/native/sqlite_wrap.c swig/sqlite.i"/>
+    <fail message="no swig.home" unless="swig.home"/>
+    <exec command="${swig} -java -package ${java.package}
+      -outdir build/java/${java.package.dir} -o build/native/sqlite_wrap.c swig/sqlite.i"/>
   </target>
 
-  <target name="lib.compile" depends="init" unless="sqlite.uptodate">
+  <target name="init.windows">
+    <fail message="no wsdk.home" unless="wsdk.home"/>
+    <echo message="wsdk.home=${wsdk.home}"/>
+    <macrodef name="wsdk">
+      <attribute name="arg"/>
+      <sequential>
+        <exec command="cmd /C echo @{arg} | cmd /V:ON /D /K ${msenv} /${os.arch} /${ms.buildtype}" errorproperty="execerr"/>
+        <fail if="execerr" message="${execerr}"/>
+      </sequential>
+    </macrodef>
+  </target>
+
+  <macrodef name="compile">
+    <attribute name="c"/>
+    <attribute name="o"/>
+    <attribute name="a" default=""/>
+    <sequential>
+      <vc arg="/O1 /c /Zi /I${jdk.home}/include /I${jdk.home}/include/win32 /Isqlite /Inative @{a} /Fo@{o} @{c}"/>
+    </sequential>
+  </macrodef>
+
+  <target name="lib.compile.unix" if="ostype.unix" unless="sqlite.uptodate">
     <exec command="${cc} ${cc.args} ${sqlite.cc.args} ${cc.buildtype} ${cc.include} -c sqlite/sqlite3.c -o build/sqlite3.o"/>
   </target>
 
+  <target name="lib.compile.windows" if="ostype.windows" unless="sqlite.uptodate">
+    <antcall target="init.windows"/>
+    <wsdk arg="cl.exe ${cl.args} "/>
+  </target>
+
+  <target name="lib.compile" depends="init, lib.compile.unix, lib.compile.windows">
+
+    <!--<vc arg="/O1 /c /Zi /Fobuild/sqlite3.o sqlite/sqlite3.c"/>-->
+    <compile c="sqlite/sqlite3.c" o="build/sqlite3.o" a="/DSQLITE_ENABLE_COLUMN_METADATA /DHAVE_READLINE=0 /DSQLITE_THREADSAFE=1 /DSQLITE_THREAD_OVERRIDE_LOCK=-1 /DTEMP_STORE=1 /DSQLITE_OMIT_LOAD_EXTENSION=1"/>
+    <!--linux-->
+
+  </target>
+
   <target name="lib.wrap.compile" depends="lib.swig" unless="lib.uptodate">
-    <exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include} -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
-    <exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include} -c native/sqlite3_wrap_manual.c -o build/sqlite3_wrap_manual.o"/>
+    <compile c="build/native/sqlite_wrap.c" o="build/sqlite_wrap.o"/>
+    <compile c="native/sqlite3_wrap_manual.c" o="build/sqlite3_wrap_manual.o"/>
+    <!--<exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include} -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>-->
+    <!--<exec command="${cc} ${cc.args} ${cc.paranoid} ${cc.include} -c native/sqlite3_wrap_manual.c -o build/sqlite3_wrap_manual.o"/>-->
   </target>
 
   <target name="lib.link" depends="lib.compile, lib.wrap.compile" unless="lib.uptodate">
-    <exec command="${cc} ${cc.args} ${cc.link} -o build/${lib}
-    build/sqlite3.o build/sqlite_wrap.o build/sqlite3_wrap_manual.o"/>
+    <!--<exec command="${cc} ${cc.args} ${cc.link} -o build/${lib}-->
+    <!--build/sqlite3.o build/sqlite_wrap.o build/sqlite3_wrap_manual.o"/>-->
+    <exec command="cmd /C echo link.exe /nologo /DLL /opt:REF /incremental:no /OUT:build/${lib} build/sqlite3.o build/sqlite_wrap.o build/sqlite3_wrap_manual.o | cmd /D /K ${msenv} /x86 /DEBUG"/>
+
   </target>
-  
+
   <target name="java.compile" depends="lib.swig" unless="jar.uptodate">
     <copy todir="build/java" flatten="false">
       <fileset dir="java"/>
     </copy>
     <javac srcdir="build/java" destdir="build/classes" debug="on"/>
   </target>
-  
+
   <target name="java.jar" depends="java.compile" unless="jar.uptodate">
     <jar destfile="build/${libname}.jar" basedir="build/classes"/>
   </target>
@@ -188,7 +254,20 @@
   /O1
   /W3 /WX
   /opt:REF /incremental:no
-  /MD  
+  /MD
+    /Fmsqlite.map /Foobjfile /Feexefile /Iincludes /Dmacro
+
+    debug = /Zi
+    /c compile
+    /nologo
+
+  link /LD
+      /link ... options
+   /MD
+
+  /LDd
+        /MDd
+
   -->
 
 
