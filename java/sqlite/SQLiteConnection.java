@@ -11,11 +11,11 @@ import java.util.Map;
 import java.util.logging.Level;
 
 /**
- * DBConnection is a single connection to sqlite database. Most methods are thread-confined,
+ * SQLiteConnection is a single connection to sqlite database. Most methods are thread-confined,
  * and will throw errors if called from alien thread. Confinement thread is defined at the
  * construction time.
  * <p/>
- * DBConnection should be expicitly closed before the object is disposed. Failing to do so
+ * SQLiteConnection should be expicitly closed before the object is disposed. Failing to do so
  * may result in unpredictable behavior from sqlite.
  */
 public final class SQLiteConnection {
@@ -144,11 +144,11 @@ public final class SQLiteConnection {
       handle = myHandle;
       if (handle == null)
         return;
+      statements = getStatementsForFinishingOnClose();
       myHandle = null;
       myConfinement = null;
-      statements = getStatementsForDisposeOnClose();
     }
-    disposeStatements(statements);
+    finishStatements(statements);
     int rc = _SQLiteSwigged.sqlite3_close(handle);
     // rc may be SQLiteConstants.Result.SQLITE_BUSY if statements are open
     if (rc != SQLiteConstants.Result.SQLITE_OK) {
@@ -175,13 +175,13 @@ public final class SQLiteConnection {
     return prepare(sql, true);
   }
 
-  public SQLiteStatement prepare(String sql, boolean managed) throws SQLiteException {
+  public SQLiteStatement prepare(String sql, boolean cached) throws SQLiteException {
     checkThread();
     SWIGTYPE_p_sqlite3 handle;
     int openCounter;
     SQLiteStatement statement = null;
     synchronized (myLock) {
-      if (managed) {
+      if (cached) {
         statement = myStatementCache.get(sql);
       }
       handle = handle();
@@ -193,7 +193,7 @@ public final class SQLiteConnection {
         return statement;
       } else {
         // cannot use statement from cache
-        managed = false;
+        cached = false;
       }
     }
     int[] rc = {Integer.MIN_VALUE};
@@ -205,9 +205,9 @@ public final class SQLiteConnection {
       // the connection may close while prepare in progress
       // most probably that would throw SQLiteException earlier, but we'll check anyway
       if (myHandle != null && myOpenCounter == openCounter) {
-        statement = new SQLiteStatement(this, stmt, sql, openCounter, managed);
+        statement = new SQLiteStatement(this, stmt, sql, openCounter, cached);
         myStatements.add(statement);
-        if (managed) {
+        if (cached) {
           myStatementCache.put(sql, statement);
         }
       }
@@ -225,61 +225,58 @@ public final class SQLiteConnection {
   }
 
   private SQLiteStatement validateCachedStatement(SQLiteStatement statement) throws SQLiteException {
-    boolean hasRow = statement.hasRow();
-    boolean hasBindings = statement.hasBindings();
-    if (hasRow || hasBindings) {
-      String msg = hasRow ? (hasBindings ? "rows and bindings" : "rows") : "bindings";
-      msg = statement + ": retrieved from cache with " + msg + ", clearing";
-
-      // todo not sure if we need stack trace in log files here
-//            IllegalStateException thrown = new IllegalStateException(msg);
-      IllegalStateException thrown = null;
-      Internal.logger.log(Level.WARNING, msg, thrown);
-      statement.clear();
+    if (statement.isClear()) {
+      return statement;
     }
-    return statement;
+    String msg = statement.hasRow() ? (statement.hasBindings() ? "rows and bindings" : "rows") : "bindings";
+    msg = statement + ": requested from cache and has " + msg + ", creating uncached statement";
+    Internal.logger.info(msg);
+    return null;
   }
 
-  private void disposeStatements(SQLiteStatement[] statements) {
+  private void finishStatements(SQLiteStatement[] statements) {
     if (statements != null) {
       for (SQLiteStatement statement : statements) {
         try {
           statement.finish();
         } catch (SQLiteException e) {
-          Internal.logger.log(Level.WARNING, "dispose(" + statement + ") during close()", e);
+          Internal.logger.log(Level.WARNING, "finish(" + statement + ") during close()", e);
         }
       }
     }
     synchronized (myLock) {
       if (!myStatements.isEmpty()) {
-        Internal.recoverableError(this, "not all statements disposed (" + myStatements + ")", false);
+        Internal.recoverableError(this, "not all statements finished (" + myStatements + ")", false);
         myStatements.clear();
       }
       myStatementCache.clear();
     }
   }
 
-  private SQLiteStatement[] getStatementsForDisposeOnClose() {
+  private SQLiteStatement[] getStatementsForFinishingOnClose() {
     SQLiteStatement[] statements = null;
     if (!myStatements.isEmpty()) {
       if (myConfinement == Thread.currentThread()) {
         statements = myStatements.toArray(new SQLiteStatement[myStatements.size()]);
       } else {
-        Internal.logger.warning(this + " cannot clear " + myStatements.size() + " statements when closing from alien thread");
+        Internal.logger.warning(this + " cannot finish " + myStatements.size() + " statements when closing from alien thread");
       }
     }
     return statements;
   }
 
-  void statementDisposed(SQLiteStatement statement, String sql) {
+  void statementFinished(SQLiteStatement statement, String sql) {
     synchronized (myLock) {
       if (!myStatements.remove(statement)) {
-        Internal.recoverableError(statement, "unknown statement disposed", true);
+        Internal.recoverableError(statement, "unknown statement finished", true);
       }
-      SQLiteStatement removed = myStatementCache.remove(sql);
-      if (removed != null && removed != statement) {
-        // statement wasn't cached, but another statement with the same sql was cached
-        myStatementCache.put(sql, removed);
+      if (statement.isCached()) {
+        SQLiteStatement removed = myStatementCache.remove(sql);
+        if (removed != null && removed != statement) {
+          Internal.recoverableError(statement, "expunged from cache by " + removed, true);
+          // statement wasn't cached, but another statement with the same sql was cached
+          myStatementCache.put(sql, removed);
+        }
       }
     }
   }

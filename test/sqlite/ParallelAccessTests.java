@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-public class ParallelAccessTests extends DBConnectionFixture {
+public class ParallelAccessTests extends SQLiteConnectionFixture {
   private TestThread t1;
   private TestThread t2;
 

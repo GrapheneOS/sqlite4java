@@ -67,7 +67,7 @@ public interface SQLiteConstants {
     /**
      * Statement disposed
      */
-    public static final int WRAPPER_STATEMENT_DISPOSED = -96;
+    public static final int WRAPPER_STATEMENT_FINISHED = -96;
 
     /**
      * column() requested when no row returned

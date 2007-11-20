@@ -1,9 +1,9 @@
 package sqlite;
 
 import static sqlite.internal.SQLiteConstants.*;
-import sqlite.internal._SQLiteSwigged;
 import sqlite.internal.SWIGTYPE_p_sqlite3_stmt;
 import sqlite.internal._SQLiteManual;
+import sqlite.internal._SQLiteSwigged;
 
 /**
  * This class encapsulates sqlite statement. It is tightly linked to the opening connection, and confined to
@@ -14,7 +14,7 @@ public final class SQLiteStatement {
 
   private final SQLiteConnection myConnection;
   private final String mySql;
-  private final boolean myManaged;
+  private final boolean myCached;
 
   /**
    * Becomes null when closed.
@@ -38,21 +38,21 @@ public final class SQLiteStatement {
    */
   private int myColumnCount;
 
-  SQLiteStatement(SQLiteConnection connection, SWIGTYPE_p_sqlite3_stmt handle, String sql, int openCounter, boolean managed) {
+  SQLiteStatement(SQLiteConnection connection, SWIGTYPE_p_sqlite3_stmt handle, String sql, int openCounter, boolean cached) {
     assert handle != null;
     myConnection = connection;
     myHandle = handle;
     mySql = sql;
     myDbOpenCounter = openCounter;
-    myManaged = managed;
+    myCached = cached;
     Internal.logger.info(this + " created");
   }
 
-  public boolean isDisposed() {
+  public boolean isFinished() {
     try {
       myConnection.checkThread();
     } catch (SQLiteException e) {
-      Internal.recoverableError(this, "isDisposed() " + e.getMessage(), true);
+      Internal.recoverableError(this, "isFinished() " + e.getMessage(), true);
     }
     return myHandle == null;
   }
@@ -66,29 +66,41 @@ public final class SQLiteStatement {
     return myHandle != null && myConnection.isOpen(myDbOpenCounter);
   }
 
-  public boolean isManaged() {
-    return myManaged;
+  public boolean isCached() {
+    return myCached;
   }
 
   public SQLiteStatement dispose() throws SQLiteException {
-    if (myManaged)
-      clear();
+    if (myCached)
+      reset(true);
     else
       finish();
     return this;
   }
 
-  public SQLiteStatement clear() throws SQLiteException {
+  public SQLiteStatement reset() throws SQLiteException {
+    return reset(true);
+  }
+
+  public SQLiteStatement reset(boolean clearBindings) throws SQLiteException {
     myConnection.checkThread();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     clearRow();
     int rc = _SQLiteSwigged.sqlite3_reset(handle);
-    myConnection.throwResult(rc, "clear.reset()", this);
-    if (myHasBindings) {
+    myConnection.throwResult(rc, "reset()", this);
+    if (clearBindings && myHasBindings) {
       rc = _SQLiteSwigged.sqlite3_clear_bindings(handle);
-      myConnection.throwResult(rc, "clear.clearBindings()", this);
+      myConnection.throwResult(rc, "reset.clearBindings()", this);
       myHasBindings = false;
     }
+    return this;
+  }
+
+  public SQLiteStatement clearBindings() throws SQLiteException {
+    myConnection.checkThread();
+    int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle());
+    myConnection.throwResult(rc, "clearBindings()", this);
+    myHasBindings = false;
     return this;
   }
 
@@ -114,18 +126,8 @@ public final class SQLiteStatement {
     return result;
   }
 
-  void finish() throws SQLiteException {
-    myConnection.checkThread();
-    SWIGTYPE_p_sqlite3_stmt handle = myHandle;
-    if (handle == null)
-      return;
-    myConnection.statementDisposed(this, mySql);
-    myHandle = null;
-    clearRow();
-    myHasBindings = false;
-    int rc = _SQLiteSwigged.sqlite3_finalize(handle);
-    myConnection.throwResult(rc, "finish()", this);
-    Internal.logger.info(this + " finished");
+  public boolean isClear() {
+    return !hasRow() && !hasBindings();
   }
 
   public boolean hasRow() {
@@ -134,22 +136,6 @@ public final class SQLiteStatement {
 
   public boolean hasBindings() {
     return myHasBindings;
-  }
-
-  public SQLiteStatement reset() throws SQLiteException {
-    myConnection.checkThread();
-    clearRow();
-    int rc = _SQLiteSwigged.sqlite3_reset(handle());
-    myConnection.throwResult(rc, "reset()", this);
-    return this;
-  }
-
-  public SQLiteStatement clearBindings() throws SQLiteException {
-    myConnection.checkThread();
-    int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle());
-    myConnection.throwResult(rc, "clearBindings()", this);
-    myHasBindings = false;
-    return this;
   }
 
   public SQLiteStatement bind(int index, double value) throws SQLiteException {
@@ -234,10 +220,24 @@ public final class SQLiteStatement {
     return valueType == ValueType.SQLITE_NULL;
   }
 
+  void finish() throws SQLiteException {
+    myConnection.checkThread();
+    SWIGTYPE_p_sqlite3_stmt handle = myHandle;
+    if (handle == null)
+      return;
+    myConnection.statementFinished(this, mySql);
+    myHandle = null;
+    clearRow();
+    myHasBindings = false;
+    int rc = _SQLiteSwigged.sqlite3_finalize(handle);
+    myConnection.throwResult(rc, "finish()", this);
+    Internal.logger.info(this + " finished");
+  }
+
   private SWIGTYPE_p_sqlite3_stmt handle() throws SQLiteException {
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle == null) {
-      throw new SQLiteException(Wrapper.WRAPPER_STATEMENT_DISPOSED, null);
+      throw new SQLiteException(Wrapper.WRAPPER_STATEMENT_FINISHED, null);
     }
     if (!myConnection.isOpen(myDbOpenCounter)) {
       throw new SQLiteException(Wrapper.WRAPPER_NOT_OPENED, null);
@@ -265,7 +265,7 @@ public final class SQLiteStatement {
   }
 
   public String toString() {
-    return myConnection + "[" + mySql + "]" + (myManaged ? "[M]" : "");
+    return myConnection + "[" + mySql + "]" + (myCached ? "[C]" : "");
   }
 
   protected void finalize() throws Throwable {

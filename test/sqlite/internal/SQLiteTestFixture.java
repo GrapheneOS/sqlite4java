@@ -1,16 +1,40 @@
 package sqlite.internal;
 
 import junit.framework.TestCase;
+import sqlite.SQLite;
 
 import java.io.File;
-
-import sqlite.SQLite;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 public abstract class SQLiteTestFixture extends TestCase {
   private File myTempDir;
   private int myLastResult;
   private SWIGTYPE_p_sqlite3 myLastDb;
   private final boolean myAutoLoad;
+
+  static {
+    installFormatter(Logger.getLogger("sqlite"), new DecentFormatter());
+  }
+
+  private static void installFormatter(Logger logger, Formatter formatter) {
+    Handler[] handlers = logger.getHandlers();
+    if (handlers != null) {
+      for (Handler handler : handlers) {
+        handler.setFormatter(formatter);
+      }
+    }
+    Logger parent = logger.getParent();
+    if (parent != null)
+      installFormatter(parent, formatter);
+  }
 
   public SQLiteTestFixture(boolean autoLoad) {
     myAutoLoad = autoLoad;
@@ -131,5 +155,31 @@ public abstract class SQLiteTestFixture extends TestCase {
     String r = _SQLiteManual.sqlite3_column_text(stmt, column, rc);
     myLastResult = rc[0];
     return r;
+  }
+
+  private static class DecentFormatter extends Formatter {
+    private static final DateFormat dateFormat = new SimpleDateFormat("yyMMdd-HHmmss");
+
+    public String format(LogRecord record) {
+      StringBuilder sb = new StringBuilder();
+      sb.append(dateFormat.format(new Date(record.getMillis())));
+      sb.append(' ');
+      sb.append(record.getLevel().getLocalizedName());
+      sb.append(' ');
+      sb.append(record.getMessage());
+      if (record.getThrown() != null) {
+        try {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          record.getThrown().printStackTrace(pw);
+          pw.close();
+          sb.append('\n');
+          sb.append(sw.toString());
+        } catch (Exception ex) {
+        }
+      }
+      sb.append('\n');
+      return sb.toString();
+    }
   }
 }
