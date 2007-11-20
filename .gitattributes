@@ -17,6 +17,7 @@ java/sqlite/DBConnection.java -text
 java/sqlite/DBException.java -text
 java/sqlite/SQLiteConnection.java -text
 java/sqlite/SQLiteException.java -text
+java/sqlite/SQLiteStatement.java -text
 lib/junit.jar -text
 native/sqlite3_manual.h -text
 native/sqlite3_wrap_manual.c -text
