@@ -31,8 +31,6 @@ swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3_stmt.java -text
 swig/stub/sqlite/internal/_SQLiteSwigged.java -text
 swig/stub/sqlite/internal/_SQLiteSwiggedJNI.java -text
 test/Test.java -text
-test/sqlite/DBConnectionFixture.java -text
-test/sqlite/DBConnectionTests.java -text
 test/sqlite/SQLiteConnectionFixture.java -text
 test/sqlite/SQLiteConnectionTests.java -text
 test/sqlite/internal/SQLiteBasicTests.java -text
