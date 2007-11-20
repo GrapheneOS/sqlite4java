@@ -1,6 +1,5 @@
 package sqlite.internal;
 
-import sqlite.DBGlobal;
 import static sqlite.internal.SQLiteConstants.Open;
 import static sqlite.internal.SQLiteConstants.Result;
 

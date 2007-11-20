@@ -1,9 +1,9 @@
 package sqlite;
 
 public class DBValueTests extends DBConnectionFixture {
-  public void testString() throws DBException {
-    DBConnection con = fileDb().open();
-    DBStatement st;
+  public void testString() throws SQLiteException {
+    SQLiteConnection con = fileDb().open();
+    SQLiteStatement st;
 
     st = insertAndSelect(con, "xyz");
     assertEquals("xyz", st.columnString(0));
@@ -33,9 +33,9 @@ public class DBValueTests extends DBConnectionFixture {
     st.clear();
   }
 
-  public void testIntegerAndLong() throws DBException {
-    DBConnection con = fileDb().open();
-    DBStatement st;
+  public void testIntegerAndLong() throws SQLiteException {
+    SQLiteConnection con = fileDb().open();
+    SQLiteStatement st;
 
     st = insertAndSelect(con, 1, false);
     assertEquals(1, st.columnInt(0));
@@ -97,9 +97,9 @@ public class DBValueTests extends DBConnectionFixture {
     st.clear();
   }
 
-  public void testFloats() throws DBException {
-    DBConnection con = fileDb().open();
-    DBStatement st;
+  public void testFloats() throws SQLiteException {
+    SQLiteConnection con = fileDb().open();
+    SQLiteStatement st;
 
     double v = 1.1;
     st = insertAndSelect(con, v);
@@ -108,9 +108,9 @@ public class DBValueTests extends DBConnectionFixture {
     st.clear();
   }
 
-  private static DBStatement insertNullAndSelect(DBConnection con) throws DBException {
+  private static SQLiteStatement insertNullAndSelect(SQLiteConnection con) throws SQLiteException {
     recreateX(con);
-    DBStatement st = con.prepare("insert into x values (?)");
+    SQLiteStatement st = con.prepare("insert into x values (?)");
     st.bindNull(1);
     st.step();
     st.clear();
@@ -120,9 +120,9 @@ public class DBValueTests extends DBConnectionFixture {
     return st;
   }
 
-  private static DBStatement insertAndSelect(DBConnection con, double value) throws DBException {
+  private static SQLiteStatement insertAndSelect(SQLiteConnection con, double value) throws SQLiteException {
     recreateX(con);
-    DBStatement st = con.prepare("insert into x values (?)");
+    SQLiteStatement st = con.prepare("insert into x values (?)");
     st.bind(1, value);
     st.step();
     st.clear();
@@ -132,9 +132,9 @@ public class DBValueTests extends DBConnectionFixture {
     return st;
   }
 
-  private static DBStatement insertAndSelect(DBConnection con, String value) throws DBException {
+  private static SQLiteStatement insertAndSelect(SQLiteConnection con, String value) throws SQLiteException {
     recreateX(con);
-    DBStatement st = con.prepare("insert into x values (?)");
+    SQLiteStatement st = con.prepare("insert into x values (?)");
     st.bind(1, value);
     st.step();
     st.clear();
@@ -144,9 +144,9 @@ public class DBValueTests extends DBConnectionFixture {
     return st;
   }
 
-  private static DBStatement insertAndSelect(DBConnection con, long value, boolean useLong) throws DBException {
+  private static SQLiteStatement insertAndSelect(SQLiteConnection con, long value, boolean useLong) throws SQLiteException {
     recreateX(con);
-    DBStatement st = con.prepare("insert into x values (?)");
+    SQLiteStatement st = con.prepare("insert into x values (?)");
     if (useLong) {
       st.bind(1, value);
     } else {
@@ -160,7 +160,7 @@ public class DBValueTests extends DBConnectionFixture {
     return st;
   }
 
-  private static void recreateX(DBConnection con) throws DBException {
+  private static void recreateX(SQLiteConnection con) throws SQLiteException {
     con.exec("drop table if exists x");
     con.exec("create table x (x)");
   }

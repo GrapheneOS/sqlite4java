@@ -4,7 +4,7 @@ import junit.framework.TestCase;
 
 import java.io.File;
 
-import sqlite.DBGlobal;
+import sqlite.SQLite;
 
 public abstract class SQLiteTestFixture extends TestCase {
   private File myTempDir;
@@ -18,7 +18,7 @@ public abstract class SQLiteTestFixture extends TestCase {
 
   protected void setUp() throws Exception {
     if (myAutoLoad) {
-      DBGlobal.loadLibrary();
+      SQLite.loadLibrary();
     }
     String name = getClass().getName();
     File dir = File.createTempFile(name.substring(name.lastIndexOf('.') + 1) + "_", ".test");
@@ -59,7 +59,7 @@ public abstract class SQLiteTestFixture extends TestCase {
 
   protected void open(String name, int flags) {
     int[] rc = {0};
-    myLastDb = SQLiteManual.sqlite3_open_v2(name, flags, rc);
+    myLastDb = _SQLiteManual.sqlite3_open_v2(name, flags, rc);
     myLastResult = rc[0];
   }
 
@@ -72,9 +72,9 @@ public abstract class SQLiteTestFixture extends TestCase {
   }
 
   protected void close() {
-    long before = SQLiteSwigged.sqlite3_memory_used();
-    myLastResult = SQLiteSwigged.sqlite3_close(myLastDb);
-    long after = SQLiteSwigged.sqlite3_memory_used();
+    long before = _SQLiteSwigged.sqlite3_memory_used();
+    myLastResult = _SQLiteSwigged.sqlite3_close(myLastDb);
+    long after = _SQLiteSwigged.sqlite3_memory_used();
     System.out.println("mem: " + before + "->" + after);
     myLastDb = null;
   }
@@ -85,7 +85,7 @@ public abstract class SQLiteTestFixture extends TestCase {
 
   protected void exec(String sql) {
     String[] error = {null};
-    myLastResult = SQLiteManual.sqlite3_exec(myLastDb, sql, error);
+    myLastResult = _SQLiteManual.sqlite3_exec(myLastDb, sql, error);
     if (error[0] != null) {
       System.out.println("error: " + error[0]);
     }
@@ -101,34 +101,34 @@ public abstract class SQLiteTestFixture extends TestCase {
 
   protected SWIGTYPE_p_sqlite3_stmt prepare(String sql) {
     int[] rc = {0};
-    SWIGTYPE_p_sqlite3_stmt stmt = SQLiteManual.sqlite3_prepare_v2(myLastDb, sql, rc);
+    SWIGTYPE_p_sqlite3_stmt stmt = _SQLiteManual.sqlite3_prepare_v2(myLastDb, sql, rc);
     myLastResult = rc[0];
     return stmt;
   }
 
   protected void bindLong(SWIGTYPE_p_sqlite3_stmt stmt, int index, long value) {
-    myLastResult = SQLiteSwigged.sqlite3_bind_int64(stmt, index, value);
+    myLastResult = _SQLiteSwigged.sqlite3_bind_int64(stmt, index, value);
   }
 
   protected void step(SWIGTYPE_p_sqlite3_stmt stmt) {
-    myLastResult = SQLiteSwigged.sqlite3_step(stmt);
+    myLastResult = _SQLiteSwigged.sqlite3_step(stmt);
   }
 
   protected void reset(SWIGTYPE_p_sqlite3_stmt stmt) {
-    myLastResult = SQLiteSwigged.sqlite3_reset(stmt);
+    myLastResult = _SQLiteSwigged.sqlite3_reset(stmt);
   }
 
   protected void finalize(SWIGTYPE_p_sqlite3_stmt stmt) {
-    myLastResult = SQLiteSwigged.sqlite3_finalize(stmt);
+    myLastResult = _SQLiteSwigged.sqlite3_finalize(stmt);
   }
 
   protected void bindText(SWIGTYPE_p_sqlite3_stmt stmt, int index, String value) {
-    myLastResult = SQLiteManual.sqlite3_bind_text(stmt, index, value);
+    myLastResult = _SQLiteManual.sqlite3_bind_text(stmt, index, value);
   }
 
   protected String columnText(SWIGTYPE_p_sqlite3_stmt stmt, int column) {
     int[] rc = {0};
-    String r = SQLiteManual.sqlite3_column_text(stmt, column, rc);
+    String r = _SQLiteManual.sqlite3_column_text(stmt, column, rc);
     myLastResult = rc[0];
     return r;
   }

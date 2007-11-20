@@ -1,5 +1,5 @@
 package sqlite;
 
 public interface DBRunnable {
-  void dbrun() throws DBException;
+  void dbrun() throws SQLiteException;
 }

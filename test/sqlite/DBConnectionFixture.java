@@ -5,7 +5,7 @@ import sqlite.internal.SQLiteTestFixture;
 import java.io.File;
 
 public abstract class DBConnectionFixture extends SQLiteTestFixture {
-  private DBConnection myDB;
+  private SQLiteConnection myDB;
   private File myDbFile;
 
   protected DBConnectionFixture() {
@@ -30,19 +30,19 @@ public abstract class DBConnectionFixture extends SQLiteTestFixture {
     return myDbFile;
   }
 
-  protected DBConnection fileDb() {
+  protected SQLiteConnection fileDb() {
     return createDb(myDbFile);
   }
 
-  protected DBConnection memDb() {
+  protected SQLiteConnection memDb() {
     return createDb(null);
   }
 
-  private DBConnection createDb(File dbfile) {
+  private SQLiteConnection createDb(File dbfile) {
     if (myDB != null) {
       myDB.close();
     }
-    myDB = new DBConnection(dbfile);
+    myDB = new SQLiteConnection(dbfile);
     return myDB;
   }
 }

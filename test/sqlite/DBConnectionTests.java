@@ -1,15 +1,15 @@
 package sqlite;
 
-import java.io.File;
+import java.util.concurrent.Semaphore;
 
 public class DBConnectionTests extends DBConnectionFixture {
-  public void testOpenFile() throws DBException {
-    DBConnection connection = fileDb();
+  public void testOpenFile() throws SQLiteException {
+    SQLiteConnection connection = fileDb();
     assertFalse(connection.isOpen());
     try {
       connection.openReadonly();
       fail("successfully opened");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
     assertFalse(connection.isOpen());
@@ -20,7 +20,7 @@ public class DBConnectionTests extends DBConnectionFixture {
     try {
       connection.open(allowCreate);
       fail("successfully opened");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
 
@@ -32,13 +32,13 @@ public class DBConnectionTests extends DBConnectionFixture {
     assertFalse(connection.isOpen());
   }
 
-  public void testOpenMemory() throws DBException {
-    DBConnection connection = memDb();
+  public void testOpenMemory() throws SQLiteException {
+    SQLiteConnection connection = memDb();
     assertFalse(connection.isOpen());
     try {
       connection.openReadonly();
       fail("successfully opened");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
     assertFalse(connection.isOpen());
@@ -48,7 +48,7 @@ public class DBConnectionTests extends DBConnectionFixture {
     try {
       connection.open(false);
       fail("successfully opened");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
 
@@ -61,12 +61,12 @@ public class DBConnectionTests extends DBConnectionFixture {
     assertFalse(connection.isOpen());
   }
 
-  public void testExec() throws DBException {
-    DBConnection db = fileDb();
+  public void testExec() throws SQLiteException {
+    SQLiteConnection db = fileDb();
     try {
       db.exec("create table xxx (x)");
       fail("exec unopened");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // ok
     }
 
@@ -77,9 +77,27 @@ public class DBConnectionTests extends DBConnectionFixture {
     try {
       db.exec("blablabla");
       fail("execed bad sql");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // ok
     }
   }
 
+  public void testCloseFromAnotherThread() throws SQLiteException, InterruptedException {
+    final SQLiteConnection connection = fileDb();
+    for (int i = 0; i < 100; i++) {
+      connection.open();
+      assertTrue(connection.isOpen());
+      final Semaphore s = new Semaphore(1);
+      s.acquire();
+      new Thread() {
+        public void run() {
+          connection.close();
+          assertFalse(connection.isOpen());
+          s.release();
+        }
+      }.start();
+      s.acquire();
+      s.release();
+    }
+  }
 }

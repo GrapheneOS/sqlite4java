@@ -6,12 +6,12 @@
 extern "C" {
 #endif
 
-JNIEXPORT jstring JNICALL Java_sqlite_internal_SQLiteManualJNI_wrapper_1version(JNIEnv *jenv, jclass jcls) {
+JNIEXPORT jstring JNICALL Java_sqlite_internal__1SQLiteManualJNI_wrapper_1version(JNIEnv *jenv, jclass jcls) {
   jstring result = (*jenv)->NewStringUTF(jenv, WRAPPER_VERSION);
   return result;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
   jstring jfilename, jlongArray jresult, jint jflags)
 {
   const char *filename = 0;
@@ -41,7 +41,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1open_1v2(JN
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jobjectArray joutError)
 {
   sqlite3* db = 0;
@@ -80,7 +80,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1exec(JNIEnv
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jlongArray jresult)
 {
   sqlite3* db = 0;
@@ -110,7 +110,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1prepare_1v2
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jstring jvalue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -140,7 +140,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1bind_1text(
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal_SQLiteManualJNI_sqlite3_1column_1text(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1column_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jcolumn, jobjectArray joutValue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;

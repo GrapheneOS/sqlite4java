@@ -1,4 +1,4 @@
-%module SQLiteSwigged
+%module _SQLiteSwigged
 %{
 #include <sqlite3.h>
 %}

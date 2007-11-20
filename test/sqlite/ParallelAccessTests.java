@@ -37,8 +37,8 @@ public class ParallelAccessTests extends DBConnectionFixture {
   }
 
   public void testParallelReads() throws Exception {
-    DBStatement st1 = t1.prepare("select x from x order by x");
-    DBStatement st2 = t2.prepare("select x from x order by x");
+    SQLiteStatement st1 = t1.prepare("select x from x order by x");
+    SQLiteStatement st2 = t2.prepare("select x from x order by x");
     boolean b1, b2;
     b1 = t1.step(st1);
     assertTrue(b1);
@@ -55,7 +55,7 @@ public class ParallelAccessTests extends DBConnectionFixture {
   }
 
   public void testWriteWhileReadInProgress() throws Exception {
-    DBStatement st1 = t1.prepare("select x from x order by x");
+    SQLiteStatement st1 = t1.prepare("select x from x order by x");
     assertTrue(t1.step(st1));
     t2.exec("begin immediate");
     assertTrue(t1.step(st1));
@@ -68,7 +68,7 @@ public class ParallelAccessTests extends DBConnectionFixture {
 
   private class TestThread extends Thread {
     private Exception myException;
-    private DBConnection myConnection;
+    private SQLiteConnection myConnection;
     private List<DBRunnable> myQueue = new ArrayList<DBRunnable>();
 
     private TestThread() {
@@ -77,7 +77,7 @@ public class ParallelAccessTests extends DBConnectionFixture {
 
     public void run() {
       try {
-        myConnection = new DBConnection(new File(tempName("db")));
+        myConnection = new SQLiteConnection(new File(tempName("db")));
         myConnection.open();
         while (true) {
           DBRunnable r;
@@ -103,15 +103,15 @@ public class ParallelAccessTests extends DBConnectionFixture {
       }
     }
 
-    public void exec(final String sql) throws DBException, InterruptedException {
+    public void exec(final String sql) throws SQLiteException, InterruptedException {
       perform(true, new DBRunnable() {
-        public void dbrun() throws DBException {
+        public void dbrun() throws SQLiteException {
           myConnection.exec(sql);
         }
       });
     }
 
-    private void perform(boolean wait, final DBRunnable runnable) throws InterruptedException, DBException {
+    private void perform(boolean wait, final DBRunnable runnable) throws InterruptedException, SQLiteException {
       if (!isAlive())
         return;
       if (this == Thread.currentThread()) {
@@ -124,7 +124,7 @@ public class ParallelAccessTests extends DBConnectionFixture {
         final Semaphore sp = new Semaphore(1);
         sp.acquire();
         r = new DBRunnable() {
-          public void dbrun() throws DBException {
+          public void dbrun() throws SQLiteException {
             try {
               runnable.dbrun();
             } finally {
@@ -155,20 +155,20 @@ public class ParallelAccessTests extends DBConnectionFixture {
       return myException;
     }
 
-    public DBStatement prepare(final String sql) throws DBException, InterruptedException {
-      final DBStatement[] result = {null};
+    public SQLiteStatement prepare(final String sql) throws SQLiteException, InterruptedException {
+      final SQLiteStatement[] result = {null};
       perform(true, new DBRunnable() {
-        public void dbrun() throws DBException {
+        public void dbrun() throws SQLiteException {
           result[0] = myConnection.prepare(sql);
         }
       });
       return result[0];
     }
 
-    public boolean step(final DBStatement statement) throws DBException, InterruptedException {
+    public boolean step(final SQLiteStatement statement) throws SQLiteException, InterruptedException {
       final boolean[] result = {false};
       perform(true, new DBRunnable() {
-        public void dbrun() throws DBException {
+        public void dbrun() throws SQLiteException {
           result[0] = statement.step();
         }
       });

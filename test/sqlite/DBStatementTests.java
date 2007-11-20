@@ -1,50 +1,50 @@
 package sqlite;
 
 public class DBStatementTests extends DBConnectionFixture {
-  public void testPrepareBad() throws DBException {
-    DBConnection connection = fileDb();
+  public void testPrepareBad() throws SQLiteException {
+    SQLiteConnection connection = fileDb();
     connection.open();
     try {
       connection.prepare("wrong sql");
       fail("prepared wrong sql");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // ok
     }
     try {
       connection.prepare(null);
       fail("prepared null");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       //ok
     }
     try {
       connection.prepare("   ");
       fail("prepared empty");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // ok
     }
     try {
       connection.prepare("");
       fail("prepared empty");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // ok
     }
     try {
       connection.prepare("select * from x");
       fail("prepared invalid");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // ok
     }
   }
 
-  public void testStatementLifecycle() throws DBException {
-    DBConnection connection = fileDb();
+  public void testStatementLifecycle() throws SQLiteException {
+    SQLiteConnection connection = fileDb();
     connection.open();
     connection.exec("create table x (x)");
     String sql = "insert into x values (?)";
-    DBStatement st1 = connection.prepare(sql, false);
-    DBStatement st2 = connection.prepare(sql, false);
-    DBStatement st3 = connection.prepare(sql, true);
-    DBStatement st4 = connection.prepare(sql, true);
+    SQLiteStatement st1 = connection.prepare(sql, false);
+    SQLiteStatement st2 = connection.prepare(sql, false);
+    SQLiteStatement st3 = connection.prepare(sql, true);
+    SQLiteStatement st4 = connection.prepare(sql, true);
     assertNotSame(st1, st2);
     assertNotSame(st1, st3);
     assertNotSame(st1, st4);
@@ -55,7 +55,7 @@ public class DBStatementTests extends DBConnectionFixture {
     assertFalse(st1.isDisposed());
     assertFalse(st2.isDisposed());
     assertFalse(st3.isDisposed());
-    st1.dispose();
+    st1.finish();
     assertTrue(st1.isDisposed());
     assertFalse(st2.isDisposed());
     assertFalse(st3.isDisposed());
@@ -64,18 +64,18 @@ public class DBStatementTests extends DBConnectionFixture {
     assertTrue(st3.isDisposed());
   }
 
-  public void testCloseFromAnotherThread() throws DBException, InterruptedException {
-    final DBConnection connection = fileDb().open().exec("create table x (x)");
-    final DBStatement st = connection.prepare("insert into x values (?)");
+  public void testCloseFromAnotherThread() throws SQLiteException, InterruptedException {
+    final SQLiteConnection connection = fileDb().open().exec("create table x (x)");
+    final SQLiteStatement st = connection.prepare("insert into x values (?)");
     assertFalse(st.isDisposed());
     assertTrue(st.isUsable());
 
     Thread closer = new Thread() {
       public void run() {
         try {
-          st.dispose();
+          st.finish();
           fail("disposed " + st + " from another thread");
-        } catch (DBException e) {
+        } catch (SQLiteException e) {
           // ok
         }
 
@@ -95,10 +95,10 @@ public class DBStatementTests extends DBConnectionFixture {
     assertFalse(st.isUsable());
   }
 
-  public void testCloseFromCorrectThreadWithOpenStatement() throws DBException {
-    DBConnection connection = fileDb().open().exec("create table x (x, y)");
+  public void testCloseFromCorrectThreadWithOpenStatement() throws SQLiteException {
+    SQLiteConnection connection = fileDb().open().exec("create table x (x, y)");
     connection.exec("insert into x values (2, '3');");
-    DBStatement st = connection.prepare("select x, y from x");
+    SQLiteStatement st = connection.prepare("select x, y from x");
     st.step();
 
     assertTrue(st.hasRow());
@@ -109,13 +109,13 @@ public class DBStatementTests extends DBConnectionFixture {
     assertFalse(st.hasRow());
   }
 
-  public void testBadBindIndexes() throws DBException {
-    DBConnection connection = fileDb().open().exec("create table x (x, y)");
-    DBStatement st = connection.prepare("insert into x values (?, ?)");
+  public void testBadBindIndexes() throws SQLiteException {
+    SQLiteConnection connection = fileDb().open().exec("create table x (x, y)");
+    SQLiteStatement st = connection.prepare("insert into x values (?, ?)");
     try {
       st.bind(0, "0");
       fail("bound to 0");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
     st.bind(1, "1");
@@ -123,33 +123,33 @@ public class DBStatementTests extends DBConnectionFixture {
     try {
       st.bind(3, "3");
       fail("bound to 3");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
     try {
       st.bind(-99999, "-99999");
       fail("bound to 0-99999");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
     try {
       st.bind(99999, "99999");
       fail("bound to 99999");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
   }
 
-  public void testBadColumnUse() throws DBException {
-    DBConnection connection = fileDb().open().exec("create table x (x, y)");
+  public void testBadColumnUse() throws SQLiteException {
+    SQLiteConnection connection = fileDb().open().exec("create table x (x, y)");
     connection.exec("insert into x values (2, '3');");
-    DBStatement st = connection.prepare("select x, y from x");
+    SQLiteStatement st = connection.prepare("select x, y from x");
 
     assertFalse(st.hasRow());
     try {
       st.columnInt(0);
       fail("got column before step");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
 
@@ -163,33 +163,33 @@ public class DBStatementTests extends DBConnectionFixture {
     try {
       st.columnInt(-1);
       fail("got column -1");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
     try {
       st.columnInt(-999999);
       fail("got column -999999");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
     try {
       st.columnInt(3);
       fail("got column 3");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
     try {
       st.columnInt(999999);
       fail("got column 999999");
-    } catch (DBException e) {
+    } catch (SQLiteException e) {
       // norm
     }
   }
 
-  public void testForgottenStatement() throws DBException, InterruptedException {
-    DBConnection connection = fileDb().open().exec("create table x (x)");
+  public void testForgottenStatement() throws SQLiteException, InterruptedException {
+    SQLiteConnection connection = fileDb().open().exec("create table x (x)");
     connection.exec("insert into x values (1);");
-    DBStatement st = connection.prepare("select x + ? from x");
+    SQLiteStatement st = connection.prepare("select x + ? from x");
     st.bind(1, 1);
     st.step();
     assertTrue(st.hasRow());
