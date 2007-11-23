@@ -72,14 +72,13 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     final SQLiteConnection connection = fileDb().open().exec("create table x (x)");
     final SQLiteStatement st = connection.prepare("insert into x values (?)");
     assertFalse(st.isDisposed());
-    assertTrue(st.isUsable());
 
     Thread closer = new Thread() {
       public void run() {
         try {
-          st.finish();
+          st.dispose();
           fail("disposed " + st + " from another thread");
-        } catch (SQLiteException e) {
+        } catch (AssertionError e) {
           // ok
         }
 
@@ -92,11 +91,10 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
 
     // cannot dispose from another thread actually:
     assertFalse(st.isDisposed());
-    assertFalse(st.isUsable());
+
 
     connection.open();
     assertTrue(connection.isOpen());
-    assertFalse(st.isUsable());
   }
 
   public void testCloseFromCorrectThreadWithOpenStatement() throws SQLiteException {

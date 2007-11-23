@@ -12,8 +12,9 @@ import sqlite.internal._SQLiteSwigged;
 public final class SQLiteStatement {
   private static final int COLUMN_COUNT_UNKNOWN = -1;
 
-  private final StatementController myController;
   private final String mySql;
+
+  private StatementController myController;
 
   /**
    * Becomes null when disposed.
@@ -72,8 +73,15 @@ public final class SQLiteStatement {
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle == null)
       return;
+    boolean hasBindings = myHasBindings;
+    boolean stepped = myStepped;
     myHandle = null;
-    myController.disposed(handle, mySql, myHasBindings, myStepped);
+    myHasRow = false;
+    myColumnCount = 0;
+    myHasBindings = false;
+    myStepped = false;
+    myController.disposed(handle, mySql, hasBindings, stepped);
+    myController = new StatementController.DisposedStatementController(myController.toString());
   }
 
   public SQLiteStatement reset() throws SQLiteException {
@@ -219,21 +227,6 @@ public final class SQLiteStatement {
     checkColumn(column, handle);
     int valueType = _SQLiteSwigged.sqlite3_column_type(handle, column);
     return valueType == ValueType.SQLITE_NULL;
-  }
-
-  void finish() throws SQLiteException {
-    myController.validate();
-    SWIGTYPE_p_sqlite3_stmt handle = myHandle;
-    if (handle == null)
-      return;
-    myController.statementFinished(this);
-    myHandle = null;
-    myHasRow = false;
-    myColumnCount = 0;
-    myHasBindings = false;
-    int rc = _SQLiteSwigged.sqlite3_finalize(handle);
-    myController.throwResult(rc, "finish()", this);
-    Internal.logger.info(this + " finished");
   }
 
   private SWIGTYPE_p_sqlite3_stmt handle() throws SQLiteException {

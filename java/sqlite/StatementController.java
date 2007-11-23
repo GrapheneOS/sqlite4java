@@ -19,5 +19,14 @@ interface StatementController {
     public String toString() {
       return myName;
     }
+
+    public void validate() throws SQLiteException {
+    }
+
+    public void throwResult(int rc, String message, Object additionalMessage) throws SQLiteException {
+    }
+
+    public void disposed(SWIGTYPE_p_sqlite3_stmt handle, String sql, boolean hasBindings, boolean hasStepped) {
+    }
   }
 }
