@@ -13,7 +13,7 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
       // norm
     }
     assertFalse(connection.isOpen());
-    connection.close();
+    connection.dispose();
     assertFalse(connection.isOpen());
 
     boolean allowCreate = false;
@@ -28,7 +28,7 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     assertTrue(connection.isOpen());
     assertEquals(dbFile(), connection.getDatabaseFile());
 
-    connection.close();
+    connection.dispose();
     assertFalse(connection.isOpen());
   }
 
@@ -42,7 +42,7 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
       // norm
     }
     assertFalse(connection.isOpen());
-    connection.close();
+    connection.dispose();
     assertFalse(connection.isOpen());
 
     try {
@@ -57,7 +57,7 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     assertNull(connection.getDatabaseFile());
     assertTrue(connection.isMemoryDatabase());
 
-    connection.close();
+    connection.dispose();
     assertFalse(connection.isOpen());
   }
 
@@ -91,7 +91,7 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
       s.acquire();
       new Thread() {
         public void run() {
-          connection.close();
+          connection.dispose();
           assertFalse(connection.isOpen());
           s.release();
         }

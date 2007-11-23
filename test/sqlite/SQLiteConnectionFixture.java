@@ -19,7 +19,7 @@ public abstract class SQLiteConnectionFixture extends SQLiteTestFixture {
 
   protected void tearDown() throws Exception {
     if (myDB != null) {
-      myDB.close();
+      myDB.dispose();
       myDB = null;
     }
     myDbFile = null;
@@ -40,7 +40,7 @@ public abstract class SQLiteConnectionFixture extends SQLiteTestFixture {
 
   private SQLiteConnection createDb(File dbfile) {
     if (myDB != null) {
-      myDB.close();
+      myDB.dispose();
     }
     myDB = new SQLiteConnection(dbfile);
     return myDB;

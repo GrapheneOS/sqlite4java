@@ -12,15 +12,13 @@ import sqlite.internal._SQLiteSwigged;
 public final class SQLiteStatement {
   private static final int COLUMN_COUNT_UNKNOWN = -1;
 
-  private final SQLiteConnection myConnection;
+  private final StatementController myController;
   private final String mySql;
-  private final boolean myCached;
 
   /**
-   * Becomes null when closed.
+   * Becomes null when disposed.
    */
   private SWIGTYPE_p_sqlite3_stmt myHandle;
-  private final int myDbOpenCounter;
 
   /**
    * When true, the last step() returned SQLITE_ROW, which means data can be read.
@@ -33,49 +31,49 @@ public final class SQLiteStatement {
   private boolean myHasBindings;
 
   /**
+   * When true, the statement has performed step() and needs to be reset.
+   */
+  private boolean myStepped;
+
+  /**
    * The number of columns in current result set. When set to COLUMN_COUNT_UNKNOWN, the number of columns should be requested
    * at first need.
    */
   private int myColumnCount;
 
-  SQLiteStatement(SQLiteConnection connection, SWIGTYPE_p_sqlite3_stmt handle, String sql, int openCounter, boolean cached) {
+  SQLiteStatement(StatementController controller, SWIGTYPE_p_sqlite3_stmt handle, String sql) {
     assert handle != null;
-    myConnection = connection;
+    myController = controller;
     myHandle = handle;
     mySql = sql;
-    myDbOpenCounter = openCounter;
-    myCached = cached;
     Internal.logger.info(this + " created");
   }
 
-  public boolean isFinished() {
+  public boolean isDisposed() {
     try {
-      myConnection.checkThread();
+      myController.validate();
     } catch (SQLiteException e) {
       Internal.recoverableError(this, "isFinished() " + e.getMessage(), true);
     }
     return myHandle == null;
   }
 
-  public boolean isUsable() {
+  public String getSql() {
+    return mySql;
+  }
+
+  public void dispose() {
     try {
-      myConnection.checkThread();
+      myController.validate();
     } catch (SQLiteException e) {
-      return false;
+      Internal.recoverableError(this, "invalid dispose: " + e, true);
+      return;
     }
-    return myHandle != null && myConnection.isOpen(myDbOpenCounter);
-  }
-
-  public boolean isCached() {
-    return myCached;
-  }
-
-  public SQLiteStatement dispose() throws SQLiteException {
-    if (myCached)
-      reset(true);
-    else
-      finish();
-    return this;
+    SWIGTYPE_p_sqlite3_stmt handle = myHandle;
+    if (handle == null)
+      return;
+    myHandle = null;
+    myController.disposed(handle, mySql, myHasBindings, myStepped);
   }
 
   public SQLiteStatement reset() throws SQLiteException {
@@ -83,51 +81,51 @@ public final class SQLiteStatement {
   }
 
   public SQLiteStatement reset(boolean clearBindings) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    clearRow();
-    int rc = _SQLiteSwigged.sqlite3_reset(handle);
-    myConnection.throwResult(rc, "reset()", this);
-    if (clearBindings && myHasBindings) {
-      rc = _SQLiteSwigged.sqlite3_clear_bindings(handle);
-      myConnection.throwResult(rc, "reset.clearBindings()", this);
-      myHasBindings = false;
+    if (myStepped) {
+      int rc = _SQLiteSwigged.sqlite3_reset(handle);
+      myController.throwResult(rc, "reset()", this);
     }
+    if (clearBindings && myHasBindings) {
+      int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle);
+      myController.throwResult(rc, "reset.clearBindings()", this);
+    }
+    myHasRow = false;
+    myColumnCount = 0;
+    myStepped = false;
+    myHasBindings = false;
     return this;
   }
 
   public SQLiteStatement clearBindings() throws SQLiteException {
-    myConnection.checkThread();
-    int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle());
-    myConnection.throwResult(rc, "clearBindings()", this);
+    myController.validate();
+    if (myHasBindings) {
+      int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle());
+      myController.throwResult(rc, "clearBindings()", this);
+    }
     myHasBindings = false;
     return this;
   }
 
   public boolean step() throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     int rc = _SQLiteSwigged.sqlite3_step(handle);
-    boolean result;
+    myStepped = true;
     if (rc == Result.SQLITE_ROW) {
-      result = true;
       if (!myHasRow) {
         // at first row, set column count to COLUMN_COUNT_UNKNOWN so it will be requested at first need
         myColumnCount = COLUMN_COUNT_UNKNOWN;
       }
       myHasRow = true;
+    } else if (rc == Result.SQLITE_DONE) {
+      myColumnCount = 0;
+      myHasRow = false;
     } else {
-      if (rc != Result.SQLITE_DONE) {
-        myConnection.throwResult(rc, "step()", this);
-      }
-      result = false;
-      clearRow();
+      myController.throwResult(rc, "step()", this);
     }
-    return result;
-  }
-
-  public boolean isClear() {
-    return !hasRow() && !hasBindings();
+    return myHasRow;
   }
 
   public boolean hasRow() {
@@ -138,26 +136,30 @@ public final class SQLiteStatement {
     return myHasBindings;
   }
 
+  public boolean hasStepped() {
+    return myStepped;
+  }
+
   public SQLiteStatement bind(int index, double value) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     int rc = _SQLiteSwigged.sqlite3_bind_double(handle(), index, value);
-    myConnection.throwResult(rc, "bind(double)", this);
+    myController.throwResult(rc, "bind(double)", this);
     myHasBindings = true;
     return this;
   }
 
   public SQLiteStatement bind(int index, int value) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     int rc = _SQLiteSwigged.sqlite3_bind_int(handle(), index, value);
-    myConnection.throwResult(rc, "bind(int)", this);
+    myController.throwResult(rc, "bind(int)", this);
     myHasBindings = true;
     return this;
   }
 
   public SQLiteStatement bind(int index, long value) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     int rc = _SQLiteSwigged.sqlite3_bind_int64(handle(), index, value);
-    myConnection.throwResult(rc, "bind(long)", this);
+    myController.throwResult(rc, "bind(long)", this);
     myHasBindings = true;
     return this;
   }
@@ -165,55 +167,54 @@ public final class SQLiteStatement {
   public SQLiteStatement bind(int index, String value) throws SQLiteException {
     if (value == null)
       return bindNull(index);
-    myConnection.checkThread();
+    myController.validate();
     int rc = _SQLiteManual.sqlite3_bind_text(handle(), index, value);
-    myConnection.throwResult(rc, "bind(String)", this);
+    myController.throwResult(rc, "bind(String)", this);
     myHasBindings = true;
     return this;
   }
 
   public SQLiteStatement bindNull(int index) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     int rc = _SQLiteSwigged.sqlite3_bind_null(handle(), index);
-    myConnection.throwResult(rc, "bind(null)", this);
+    myController.throwResult(rc, "bind(null)", this);
     // specifically does not set myHasBindings to true
     return this;
   }
 
   public String columnString(int column) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
     int[] rc = {Integer.MIN_VALUE};
     String result = _SQLiteManual.sqlite3_column_text(handle, column, rc);
-    myConnection.throwResult(rc[0], "columnString()", this);
+    myController.throwResult(rc[0], "columnString()", this);
     return result;
   }
 
   public int columnInt(int column) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
-    // todo check retrieval of long
     return _SQLiteSwigged.sqlite3_column_int(handle, column);
   }
 
   public double columnDouble(int column) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
     return _SQLiteSwigged.sqlite3_column_double(handle, column);
   }
 
   public long columnLong(int column) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
     return _SQLiteSwigged.sqlite3_column_int64(handle, column);
   }
 
   public boolean columnNull(int column) throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
     int valueType = _SQLiteSwigged.sqlite3_column_type(handle, column);
@@ -221,33 +222,26 @@ public final class SQLiteStatement {
   }
 
   void finish() throws SQLiteException {
-    myConnection.checkThread();
+    myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle == null)
       return;
-    myConnection.statementFinished(this, mySql);
+    myController.statementFinished(this);
     myHandle = null;
-    clearRow();
+    myHasRow = false;
+    myColumnCount = 0;
     myHasBindings = false;
     int rc = _SQLiteSwigged.sqlite3_finalize(handle);
-    myConnection.throwResult(rc, "finish()", this);
+    myController.throwResult(rc, "finish()", this);
     Internal.logger.info(this + " finished");
   }
 
   private SWIGTYPE_p_sqlite3_stmt handle() throws SQLiteException {
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle == null) {
-      throw new SQLiteException(Wrapper.WRAPPER_STATEMENT_FINISHED, null);
-    }
-    if (!myConnection.isOpen(myDbOpenCounter)) {
-      throw new SQLiteException(Wrapper.WRAPPER_NOT_OPENED, null);
+      throw new SQLiteException(Wrapper.WRAPPER_STATEMENT_DISPOSED, null);
     }
     return handle;
-  }
-
-  private void clearRow() {
-    myHasRow = false;
-    myColumnCount = 0;
   }
 
   private void checkColumn(int column, SWIGTYPE_p_sqlite3_stmt handle) throws SQLiteException {
@@ -265,14 +259,18 @@ public final class SQLiteStatement {
   }
 
   public String toString() {
-    return myConnection + "[" + mySql + "]" + (myCached ? "[C]" : "");
+    return "[" + mySql + "]" + myController;
   }
 
   protected void finalize() throws Throwable {
     super.finalize();
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle != null) {
-      Internal.recoverableError(this, "wasn't finished", true);
+      Internal.recoverableError(this, "wasn't disposed", true);
     }
+  }
+
+  SWIGTYPE_p_sqlite3_stmt statementHandle() {
+    return myHandle;
   }
 }

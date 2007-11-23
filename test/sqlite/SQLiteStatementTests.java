@@ -1,5 +1,8 @@
 package sqlite;
 
+import sqlite.internal.SWIGTYPE_p_sqlite3_stmt;
+import sqlite.internal._SQLiteSwigged;
+
 public class SQLiteStatementTests extends SQLiteConnectionFixture {
   public void testPrepareBad() throws SQLiteException {
     SQLiteConnection connection = fileDb();
@@ -44,6 +47,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     SQLiteStatement st1 = connection.prepare(sql, false);
     SQLiteStatement st2 = connection.prepare(sql, false);
     SQLiteStatement st3 = connection.prepare(sql, true);
+    st3.dispose();
     SQLiteStatement st4 = connection.prepare(sql, true);
     assertNotSame(st1, st2);
     assertNotSame(st1, st3);
@@ -52,22 +56,22 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     assertNotSame(st2, st4);
     assertSame(st3, st4);
     assertEquals(3, connection.getStatementCount());
-    assertFalse(st1.isFinished());
-    assertFalse(st2.isFinished());
-    assertFalse(st3.isFinished());
+    assertFalse(st1.isDisposed());
+    assertFalse(st2.isDisposed());
+    assertFalse(st3.isDisposed());
     st1.dispose();
-    assertTrue(st1.isFinished());
-    assertFalse(st2.isFinished());
-    assertFalse(st3.isFinished());
-    connection.close();
-    assertTrue(st2.isFinished());
-    assertTrue(st3.isFinished());
+    assertTrue(st1.isDisposed());
+    assertFalse(st2.isDisposed());
+    assertFalse(st3.isDisposed());
+    connection.dispose();
+    assertTrue(st2.isDisposed());
+    assertTrue(st3.isDisposed());
   }
 
   public void testCloseFromAnotherThread() throws SQLiteException, InterruptedException {
     final SQLiteConnection connection = fileDb().open().exec("create table x (x)");
     final SQLiteStatement st = connection.prepare("insert into x values (?)");
-    assertFalse(st.isFinished());
+    assertFalse(st.isDisposed());
     assertTrue(st.isUsable());
 
     Thread closer = new Thread() {
@@ -79,7 +83,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
           // ok
         }
 
-        connection.close();
+        connection.dispose();
       }
     };
     closer.start();
@@ -87,7 +91,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     assertFalse(connection.isOpen());
 
     // cannot dispose from another thread actually:
-    assertFalse(st.isFinished());
+    assertFalse(st.isDisposed());
     assertFalse(st.isUsable());
 
     connection.open();
@@ -102,10 +106,10 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     st.step();
 
     assertTrue(st.hasRow());
-    connection.close();
+    connection.dispose();
 
     assertFalse(connection.isOpen());
-    assertTrue(st.isFinished());
+    assertTrue(st.isDisposed());
     assertFalse(st.hasRow());
   }
 
@@ -212,5 +216,69 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     st.step();
     assertTrue(st.hasRow());
     assertTrue(st.hasBindings());
+  }
+
+  public void testForgottenStatementNotReused() throws SQLiteException {
+    SQLiteConnection connection = fileDb().open().exec("create table x (x)");
+    connection.exec("insert into x values (1);");
+    SQLiteStatement st = connection.prepare("select x from x");
+    assertNotSame(st, connection.prepare("select x from x"));
+    st.step();
+    assertTrue(st.hasRow());
+    assertNotSame(st, connection.prepare("select x from x"));
+    st.step();
+    assertFalse(st.hasRow());
+    assertNotSame(st, connection.prepare("select x from x"));
+    st.reset();
+    assertNotSame(st, connection.prepare("select x from x"));
+    st.dispose();
+    assertSame(st, connection.prepare("select x from x"));
+    st = connection.prepare("select x + ? from x");
+    assertNotSame(st, connection.prepare("select x + ? from x"));
+    st.bind(1, 1);
+    assertNotSame(st, connection.prepare("select x + ? from x"));
+    st.reset();
+    assertNotSame(st, connection.prepare("select x + ? from x"));
+    st.dispose();
+    assertSame(st, connection.prepare("select x + ? from x"));
+  }
+
+  public void testCaching() throws SQLiteException {
+    SQLiteConnection connection = fileDb().open().exec("create table x (x)");
+    String sql = "select * from x";
+    SQLiteStatement st1 = connection.prepare(sql);
+    SQLiteStatement st2 = connection.prepare(sql);
+    assertNotSame(st1, st2);
+    st1.dispose();
+    st2.dispose();
+    SQLiteStatement st3 = connection.prepare(sql);
+    // first returned is in cache
+    assertSame(st1, st3);
+    SQLiteStatement st4 = connection.prepare(sql);
+    assertNotSame(st1, st4);
+    assertNotSame(st2, st4);
+    assertNotSame(st3, st4);
+    st4.dispose();
+    SQLiteStatement st5 = connection.prepare(sql);
+    assertSame(st4, st5);
+    st5.dispose();
+    st3.dispose();
+    SQLiteStatement st6 = connection.prepare(sql);
+    assertSame(st5, st6);
+  }
+
+  public void testExpungedStatementFinished() throws SQLiteException {
+    SQLiteConnection connection = fileDb().open().exec("create table x (x)");
+    String sql = "select * from x";
+    SQLiteStatement st1 = connection.prepare(sql);
+    SQLiteStatement st2 = connection.prepare(sql);
+    SWIGTYPE_p_sqlite3_stmt h = st1.statementHandle();
+    assertNotSame(h, st2.statementHandle());
+    st2.dispose();
+    st1.dispose();
+    int rc = _SQLiteSwigged.sqlite3_finalize(h);
+    if (rc == 0) {
+      fail("successfully finalized st1 => it wasn't finalized yet");
+    }
   }
 }

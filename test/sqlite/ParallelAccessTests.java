@@ -98,7 +98,7 @@ public class ParallelAccessTests extends SQLiteConnectionFixture {
         myException = e;
       } finally {
         try {
-          myConnection.close();
+          myConnection.dispose();
         } catch (Exception e) {
           //
         }
