@@ -1,10 +1,6 @@
 package sqlite;
 
-import java.util.logging.Logger;
-
 public class SQLiteException extends Exception {
-  private static final Logger logger = Logger.getLogger("sqlite");
-
   private final int myErrorCode;
 
   public SQLiteException(int errorCode, String errorMessage) {
@@ -14,7 +10,9 @@ public class SQLiteException extends Exception {
   public SQLiteException(int errorCode, String errorMessage, Throwable cause) {
     super("[" + errorCode + "] " + (errorMessage == null ? "sqlite error" : errorMessage), cause);
     myErrorCode = errorCode;
-    logger.warning(getMessage());
+    if (Internal.isFineLogging()) {
+      Internal.logFine(getClass(), getMessage());
+    }
   }
 
   public int getErrorCode() {

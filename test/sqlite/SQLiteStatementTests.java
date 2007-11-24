@@ -1,7 +1,6 @@
 package sqlite;
 
 import sqlite.internal.SWIGTYPE_p_sqlite3_stmt;
-import sqlite.internal._SQLiteSwigged;
 
 public class SQLiteStatementTests extends SQLiteConnectionFixture {
   public void testPrepareBad() throws SQLiteException {
@@ -47,6 +46,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     SQLiteStatement st1 = connection.prepare(sql, false);
     SQLiteStatement st2 = connection.prepare(sql, false);
     SQLiteStatement st3 = connection.prepare(sql, true);
+    SWIGTYPE_p_sqlite3_stmt h3 = st3.statementHandle();
     st3.dispose();
     SQLiteStatement st4 = connection.prepare(sql, true);
     assertNotSame(st1, st2);
@@ -54,18 +54,22 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     assertNotSame(st1, st4);
     assertNotSame(st2, st3);
     assertNotSame(st2, st4);
-    assertSame(st3, st4);
+    assertNotSame(st3, st4);
+    assertSame(h3, st4.statementHandle());
     assertEquals(3, connection.getStatementCount());
     assertFalse(st1.isDisposed());
     assertFalse(st2.isDisposed());
-    assertFalse(st3.isDisposed());
+    assertTrue(st3.isDisposed());
+    assertFalse(st4.isDisposed());
     st1.dispose();
+    assertEquals(2, connection.getStatementCount());
     assertTrue(st1.isDisposed());
     assertFalse(st2.isDisposed());
-    assertFalse(st3.isDisposed());
+    assertFalse(st4.isDisposed());
     connection.dispose();
     assertTrue(st2.isDisposed());
-    assertTrue(st3.isDisposed());
+    assertTrue(st4.isDisposed());
+    assertEquals(0, connection.getStatementCount());
   }
 
   public void testCloseFromAnotherThread() throws SQLiteException, InterruptedException {
@@ -77,7 +81,11 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
       public void run() {
         try {
           st.dispose();
-          fail("disposed " + st + " from another thread");
+          boolean assertions = false;
+          assert assertions = true;
+          if (assertions) {
+            fail("disposed " + st + " from another thread with assertions turned on");
+          }
         } catch (AssertionError e) {
           // ok
         }
@@ -91,10 +99,6 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
 
     // cannot dispose from another thread actually:
     assertFalse(st.isDisposed());
-
-
-    connection.open();
-    assertTrue(connection.isOpen());
   }
 
   public void testCloseFromCorrectThreadWithOpenStatement() throws SQLiteException {
@@ -196,6 +200,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     st.step();
     assertTrue(st.hasRow());
     assertTrue(st.hasBindings());
+    st.dispose();
     st = connection.prepare("select x + ? from x");
     assertFalse(st.hasRow());
     assertFalse(st.hasBindings());
@@ -216,9 +221,9 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     assertTrue(st.hasBindings());
   }
 
-  public void testForgottenStatementNotReused() throws SQLiteException {
+  public void testStatementNotReused() throws SQLiteException {
     SQLiteConnection connection = fileDb().open().exec("create table x (x)");
-    connection.exec("insert into x values (1);");
+    connection.exec("insert into x values (1)");
     SQLiteStatement st = connection.prepare("select x from x");
     assertNotSame(st, connection.prepare("select x from x"));
     st.step();
@@ -230,7 +235,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     st.reset();
     assertNotSame(st, connection.prepare("select x from x"));
     st.dispose();
-    assertSame(st, connection.prepare("select x from x"));
+    assertNotSame(st, connection.prepare("select x from x"));
     st = connection.prepare("select x + ? from x");
     assertNotSame(st, connection.prepare("select x + ? from x"));
     st.bind(1, 1);
@@ -238,7 +243,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     st.reset();
     assertNotSame(st, connection.prepare("select x + ? from x"));
     st.dispose();
-    assertSame(st, connection.prepare("select x + ? from x"));
+    assertNotSame(st, connection.prepare("select x + ? from x"));
   }
 
   public void testCaching() throws SQLiteException {
@@ -247,36 +252,36 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     SQLiteStatement st1 = connection.prepare(sql);
     SQLiteStatement st2 = connection.prepare(sql);
     assertNotSame(st1, st2);
+    assertNotSame(st1.statementHandle(), st2.statementHandle());
+    SWIGTYPE_p_sqlite3_stmt h1 = st1.statementHandle();
     st1.dispose();
     st2.dispose();
     SQLiteStatement st3 = connection.prepare(sql);
     // first returned is in cache
-    assertSame(st1, st3);
+    assertSame(h1, st3.statementHandle());
     SQLiteStatement st4 = connection.prepare(sql);
-    assertNotSame(st1, st4);
-    assertNotSame(st2, st4);
-    assertNotSame(st3, st4);
+    SWIGTYPE_p_sqlite3_stmt h4 = st4.statementHandle();
+    assertNotSame(h1, h4);
     st4.dispose();
     SQLiteStatement st5 = connection.prepare(sql);
-    assertSame(st4, st5);
+    SWIGTYPE_p_sqlite3_stmt h5 = st5.statementHandle();
+    assertSame(h4, h5);
     st5.dispose();
     st3.dispose();
     SQLiteStatement st6 = connection.prepare(sql);
-    assertSame(st5, st6);
+    assertSame(h5, st6.statementHandle());
   }
 
-  public void testExpungedStatementFinished() throws SQLiteException {
+  public void testRollbackOnClose() throws SQLiteException {
     SQLiteConnection connection = fileDb().open().exec("create table x (x)");
-    String sql = "select * from x";
-    SQLiteStatement st1 = connection.prepare(sql);
-    SQLiteStatement st2 = connection.prepare(sql);
-    SWIGTYPE_p_sqlite3_stmt h = st1.statementHandle();
-    assertNotSame(h, st2.statementHandle());
-    st2.dispose();
-    st1.dispose();
-    int rc = _SQLiteSwigged.sqlite3_finalize(h);
-    if (rc == 0) {
-      fail("successfully finalized st1 => it wasn't finalized yet");
-    }
+    connection.exec("begin immediate");
+    SQLiteStatement st = connection.prepare("insert into x values (?)");
+    st.bind(1, 1);
+    st.step();
+    connection.dispose();
+    assertTrue(st.isDisposed());
+    connection = fileDb().open();
+    boolean row = connection.prepare("select * from x").step();
+    assertFalse(row);
   }
 }

@@ -4,63 +4,89 @@ import sqlite.internal.*;
 import static sqlite.internal.SQLiteConstants.*;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * SQLiteConnection is a single connection to sqlite database. Most methods are thread-confined,
  * and will throw errors if called from alien thread. Confinement thread is defined at the
- * construction time.
+ * time connection is open.
  * <p/>
  * SQLiteConnection should be expicitly closed before the object is disposed. Failing to do so
  * may result in unpredictable behavior from sqlite.
+ * <p/>
+ * Once closed with {@link #dispose()}, the connection cannot be reused and the instance
+ * should be forgotten.
+ * <p/>
+ * SQLiteConnection tracks all statements it has prepared. When connection is disposed,
+ * it first tries to dispose statements. If there's an active transaction, it is rolled
+ * back.
  */
 public final class SQLiteConnection {
   /**
-   * The database file, or null if it is memory database
+   * The database file, or null if it is memory database.
    */
   private final File myFile;
+
+  /**
+   * An incremental number of the instance, used for debugging purposes.
+   */
   private final int myNumber = Internal.nextConnectionNumber();
+
+  /**
+   * A lock for protecting statement registry & cache. Locking is needed
+   * because dispose() may be called from another thread.
+   */
   private final Object myLock = new Object();
 
   /**
-   * Confinement thread, set on open().
+   * Confinement thread, set on open() call, cleared on dispose().
    */
   private volatile Thread myConfinement;
 
   /**
-   * Handle to the db. Almost confined: usually not changed outside the confining thread, except for close() method.
+   * SQLite db handle.
    */
   private SWIGTYPE_p_sqlite3 myHandle;
 
   /**
-   * When connection is closed, it cannot be used anymore.
+   * When connection is disposed (closed), it cannot be used anymore.
    */
   private boolean myDisposed;
 
   /**
-   * Prepared statements. Almost confined.
+   * Statement registry. All statements that are not disposed are listed here.
+   */
+  private final List<SQLiteStatement> myStatements = new ArrayList<SQLiteStatement>();
+
+  /**
+   * Compiled statement cache. Maps SQL string into a valid SQLite handle.
+   * <p>
+   * When cached handle is used, it is removed from the cache and placed into SQLiteStatement. When SQLiteStatement
+   * is disposed, the handle is placed back into cache, unless there's another statement already created for the
+   * same SQL. 
    */
   private final Map<String, SWIGTYPE_p_sqlite3_stmt> myStatementCache = new HashMap<String, SWIGTYPE_p_sqlite3_stmt>();
-  private final Map<SWIGTYPE_p_sqlite3_stmt, String> myStatements = new LinkedHashMap<SWIGTYPE_p_sqlite3_stmt, String>();
 
+  /**
+   * This controller provides service for cached statements.
+   */
   private final StatementController myCachedController = new CachedStatementController();
+
+  /**
+   * This controller provides service for statements that aren't cached.
+   */
   private final StatementController myUncachedController = new UncachedStatementController();
 
   /**
    * Create connection to database located in the specified file.
-   * Database is not opened by this method, but the whole object is being confined to
-   * the calling thread. So call the constructor only in the thread which will be used
-   * to work with the connection.
+   * Database is not opened by this method.
    *
    * @param dbfile database file, or null for memory database
    */
   public SQLiteConnection(File dbfile) {
     myFile = dbfile;
-    Internal.logger.info(this + " created(" + myFile + ")");
+    Internal.logInfo(this, "instantiated [" + myFile + "]");
   }
 
   /**
@@ -79,12 +105,15 @@ public final class SQLiteConnection {
     return myFile;
   }
 
+  /**
+   * @return true if connection is to the memory database
+   */
   public boolean isMemoryDatabase() {
     return myFile == null;
   }
 
   /**
-   * Opens database, creating it if needed.
+   * Opens connection, creating database if needed.
    *
    * @see #open(boolean)
    */
@@ -93,7 +122,7 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Opens database. If database is already open, fails gracefully, allowing process
+   * Opens connection. If connection is already open, fails gracefully, allowing process
    * to continue in production mode.
    *
    * @param allowCreate if true, database file may be created. For in-memory database, must
@@ -113,7 +142,7 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Opens database is read-only mode. Not applicable for in-memory database.
+   * Opens connection is read-only mode. Not applicable for in-memory database.
    */
   public SQLiteConnection openReadonly() throws SQLiteException {
     if (isMemoryDatabase()) {
@@ -124,7 +153,7 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Tells whether database is open. May be called from another thread.
+   * Tells whether connection is open. May be called from another thread.
    */
   public boolean isOpen() {
     synchronized (myLock) {
@@ -132,6 +161,10 @@ public final class SQLiteConnection {
     }
   }
 
+  /**
+   * Tells whether the connection has been disposed. If it is disposed, nothing can be done with it.
+   * @return
+   */
   public boolean isDisposed() {
     synchronized (myLock) {
       return myDisposed;
@@ -139,9 +172,10 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Closes connection.
+   * Close connection and dispose all resources. May be called several times.
    * <p/>
-   * This method may be called from another thread.
+   * This method may be called from another thread, but in that case prepared statements will not be
+   * automatically disposed and will be lost by the wrapper.
    */
   public void dispose() {
     SWIGTYPE_p_sqlite3 handle;
@@ -151,10 +185,10 @@ public final class SQLiteConnection {
       myDisposed = true;
       handle = myHandle;
       myHandle = null;
-      myConfinement = null;
     }
     if (handle == null)
       return;
+    Internal.logFine(this, "disposing");
     finalizeStatements();
     int rc = _SQLiteSwigged.sqlite3_close(handle);
     // rc may be SQLiteConstants.Result.SQLITE_BUSY if statements are open
@@ -163,53 +197,75 @@ public final class SQLiteConnection {
       try {
         errmsg = _SQLiteSwigged.sqlite3_errmsg(handle);
       } catch (Exception e) {
-        Internal.logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
+        Internal.log(Level.WARNING, this, "cannot get sqlite3_errmsg", e);
       }
-      Internal.logger.warning(this + " close error " + rc + (errmsg == null ? "" : ": " + errmsg));
+      Internal.logWarn(this, "close error " + rc + (errmsg == null ? "" : ": " + errmsg));
     }
-    Internal.logger.info(this + " closed");
+    Internal.logInfo(this, "connection closed");
+    myConfinement = null;
   }
 
+  /**
+   * Execute SQL.
+   */
   public SQLiteConnection exec(String sql) throws SQLiteException {
     checkThread();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "exec " + sql);
     String[] error = {null};
     int rc = _SQLiteManual.sqlite3_exec(handle(), sql, error);
     throwResult(rc, "exec()", error[0]);
     return this;
   }
 
+  /**
+   * Prepares cached SQL statement.
+   */
   public SQLiteStatement prepare(String sql) throws SQLiteException {
     return prepare(sql, true);
   }
 
+  /**
+   * Prepares SQL statement
+   * @param cached if true, the statement handle will be cached by the connection, so after the SQLiteStatement
+   * is disposed, the handle may be reused by another prepare() call.
+   */
   public SQLiteStatement prepare(String sql, boolean cached) throws SQLiteException {
     checkThread();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "prepare " + sql);
     SWIGTYPE_p_sqlite3 handle;
     SWIGTYPE_p_sqlite3_stmt stmt = null;
     int openCounter;
     synchronized (myLock) {
       if (cached) {
-        // while the statement is in work, it is removed from cache
-        // see cachedStatementDisposed()
+        // while the statement is in work, it is removed from cache. it is put back in cache by SQLiteStatement.dispose().
         stmt = myStatementCache.remove(sql);
       }
       handle = handle();
     }
     if (stmt == null) {
+      if (Internal.isFineLogging())
+        Internal.logFine(this, "calling sqlite3_prepare_v2 for " + sql);
       int[] rc = {Integer.MIN_VALUE};
       stmt = _SQLiteManual.sqlite3_prepare_v2(handle, sql, rc);
       throwResult(rc[0], "prepare()", sql);
       if (stmt == null)
         throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
+    } else {
+      if (Internal.isFineLogging())
+        Internal.logFine(this, "using cached stmt for " + sql);
     }
     SQLiteStatement statement = null;
     synchronized (myLock) {
       // the connection may close while prepare in progress
       // most probably that would throw SQLiteException earlier, but we'll check anyway
       if (myHandle != null) {
-        myStatements.put(stmt, sql);
         StatementController controller = cached ? myCachedController : myUncachedController;
         statement = new SQLiteStatement(controller, stmt, sql);
+        myStatements.add(statement);
+      } else {
+        Internal.logWarn(this, "connection disposed while preparing statement for " + sql);
       }
     }
     if (statement == null) {
@@ -219,7 +275,7 @@ public final class SQLiteConnection {
       } catch (Exception e) {
         // ignore
       }
-      throw new SQLiteException(Wrapper.WRAPPER_NOT_OPENED, "connection closed while prepare() was in progress");
+      throw new SQLiteException(Wrapper.WRAPPER_NOT_OPENED, "connection disposed");
     }
     return statement;
   }
@@ -227,26 +283,36 @@ public final class SQLiteConnection {
   private void finalizeStatements() {
     boolean alienThread = myConfinement != Thread.currentThread();
     if (!alienThread) {
+      Internal.logFine(this, "finalizing statements");
+      while (true) {
+        SQLiteStatement[] statements = null;
+        synchronized (myLock) {
+          if (myStatements.isEmpty())
+            break;
+          statements = myStatements.toArray(new SQLiteStatement[myStatements.size()]);
+        }
+        for (SQLiteStatement statement : statements) {
+          finalizeStatement(statement);
+        }
+      }
       while (true) {
         SWIGTYPE_p_sqlite3_stmt stmt = null;
         String sql = null;
         synchronized (myLock) {
-          if (!myStatements.isEmpty()) {
-            Map.Entry<SWIGTYPE_p_sqlite3_stmt, String> e = myStatements.entrySet().iterator().next();
-            stmt = e.getKey();
-            sql = e.getValue();
-          } else {
+          if (myStatementCache.isEmpty())
             break;
-          }
+          Map.Entry<String, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.entrySet().iterator().next();
+          sql = e.getKey();
+          stmt = e.getValue();
         }
         finalizeStatement(stmt, sql);
       }
     }
     synchronized (myLock) {
-      if (!myStatements.isEmpty()) {
-        int count = myStatements.size();
+      if (!myStatements.isEmpty() || !myStatementCache.isEmpty()) {
+        int count = myStatements.size() + myStatementCache.size();
         if (alienThread) {
-          Internal.logger.warning("cannot finalize " + count + " statements from alien thread");
+          Internal.logWarn(this, "cannot finalize " + count + " statements from alien thread");
         } else {
           Internal.recoverableError(this, count + " statements are not finalized", false);
         }
@@ -256,56 +322,94 @@ public final class SQLiteConnection {
     }
   }
 
-  private void finalizeStatement(SWIGTYPE_p_sqlite3_stmt stmt, String sql) {
-    int rc = _SQLiteSwigged.sqlite3_finalize(stmt);
-    if (rc != Result.SQLITE_OK) {
-      Internal.logger.warning("error [" + rc + "] finishing statement [" + sql + "]");
-    }
+  private void finalizeStatement(SWIGTYPE_p_sqlite3_stmt handle, String sql) {
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "finalizing cached stmt for " + sql);
+    softFinalize(handle, sql, sql);
     synchronized (myLock) {
-      String removedSql = myStatements.remove(stmt);
-      if (removedSql == null) {
-        Internal.recoverableError(stmt, "alien statement for " + sql, true);
-      } else if (removedSql != sql) {
-        Internal.recoverableError(stmt, "different sql [" + sql + "][" + removedSql + "]", true);
-      }
-      SWIGTYPE_p_sqlite3_stmt cached = myStatementCache.remove(sql);
-      if (cached != null && cached != stmt) {
-        // cache has another statement of the same sql, put it back
-        myStatementCache.put(sql, cached);
-      }
+      forgetCachedHandle(handle, sql);
     }
   }
 
-  private void pushCache(SWIGTYPE_p_sqlite3_stmt stmt, String sql, boolean hasBindings, boolean hasStepped) {
+  private void finalizeStatement(SQLiteStatement statement) {
+    Internal.logFine(statement, "finalizing");
+    SWIGTYPE_p_sqlite3_stmt handle = statement.statementHandle();
+    String sql = statement.getSql();
+    statement.clear();
+    softFinalize(handle, sql, statement);
+    synchronized (myLock) {
+      forgetStatement(statement);
+      forgetCachedHandle(handle, sql);
+    }
+  }
+
+  private void softFinalize(SWIGTYPE_p_sqlite3_stmt handle, String sql, Object source) {
+    int rc = _SQLiteSwigged.sqlite3_finalize(handle);
+    if (rc != Result.SQLITE_OK) {
+      Internal.logWarn(this, "error [" + rc + "] finishing " + source);
+    }
+  }
+
+  /**
+   * Called from {@link SQLiteStatement#dispose()}
+   */
+  private void cacheStatementHandle(SQLiteStatement statement) {
+    if (Internal.isFineLogging())
+      Internal.logFine(statement, "returning handle to cache");
     boolean finalize = false;
+    SWIGTYPE_p_sqlite3_stmt handle = statement.statementHandle();
+    String sql = statement.getSql();
     try {
-      if (hasStepped) {
-        int rc = _SQLiteSwigged.sqlite3_reset(stmt);
+      if (statement.hasStepped()) {
+        int rc = _SQLiteSwigged.sqlite3_reset(handle);
         throwResult(rc, "reset");
       }
-      if (hasBindings) {
-        int rc = _SQLiteSwigged.sqlite3_clear_bindings(stmt);
+      if (statement.hasBindings()) {
+        int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle);
         throwResult(rc, "clearBindings");
       }
-      synchronized (myLock) {
-        SWIGTYPE_p_sqlite3_stmt expunged = myStatementCache.put(sql, stmt);
+    } catch (SQLiteException e) {
+      Internal.log(Level.WARNING, statement, "exception when clearing", e);
+      finalize = true;
+    }
+    synchronized (myLock) {
+      if (!finalize) {
+        SWIGTYPE_p_sqlite3_stmt expunged = myStatementCache.put(sql, handle);
         if (expunged != null) {
-          if (expunged == stmt) {
-            Internal.recoverableError(stmt, "appeared in cache when inserted", true);
+          if (expunged == handle) {
+            Internal.recoverableError(statement, "handle appeared in cache when inserted", true);
           } else {
             // put it back
-            // todo log
+            if (Internal.isFineLogging()) {
+              Internal.logFine(statement, "second cached copy for [" + sql + "] prevails");
+            }
             myStatementCache.put(sql, expunged);
             finalize = true;
           }
         }
       }
-    } catch (SQLiteException e) {
-      Internal.logger.log(Level.WARNING, "exception clearing statement", e);
-      finalize = true;
+      forgetStatement(statement);
     }
     if (finalize) {
-      finalizeStatement(stmt, sql);
+      Internal.logFine(statement, "cache don't need me, finalizing");
+      finalizeStatement(handle, sql);
+    }
+  }
+
+  private void forgetCachedHandle(SWIGTYPE_p_sqlite3_stmt handle, String sql) {
+    assert Thread.holdsLock(myLock);
+    SWIGTYPE_p_sqlite3_stmt removedHandle = myStatementCache.remove(sql);
+    if (removedHandle != null && removedHandle != handle) {
+      // put it back
+      myStatementCache.put(sql, removedHandle);
+    }
+  }
+
+  private void forgetStatement(SQLiteStatement statement) {
+    assert Thread.holdsLock(myLock);
+    boolean removed = myStatements.remove(statement);
+    if (!removed) {
+      Internal.recoverableError(statement, "alien statement", true);
     }
   }
 
@@ -339,7 +443,7 @@ public final class SQLiteConnection {
             message += " [" + errmsg + "]";
           }
         } catch (Exception e) {
-          Internal.logger.log(Level.WARNING, "cannot get sqlite3_errmsg", e);
+          Internal.log(Level.WARNING, this, "cannot get sqlite3_errmsg", e);
         }
       }
       throw new SQLiteException(resultCode, message);
@@ -348,6 +452,8 @@ public final class SQLiteConnection {
 
   private void openX(int flags) throws SQLiteException {
     SQLite.loadLibrary();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "opening (0x" + Integer.toHexString(flags).toUpperCase(Locale.US) + ")");
     SWIGTYPE_p_sqlite3 handle;
     synchronized (myLock) {
       if (myDisposed) {
@@ -355,7 +461,8 @@ public final class SQLiteConnection {
       }
       if (myConfinement == null) {
         myConfinement = Thread.currentThread();
-        Internal.logger.fine(this + " confined to " + myConfinement);
+        if (Internal.isFineLogging())
+          Internal.logFine(this, " confined to " + myConfinement);
       } else {
         checkThread();
       }
@@ -366,14 +473,18 @@ public final class SQLiteConnection {
       return;
     }
     String dbname = getSqliteDbName();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "dbname [" + dbname + "]");
     int[] rc = {Integer.MIN_VALUE};
     handle = _SQLiteManual.sqlite3_open_v2(dbname, flags, rc);
     if (rc[0] != Result.SQLITE_OK) {
       if (handle != null) {
+        if (Internal.isFineLogging())
+          Internal.logFine(this, "error on open (" + rc[0] + "), closing handle");
         try {
           _SQLiteSwigged.sqlite3_close(handle);
         } catch (Exception e) {
-          // ignore
+          Internal.log(Level.FINE, this, "error on closing after failed open", e);
         }
       }
       String errorMessage = _SQLiteSwigged.sqlite3_errmsg(null);
@@ -385,7 +496,7 @@ public final class SQLiteConnection {
     synchronized (myLock) {
       myHandle = handle;
     }
-    Internal.logger.info(this + " opened(" + flags + ")");
+    Internal.logInfo(this, "opened");
   }
 
   private String getSqliteDbName() {
@@ -427,21 +538,25 @@ public final class SQLiteConnection {
     }
   }
 
+  SWIGTYPE_p_sqlite3 connectionHandle() {
+    return myHandle;
+  }
+
   private abstract class BaseStatementController implements StatementController {
     public void validate() throws SQLiteException {
       SQLiteConnection.this.checkThread();
       SQLiteConnection.this.handle();
     }
 
-    public void throwResult(int rc, String message, Object additionalMessage) throws SQLiteException {
-      SQLiteConnection.this.throwResult(rc, message, additionalMessage);
+    public void throwResult(int resultCode, String message, Object additionalMessage) throws SQLiteException {
+      SQLiteConnection.this.throwResult(resultCode, message, additionalMessage);
     }
 
-    protected boolean checkDispose(String sql) {
+    protected boolean checkDispose(SQLiteStatement statement) {
       try {
         SQLiteConnection.this.checkThread();
       } catch (SQLiteException e) {
-        Internal.recoverableError(this, "disposing [" + sql + "] from alien thread", true);
+        Internal.recoverableError(this, "disposing " + statement + " from alien thread", true);
         return false;
       }
       return true;
@@ -449,9 +564,9 @@ public final class SQLiteConnection {
   }
 
   private class CachedStatementController extends BaseStatementController {
-    public void disposed(SWIGTYPE_p_sqlite3_stmt handle, String sql, boolean hasBindings, boolean hasStepped) {
-      if (checkDispose(sql)) {
-        SQLiteConnection.this.pushCache(handle, sql, hasBindings, hasStepped);
+    public void dispose(SQLiteStatement statement) {
+      if (checkDispose(statement)) {
+        SQLiteConnection.this.cacheStatementHandle(statement);
       }
     }
 
@@ -461,9 +576,9 @@ public final class SQLiteConnection {
   }
 
   private class UncachedStatementController extends BaseStatementController {
-    public void disposed(SWIGTYPE_p_sqlite3_stmt handle, String sql, boolean hasBindings, boolean hasStepped) {
-      if (checkDispose(sql)) {
-        SQLiteConnection.this.finalizeStatement(handle, sql);
+    public void dispose(SQLiteStatement statement) {
+      if (checkDispose(statement)) {
+        SQLiteConnection.this.finalizeStatement(statement);
       }
     }
 

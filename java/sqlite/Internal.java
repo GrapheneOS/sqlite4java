@@ -5,10 +5,12 @@ import sqlite.internal._SQLiteManual;
 import sqlite.internal._SQLiteSwigged;
 
 import java.io.File;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 final class Internal {
-  static final Logger logger = Logger.getLogger("sqlite");
+  private static final Logger logger = Logger.getLogger("sqlite");
+  private static final String LOG_PREFIX = "{sqlite} ";
 
   private static final String BASE_LIBRARY_NAME = "sqlite";
   private static final String[] DEBUG_SUFFIXES = {"d", ""};
@@ -21,19 +23,51 @@ final class Internal {
   }
 
   static void recoverableError(Object source, String message, boolean throwAssertion) {
-    message = source + " " + message;
-    assert !throwAssertion : message;
-    logger.warning(message);
+    logWarn(source, message);
+    assert !throwAssertion : source + " " + message;
+  }
+
+  static void log(Level level, Object source, Object message, Throwable exception) {
+    StringBuilder builder = new StringBuilder(LOG_PREFIX);
+    if (source != null) {
+      if (source instanceof Class) {
+        String className = ((Class) source).getName();
+        builder.append(className.substring(className.lastIndexOf('.') + 1));
+      } else {
+        builder.append(source);
+      }
+      builder.append(": ");
+    }
+    if (message != null)
+      builder.append(message);
+    logger.log(level, builder.toString(), exception);
+  }
+
+  static void logFine(Object source, Object message) {
+    log(Level.FINE, source, message, null);
+  }
+
+  static void logInfo(Object source, Object message) {
+    log(Level.INFO, source, message, null);
+  }
+
+  static void logWarn(Object source, Object message) {
+    log(Level.WARNING, source, message, null);
+  }
+
+  static boolean isFineLogging() {
+    return logger.isLoggable(Level.FINE);
   }
 
   static Throwable loadLibraryX() {
     if (checkLoaded() == null)
       return null;
-    logger.fine("java.library.path=" + System.getProperty("java.library.path"));
-    logger.fine("cwd=" + new File(".").getAbsolutePath());
+    logFine(Internal.class, "loading library");
+    logFine(Internal.class, "java.library.path=" + System.getProperty("java.library.path"));
+    logFine(Internal.class, "cwd=" + new File(".").getAbsolutePath());
     String arch = System.getProperty("os.arch");
     if (arch == null) {
-      logger.warning("sqlite.Internal: os.arch is null");
+      logWarn(Internal.class, "os.arch is null");
       arch = "x86";
     }
     RuntimeException loadedSignal = new RuntimeException("loaded");
@@ -48,7 +82,8 @@ final class Internal {
       return bestReason;
     } catch (RuntimeException e) {
       if (e == loadedSignal) {
-        // done
+        String msg = getLibraryVersionMessage();
+        Internal.logInfo(Internal.class, msg);
         return null;
       } else {
         throw e;
@@ -68,20 +103,20 @@ final class Internal {
   }
 
   private static Throwable tryLoad(String libname, Throwable bestReason, RuntimeException loadedSignal) {
-    logger.fine("sqlite.Internal: trying to load " + libname);
+    logFine(Internal.class, "trying to load " + libname);
     try {
       System.loadLibrary(libname);
     } catch (Throwable t) {
-      logger.fine("sqlite.Internal: cannot load " + libname + ": " + t);
+      logFine(Internal.class, "cannot load " + libname + ": " + t);
       return bestLoadFailureReason(bestReason, t);
     }
-    logger.info("sqlite.Internal: loaded " + libname);
+    logInfo(Internal.class, "loaded " + libname);
     LinkageError linkError = checkLoaded();
     if (linkError == null) {
       // done -- exit cycle by throwing exception
       throw loadedSignal;
     }
-    logger.fine("sqlite.Internal: cannot use " + libname + ": " + linkError);
+    logFine(Internal.class, "cannot use " + libname + ": " + linkError);
     return bestLoadFailureReason(bestReason, linkError);
   }
 
@@ -106,12 +141,16 @@ final class Internal {
 
   private static LinkageError checkLoaded() {
     try {
-      String version = _SQLiteSwigged.sqlite3_libversion();
-      String wrapper = _SQLiteManual.wrapper_version();
-      logger.info("sqlite.Internal: loaded sqlite " + version + ", wrapper " + wrapper);
+      getLibraryVersionMessage();
       return null;
     } catch (LinkageError e) {
       return e;
     }
+  }
+
+  private static String getLibraryVersionMessage() {
+    String version = _SQLiteSwigged.sqlite3_libversion();
+    String wrapper = _SQLiteManual.wrapper_version();
+    return "loaded sqlite " + version + ", wrapper " + wrapper;
   }
 }

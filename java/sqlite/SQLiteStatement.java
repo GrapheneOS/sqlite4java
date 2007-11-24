@@ -6,18 +6,24 @@ import sqlite.internal._SQLiteManual;
 import sqlite.internal._SQLiteSwigged;
 
 /**
- * This class encapsulates sqlite statement. It is tightly linked to the opening connection, and confined to
+ * This class encapsulates sqlite statement. It is linked to the opening connection through controller, and confined to
  * the same thread.
  */
 public final class SQLiteStatement {
   private static final int COLUMN_COUNT_UNKNOWN = -1;
 
+  /**
+   * The SQL of this statement.
+   */
   private final String mySql;
 
+  /**
+   * The controller that handles connection-level operations. Initially it is set
+   */
   private StatementController myController;
 
   /**
-   * Becomes null when disposed.
+   * Statement handle wrapper. Becomes null when disposed.
    */
   private SWIGTYPE_p_sqlite3_stmt myHandle;
 
@@ -32,29 +38,38 @@ public final class SQLiteStatement {
   private boolean myHasBindings;
 
   /**
-   * When true, the statement has performed step() and needs to be reset.
+   * When true, the statement has performed step() and needs to be reset to be reused.
    */
   private boolean myStepped;
 
   /**
-   * The number of columns in current result set. When set to COLUMN_COUNT_UNKNOWN, the number of columns should be requested
-   * at first need.
+   * The number of columns in current result set. When set to COLUMN_COUNT_UNKNOWN, the number of columns should
+   * be requested at first need.
    */
   private int myColumnCount;
 
+  /**
+   * Instances are constructed only by SQLiteConnection.
+   *
+   * @see sqlite.SQLiteConnection#prepare(String, boolean)
+   */
   SQLiteStatement(StatementController controller, SWIGTYPE_p_sqlite3_stmt handle, String sql) {
     assert handle != null;
     myController = controller;
     myHandle = handle;
     mySql = sql;
-    Internal.logger.info(this + " created");
+    Internal.logFine(this, "instantiated");
   }
 
+  /**
+   * @return true if the statement is disposed and cannot be used.
+   * ///////here
+   */
   public boolean isDisposed() {
     try {
       myController.validate();
     } catch (SQLiteException e) {
-      Internal.recoverableError(this, "isFinished() " + e.getMessage(), true);
+      Internal.recoverableError(this, "isDisposed() " + e.getMessage(), false);
     }
     return myHandle == null;
   }
@@ -73,15 +88,20 @@ public final class SQLiteStatement {
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle == null)
       return;
-    boolean hasBindings = myHasBindings;
-    boolean stepped = myStepped;
+    myController.dispose(this);
+    // clear may be called from dispose() too
+    clear();
+  }
+
+  void clear() {
     myHandle = null;
     myHasRow = false;
     myColumnCount = 0;
     myHasBindings = false;
     myStepped = false;
-    myController.disposed(handle, mySql, hasBindings, stepped);
-    myController = new StatementController.DisposedStatementController(myController.toString());
+    if (!(myController instanceof StatementController.DisposedStatementController)) {
+      myController = new StatementController.DisposedStatementController(myController.toString());
+    }
   }
 
   public SQLiteStatement reset() throws SQLiteException {

@@ -1,7 +1,7 @@
 package sqlite;
 
-import sqlite.internal._SQLiteSwigged;
 import static sqlite.internal.SQLiteConstants.Wrapper;
+import sqlite.internal._SQLiteSwigged;
 
 public final class SQLite {
   private static boolean preferDebugLibrary = "true".equalsIgnoreCase(System.getProperty("sqlite.prefer.debug.lib"));
@@ -9,10 +9,14 @@ public final class SQLite {
 
   public static synchronized void setPreferDebugLibrary(boolean debug) {
     if (libraryLoaded) {
-      Internal.logger.warning("SQLite: cannot prefer debug library, library already loaded");
+      Internal.logWarn(SQLite.class, "cannot set library preference, library already loaded");
       return;
     }
     preferDebugLibrary = debug;
+  }
+
+  public static synchronized boolean isPreferDebugLibrary() {
+    return preferDebugLibrary;
   }
 
   public static synchronized void loadLibrary() throws SQLiteException {
@@ -27,10 +31,6 @@ public final class SQLite {
   public static String getSqliteVersion() throws SQLiteException {
     loadLibrary();
     return _SQLiteSwigged.sqlite3_libversion();
-  }
-
-  static boolean isPreferDebugLibrary() {
-    return preferDebugLibrary;
   }
 
   private SQLite() {}

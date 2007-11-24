@@ -15,7 +15,10 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     assertFalse(connection.isOpen());
     connection.dispose();
     assertFalse(connection.isOpen());
+    connection.dispose();
+    assertFalse(connection.isOpen());
 
+    connection = fileDb();
     boolean allowCreate = false;
     try {
       connection.open(allowCreate);
@@ -44,6 +47,10 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     assertFalse(connection.isOpen());
     connection.dispose();
     assertFalse(connection.isOpen());
+    connection.dispose();
+    assertFalse(connection.isOpen());
+
+    connection = memDb();
 
     try {
       connection.open(false);
@@ -83,8 +90,8 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
   }
 
   public void testCloseFromAnotherThread() throws SQLiteException, InterruptedException {
-    final SQLiteConnection connection = fileDb();
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 5; i++) {
+      final SQLiteConnection connection = fileDb();
       connection.open();
       assertTrue(connection.isOpen());
       final Semaphore s = new Semaphore(1);
@@ -99,5 +106,28 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
       s.acquire();
       s.release();
     }
+  }
+
+  public void testCannotReopen() throws SQLiteException {
+    SQLiteConnection connection = fileDb();
+    connection.open();
+    assertTrue(connection.isOpen());
+    try {
+      connection.open();
+    } catch (AssertionError e) {
+      // ok
+    }
+    assertTrue(connection.isOpen());
+    connection.dispose();
+    assertFalse(connection.isOpen());
+    connection.dispose();
+    assertFalse(connection.isOpen());
+    try {
+      connection.open();
+      fail("reopened connection");
+    } catch (SQLiteException e) {
+      // ok
+    }
+    assertFalse(connection.isOpen());
   }
 }
