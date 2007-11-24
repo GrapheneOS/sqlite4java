@@ -9,10 +9,8 @@ import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
+import java.util.Random;
+import java.util.logging.*;
 
 public abstract class SQLiteTestFixture extends TestCase {
   private File myTempDir;
@@ -21,19 +19,21 @@ public abstract class SQLiteTestFixture extends TestCase {
   private final boolean myAutoLoad;
 
   static {
-    installFormatter(Logger.getLogger("sqlite"), new DecentFormatter());
+    installFormatter(Logger.getLogger("sqlite"), new DecentFormatter(), Level.FINE);
   }
 
-  private static void installFormatter(Logger logger, Formatter formatter) {
+  private static void installFormatter(Logger logger, Formatter formatter, Level level) {
+    logger.setLevel(level);
     Handler[] handlers = logger.getHandlers();
     if (handlers != null) {
       for (Handler handler : handlers) {
         handler.setFormatter(formatter);
+        handler.setLevel(level);
       }
     }
     Logger parent = logger.getParent();
     if (parent != null)
-      installFormatter(parent, formatter);
+      installFormatter(parent, formatter, level);
   }
 
   public SQLiteTestFixture(boolean autoLoad) {
@@ -155,6 +155,32 @@ public abstract class SQLiteTestFixture extends TestCase {
     String r = _SQLiteManual.sqlite3_column_text(stmt, column, rc);
     myLastResult = rc[0];
     return r;
+  }
+
+  protected static String garbageString(int count) {
+    StringBuilder b = new StringBuilder();
+    Random r = new Random();
+    for (int i = 0; i < count; i++) {
+      if (i == 500) {
+        b.appendCodePoint(0);
+        continue;
+      }
+      int c = r.nextInt(0x110000);
+      if (c >= 0xD800 && c <= 0xDFFF) {
+        // surrogate
+        continue;
+      }
+      if (c == 0xFFFF || c == 0xFFFE || c == 0xFEFF) {
+        continue;
+      }
+//      int c = r.nextInt(0x110000);
+      b.appendCodePoint(c);
+    }
+
+//    b.appendCodePoint(0x1D11E);
+//    b.appendCodePoint(0x10000);
+    String v = b.toString();
+    return v;
   }
 
   private static class DecentFormatter extends Formatter {

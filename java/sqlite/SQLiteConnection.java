@@ -211,7 +211,7 @@ public final class SQLiteConnection {
   public SQLiteConnection exec(String sql) throws SQLiteException {
     checkThread();
     if (Internal.isFineLogging())
-      Internal.logFine(this, "exec " + sql);
+      Internal.logFine(this, "exec [" + sql + "]");
     String[] error = {null};
     int rc = _SQLiteManual.sqlite3_exec(handle(), sql, error);
     throwResult(rc, "exec()", error[0]);
@@ -233,7 +233,7 @@ public final class SQLiteConnection {
   public SQLiteStatement prepare(String sql, boolean cached) throws SQLiteException {
     checkThread();
     if (Internal.isFineLogging())
-      Internal.logFine(this, "prepare " + sql);
+      Internal.logFine(this, "prepare [" + sql + "]");
     SWIGTYPE_p_sqlite3 handle;
     SWIGTYPE_p_sqlite3_stmt stmt = null;
     int openCounter;
@@ -246,7 +246,7 @@ public final class SQLiteConnection {
     }
     if (stmt == null) {
       if (Internal.isFineLogging())
-        Internal.logFine(this, "calling sqlite3_prepare_v2 for " + sql);
+        Internal.logFine(this, "calling sqlite3_prepare_v2 for [" + sql + "]");
       int[] rc = {Integer.MIN_VALUE};
       stmt = _SQLiteManual.sqlite3_prepare_v2(handle, sql, rc);
       throwResult(rc[0], "prepare()", sql);
@@ -265,7 +265,7 @@ public final class SQLiteConnection {
         statement = new SQLiteStatement(controller, stmt, sql);
         myStatements.add(statement);
       } else {
-        Internal.logWarn(this, "connection disposed while preparing statement for " + sql);
+        Internal.logWarn(this, "connection disposed while preparing statement for [" + sql + "]");
       }
     }
     if (statement == null) {
@@ -278,6 +278,16 @@ public final class SQLiteConnection {
       throw new SQLiteException(Wrapper.WRAPPER_NOT_OPENED, "connection disposed");
     }
     return statement;
+  }
+
+  /**
+   * @see <a href="http://www.sqlite.org/c3ref/busy_timeout.html">sqlite3_busy_timeout</a>
+   */
+  public SQLiteConnection setBusyTimeout(long millis) throws SQLiteException {
+    checkThread();
+    int rc = _SQLiteSwigged.sqlite3_busy_timeout(handle(), (int) millis);
+    throwResult(rc, "setBusyTimeout");
+    return this;
   }
 
   private void finalizeStatements() {
@@ -462,7 +472,7 @@ public final class SQLiteConnection {
       if (myConfinement == null) {
         myConfinement = Thread.currentThread();
         if (Internal.isFineLogging())
-          Internal.logFine(this, " confined to " + myConfinement);
+          Internal.logFine(this, "confined to " + myConfinement);
       } else {
         checkThread();
       }
@@ -497,6 +507,14 @@ public final class SQLiteConnection {
       myHandle = handle;
     }
     Internal.logInfo(this, "opened");
+    configureConnection(handle);
+  }
+
+  private void configureConnection(SWIGTYPE_p_sqlite3 handle) {
+    int rc = _SQLiteSwigged.sqlite3_extended_result_codes(handle, 1);
+    if (rc != Result.SQLITE_OK) {
+      Internal.logWarn(this, "cannot enable extended result codes [" + rc + "]");
+    }
   }
 
   private String getSqliteDbName() {
@@ -521,7 +539,7 @@ public final class SQLiteConnection {
   }
 
   public String toString() {
-    return "sqlite[" + myNumber + "]";
+    return "DB[" + myNumber + "]";
   }
 
   protected void finalize() throws Throwable {

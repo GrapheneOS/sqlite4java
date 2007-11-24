@@ -186,32 +186,6 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     }
   }
 
-  private static String garbageString(int count) {
-    StringBuilder b = new StringBuilder();
-    Random r = new Random();
-    for (int i = 0; i < count; i++) {
-      if (i == 500) {
-        b.appendCodePoint(0);
-        continue;
-      }
-      int c = r.nextInt(0x110000);
-      if (c >= 0xD800 && c <= 0xDFFF) {
-        // surrogate
-        continue;
-      }
-      if (c == 0xFFFF || c == 0xFFFE || c == 0xFEFF) {
-        continue;
-      }
-//      int c = r.nextInt(0x110000);
-      b.appendCodePoint(c);
-    }
-
-//    b.appendCodePoint(0x1D11E);
-//    b.appendCodePoint(0x10000);
-    String v = b.toString();
-    return v;
-  }
-
   private void bsr(SWIGTYPE_p_sqlite3_stmt stmt, String value) {
     bindText(stmt, 1, value);
     assertOk();

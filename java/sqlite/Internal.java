@@ -10,7 +10,7 @@ import java.util.logging.Logger;
 
 final class Internal {
   private static final Logger logger = Logger.getLogger("sqlite");
-  private static final String LOG_PREFIX = "{sqlite} ";
+  private static final String LOG_PREFIX = "[sqlite] ";
 
   private static final String BASE_LIBRARY_NAME = "sqlite";
   private static final String[] DEBUG_SUFFIXES = {"d", ""};
