@@ -37,5 +37,10 @@ public final class SQLite {
     return _SQLiteSwigged.sqlite3_libversion();
   }
 
+  public static void dispose(SQLiteStatement statement) {
+    if (statement != null)
+      statement.dispose();
+  }
+
   private SQLite() {}
 }

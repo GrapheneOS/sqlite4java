@@ -296,6 +296,12 @@ public final class SQLiteConnection {
     return r != 0;
   }
 
+  public long getLastInsertId() throws SQLiteException {
+    checkThread();
+    long id = _SQLiteSwigged.sqlite3_last_insert_rowid(handle());
+    return id;
+  }
+
   private void finalizeStatements() {
     boolean alienThread = myConfinement != Thread.currentThread();
     if (!alienThread) {

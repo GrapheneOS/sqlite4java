@@ -8,7 +8,7 @@ import sqlite.internal._SQLiteSwigged;
 /**
  * This class encapsulates sqlite statement. It is linked to the opening connection through controller, and confined to
  * the same thread.
- * <p>
+ * <p/>
  * Typical usage:
  * <pre>
  * SQLiteStatement statement = connection.prepare(".....");
@@ -88,7 +88,7 @@ public final class SQLiteStatement {
   /**
    * Disposes this statement and frees allocated resources. If statement handle is cached,
    * it is returned to connection's cache.
-   * <p>
+   * <p/>
    * After statement is disposed, it is no longer usable and holds no references to connection
    * or sqlite db.
    */
@@ -118,7 +118,7 @@ public final class SQLiteStatement {
 
   /**
    * Resets statement (see sqlite3_reset API docs), if the statement has been stepped.
-   * <p>
+   * <p/>
    * Optionally, clears bindings if they have been called.
    *
    * @see <a href="http://www.sqlite.org/c3ref/reset.html">sqlite3_reset</a>
@@ -190,6 +190,11 @@ public final class SQLiteStatement {
       myController.throwResult(rc, "step()", this);
     }
     return myHasRow;
+  }
+
+  public SQLiteStatement stepThrough() throws SQLiteException {
+    while (step()) ;
+    return this;
   }
 
   /**
@@ -321,8 +326,8 @@ public final class SQLiteStatement {
       Internal.logFine(this, "columnInt(" + column + ")");
     int r = _SQLiteSwigged.sqlite3_column_int(handle, column);
     if (Internal.isFineLogging())
-       Internal.logFine(this, "columnInt(" + column + ")=" + r);
-     return r;
+      Internal.logFine(this, "columnInt(" + column + ")=" + r);
+    return r;
   }
 
   /**
@@ -361,14 +366,32 @@ public final class SQLiteStatement {
    */
   public boolean columnNull(int column) throws SQLiteException {
     myController.validate();
-    SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
-    if (Internal.isFineLogging())
-      Internal.logFine(this, "columnType(" + column + ")");
-    int valueType = _SQLiteSwigged.sqlite3_column_type(handle, column);
-    if (Internal.isFineLogging())
-      Internal.logFine(this, "columnType(" + column + ")=" + valueType);
+    int valueType = getColumnType(column, handle());
     return valueType == ValueType.SQLITE_NULL;
+  }
+
+  public int columnCount() throws SQLiteException {
+    myController.validate();
+    ensureCorrectColumnCount(handle());
+    return myColumnCount;
+  }
+
+  public Object columnValue(int column) throws SQLiteException {
+    myController.validate();
+    int valueType = getColumnType(column, handle());
+    switch (valueType) {
+    case ValueType.SQLITE_NULL:
+      return null;
+    case ValueType.SQLITE_FLOAT:
+      return columnDouble(column);
+    case ValueType.SQLITE_INTEGER:
+      return columnLong(column);
+    case ValueType.SQLITE_TEXT:
+      return columnString(column);
+    default:
+      Internal.recoverableError(this, "value type " + valueType + " not yet supported", true);
+      return null;
+    }
   }
 
   /**
@@ -386,6 +409,7 @@ public final class SQLiteStatement {
     Internal.logFine(this, "cleared");
   }
 
+
   private SWIGTYPE_p_sqlite3_stmt handle() throws SQLiteException {
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle == null) {
@@ -394,12 +418,28 @@ public final class SQLiteStatement {
     return handle;
   }
 
+  private int getColumnType(int column, SWIGTYPE_p_sqlite3_stmt handle) throws SQLiteException {
+    checkColumn(column, handle);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnType(" + column + ")");
+    int valueType = _SQLiteSwigged.sqlite3_column_type(handle, column);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnType(" + column + ")=" + valueType);
+    return valueType;
+  }
+
   private void checkColumn(int column, SWIGTYPE_p_sqlite3_stmt handle) throws SQLiteException {
     // assert right thread
     if (!myHasRow)
       throw new SQLiteException(Wrapper.WRAPPER_NO_ROW, null);
     if (column < 0)
       throw new SQLiteException(Wrapper.WRAPPER_COLUMN_OUT_OF_RANGE, String.valueOf(column));
+    ensureCorrectColumnCount(handle);
+    if (column >= myColumnCount)
+      throw new SQLiteException(Wrapper.WRAPPER_COLUMN_OUT_OF_RANGE, column + "(" + myColumnCount + ")");
+  }
+
+  private void ensureCorrectColumnCount(SWIGTYPE_p_sqlite3_stmt handle) {
     if (myColumnCount == COLUMN_COUNT_UNKNOWN) {
       // data_count seems more safe than column_count
       Internal.logFine(this, "asking column count");
@@ -407,8 +447,6 @@ public final class SQLiteStatement {
       if (Internal.isFineLogging())
         Internal.logFine(this, "data_count=" + myColumnCount);
     }
-    if (column >= myColumnCount)
-      throw new SQLiteException(Wrapper.WRAPPER_COLUMN_OUT_OF_RANGE, column + "(" + myColumnCount + ")");
   }
 
   public String toString() {

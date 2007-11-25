@@ -222,8 +222,10 @@
     <mkdir dir="build/javadoc"/>
     <javadoc sourcepath="build/java" destdir="build/javadoc" access="public" packagenames="sqlite"/>
     <zip destfile="dist/${javadoczipname}" basedir="build/javadoc"/>
+<!--
     <copy todir="dist">
       <fileset dir="build" includes="javadoc/**/*"/>
     </copy>
+-->
   </target>
 </project>
