@@ -220,7 +220,7 @@
 
   <target name="javadoc" depends="dist">
     <mkdir dir="build/javadoc"/>
-    <javadoc sourcepath="build/java" destdir="build/javadoc" access="public"/>
+    <javadoc sourcepath="build/java" destdir="build/javadoc" access="public" package="sqlite"/>
     <zip destfile="dist/${javadoczipname}" basedir="build/javadoc"/>
     <copy todir="dist">
       <fileset dir="build" includes="javadoc/**/*"/>
