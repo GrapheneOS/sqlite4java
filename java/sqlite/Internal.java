@@ -99,17 +99,20 @@ final class Internal {
     URL url = c.getClassLoader().getResource(name);
     if (url == null)
       return;
-    String newPath = getAdjustedLibraryPath(System.getProperty("java.library.path"), url.toString());
+    String propKey = "java.library.path";
+    String oldPath = System.getProperty(propKey);
+    String newPath = getAdjustedLibraryPath(oldPath, url.toString());
     if (newPath != null) {
-      System.setProperty("java.library.path", newPath);
+      System.setProperty(propKey, newPath);
     }
   }
 
   static String getAdjustedLibraryPath(String libraryPath, String classUrl) {
     String s = classUrl;
-    if (!s.startsWith("jar:"))
+    String prefix = "jar:file:";
+    if (!s.startsWith(prefix))
       return null;
-    s = s.substring(4);
+    s = s.substring(prefix.length());
     int k = s.lastIndexOf('!');
     if (k < 0)
       return null;
