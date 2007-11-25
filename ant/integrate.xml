@@ -1,11 +1,11 @@
-<project basedir="." default="integrate" name="integrate">
+<project basedir=".." default="integrate" name="integrate">
   <target name="integrate">
-    <ant antfile="build.xml">
+    <ant antfile="ant/build.xml">
       <target name="clean"/>
       <target name="debug"/>
       <target name="test"/>
     </ant>
-    <ant antfile="build.xml">
+    <ant antfile="ant/build.xml">
       <target name="clean"/>
       <target name="release"/> 
       <target name="test"/>
