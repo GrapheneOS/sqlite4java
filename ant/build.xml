@@ -1,5 +1,7 @@
-<project basedir=".." name="sqlite4java" default="test">
+<project basedir=".." name="sqlite4java" default="all">
   <property file="ant/global.properties"/>
+
+  <target name="all" depends="dist, test, srczip, javadoc"/>
 
   <presetdef name="exec">
     <exec failifexecutionfails="true" failonerror="true"/>
@@ -79,7 +81,7 @@
     <uptodate property="sqlite.uptodate" targetfile="build/sqlite3.o">
       <srcfiles dir="sqlite"/>
     </uptodate>
-    <uptodate property="jar.uptodate" targetfile="build/${libname}.jar">
+    <uptodate property="jar.uptodate" targetfile="build/${jarname}">
       <srcfiles dir="swig"/>
       <srcfiles dir="build/java"/>
       <srcfiles dir="build/classes"/>
@@ -173,13 +175,13 @@
   </target>
 
   <target name="java.jar" depends="java.compile" unless="jar.uptodate">
-    <jar destfile="build/${libname}.jar" basedir="build/classes"/>
+    <jar destfile="build/${jarname}" basedir="build/classes"/>
   </target>
 
   <target name="dist" depends="lib.link, java.jar">
     <property name="dist.suffix" value="w${os.arch}${dist.buildtype.marker}"/>
     <mkdir dir="dist/"/>
-    <copy todir="dist" file="build/${libname}.jar"/>
+    <copy todir="dist" file="build/${jarname}"/>
     <copy todir="dist">
       <fileset dir="build" includes="${lib}"/>
       <mapper type="regexp" from="^(.*)${libname}(.*)$$" to="\1${libname}${dist.suffix}\2"/>
@@ -189,7 +191,7 @@
   <target name="test" depends="dist">
     <javac srcdir="test" destdir="build/test" debug="on">
       <classpath>
-        <pathelement location="build/sqlite.jar"/>
+        <pathelement location="build/${jarname}"/>
         <pathelement location="lib/junit.jar"/>
       </classpath>
     </javac>
@@ -202,7 +204,7 @@
       <jvmarg value="-Djava.library.path=${basedir}/dist"/>
       <classpath>
         <pathelement location="build/test"/>
-        <pathelement location="dist/sqlite.jar"/>
+        <pathelement location="dist/${jarname}"/>
         <pathelement location="lib/junit.jar"/>
       </classpath>
       <batchtest todir="build/testrun">
@@ -211,15 +213,13 @@
     </junit>
   </target>
 
-  <target name="test2" depends="dist">
-    <javac srcdir="test" destdir="build/test" classpath="build/sqlite.jar" debug="on"/>
-    <java classname="Test" fork="yes">
-      <!--<jvmarg value="-verbose:jni"/>-->
-      <classpath>
-        <pathelement location="build/test"/>
-        <pathelement location="dist/sqlite.jar"/>
-      </classpath>
-      <sysproperty key="java.library.path" value="dist"/>
-    </java>
+  <target name="srczip" depends="dist">
+    <delete file="dist/${srczipname}"/>
+    <zip destfile="dist/${srczipname}" basedir="build/java" includes="**/*"/>
+  </target>
+
+  <target name="javadoc" depends="dist">
+    <mkdir dir="build/javadoc"/>
+    <javadoc sourcepath="build/java" destdir="build/javadoc" access="public"/> 
   </target>
 </project>
