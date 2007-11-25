@@ -3,6 +3,7 @@ ant/build.xml -text
 ant/debug.properties -text
 ant/default.properties -text
 ant/global.properties -text
+ant/integrate.xml -text
 ant/linux-debug.properties -text
 ant/linux.properties -text
 ant/mac-debug.properties -text
