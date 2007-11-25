@@ -133,7 +133,7 @@ final class Internal {
         if (p < 0) {
           p = libraryPath.length();
         }
-        if (loadDir.equals(new File(s.substring(k, p)))) {
+        if (loadDir.equals(new File(libraryPath.substring(k, p)))) {
           contains = true;
           break;
         }
