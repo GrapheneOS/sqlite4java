@@ -215,11 +215,12 @@
 
   <target name="srczip" depends="dist">
     <delete file="dist/${srczipname}"/>
-    <zip destfile="dist/${srczipname}" basedir="build/java" includes="**/*"/>
+    <zip destfile="dist/${srczipname}" basedir="build/java"/>
   </target>
 
   <target name="javadoc" depends="dist">
     <mkdir dir="build/javadoc"/>
-    <javadoc sourcepath="build/java" destdir="build/javadoc" access="public"/> 
+    <javadoc sourcepath="build/java" destdir="build/javadoc" access="public"/>
+    <zip destfile="dist/${javadoczipname}" basedir="build/javadoc"/>
   </target>
 </project>
