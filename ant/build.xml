@@ -218,7 +218,7 @@
     <zip destfile="dist/${srczipname}" basedir="build/java"/>
   </target>
 
-  <target name="javadoc" depends="dist">
+  <target name="javadoc" depends="dist" unless="os.windows">
     <mkdir dir="build/javadoc"/>
     <javadoc sourcepath="build/java" destdir="build/javadoc" access="public" packagenames="sqlite"/>
     <zip destfile="dist/${javadoczipname}" basedir="build/javadoc"/>
