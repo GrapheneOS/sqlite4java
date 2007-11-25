@@ -5,6 +5,7 @@ import sqlite.internal._SQLiteManual;
 import sqlite.internal._SQLiteSwigged;
 
 import java.io.File;
+import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,6 +63,7 @@ final class Internal {
   static Throwable loadLibraryX() {
     if (checkLoaded() == null)
       return null;
+    adjustLibraryPath();
     logFine(Internal.class, "loading library");
     logFine(Internal.class, "java.library.path=" + System.getProperty("java.library.path"));
     logFine(Internal.class, "cwd=" + new File(".").getAbsolutePath());
@@ -88,6 +90,65 @@ final class Internal {
       } else {
         throw e;
       }
+    }
+  }
+
+  private static void adjustLibraryPath() {
+    Class c = Internal.class;
+    String name = c.getName().replace('.', '/') + ".class";
+    URL url = c.getClassLoader().getResource(name);
+    if (url == null)
+      return;
+    String newPath = getAdjustedLibraryPath(System.getProperty("java.library.path"), url.toString());
+    if (newPath != null) {
+      System.setProperty("java.library.path", newPath);
+    }
+  }
+
+  static String getAdjustedLibraryPath(String libraryPath, String classUrl) {
+    String s = classUrl;
+    if (!s.startsWith("jar:"))
+      return null;
+    s = s.substring(4);
+    int k = s.lastIndexOf('!');
+    if (k < 0)
+      return null;
+    File jar = new File(s.substring(0, k));
+    if (!jar.isFile())
+      return null;
+    File loadDir = jar.getParentFile();
+    if (loadDir.getPath().length() == 0 || !loadDir.isDirectory())
+      return null;
+    if (libraryPath == null)
+      libraryPath = "";
+    boolean contains = false;
+    char sep = File.pathSeparatorChar;
+    if (libraryPath.length() > 0) {
+      k = 0;
+      while (k < libraryPath.length()) {
+        int p = libraryPath.indexOf(sep, k);
+        if (p < 0) {
+          p = libraryPath.length();
+        }
+        if (loadDir.equals(new File(s.substring(k, p)))) {
+          contains = true;
+          break;
+        }
+        k = p + 1;
+      }
+    }
+    String loadPath = loadDir.getPath();
+    if (contains) {
+      logFine(Internal.class, "not adjusting library path with [" + loadPath + "]");
+      return null;
+    } else {
+      logFine(Internal.class, "appending to library path: [" + loadPath + "]");
+      StringBuilder b = new StringBuilder(libraryPath);
+      int len = b.length();
+      if (len > 0 && b.charAt(len - 1) != sep)
+        b.append(sep);
+      b.append(loadPath);
+      return b.toString();
     }
   }
 
