@@ -1,197 +1,169 @@
 package sqlite;
 
-import java.util.concurrent.Semaphore;
 import java.io.File;
+import java.util.concurrent.Semaphore;
 
 public class BusyTests extends SQLiteConnectionFixture {
-  public void testReadLockTransactionFails() throws SQLiteException, InterruptedException {
-    final String[] failure = {null};
-    SQLiteConnection readc = fileDb();
-    try {
-      readc.open().exec("create table x (x)").exec("insert into x values (1)");
-      SQLiteStatement readst = readc.prepare("select * from x");
-      readst.step();
-      assertTrue(readst.hasRow());
+  private SQLiteConnection myReader;
+  private SQLiteConnection myWriter;
+  private String myFailure;
 
-      Thread t = new Thread() {
-        public void run() {
-          SQLiteConnection writec = fileDb();
+  protected void setUp() throws Exception {
+    super.setUp();
+    File dbfile = dbFile();
+    assertFalse(dbfile.exists());
+    myReader = new SQLiteConnection(dbfile);
+    myWriter = new SQLiteConnection(dbfile);
+    myReader.open().exec("pragma cache_size=5").exec("pragma page_size=1024");
+    myReader.exec("create table x (x)").exec("insert into x values (1)");
+    myFailure = null;
+  }
+
+  protected void tearDown() throws Exception {
+    myReader.dispose();
+    myReader = null;
+    myWriter = null;
+    super.tearDown();
+    if (myFailure != null)
+      fail(myFailure);
+  }
+
+  public void testReadLockTransactionFails() throws SQLiteException, InterruptedException {
+    SQLiteStatement st = myReader.prepare("select * from x");
+    st.step();
+    assertTrue(st.hasRow());
+
+    Thread t = new Thread() {
+      public void run() {
+        try {
+          myWriter.open();
+          myWriter.exec("begin immediate");
+          myWriter.exec("insert into x values (2)");
           try {
-            writec.open();
-            writec.exec("begin immediate");
-            writec.exec("insert into x values (2)");
-            try {
-              writec.exec("commit");
-              failure[0] = "successfully committed";
-            } catch (SQLiteException e) {
-              e.printStackTrace();
-            }
-          } catch (SQLiteException e) {
+            myWriter.exec("commit");
+            myFailure = "successfully committed";
+          } catch (SQLiteBusyException e) {
             e.printStackTrace();
-            failure[0] = String.valueOf(e);
-          } finally {
-            writec.dispose();
+            if (myWriter.getAutoCommit())
+              myFailure = "transaction rolled back";
           }
+        } catch (SQLiteException e) {
+          e.printStackTrace();
+          myFailure = String.valueOf(e);
+        } finally {
+          myWriter.dispose();
         }
-      };
-      t.start();
-      t.join();
-      
-    } finally {
-      readc.dispose();
-    }
-    if (failure[0] != null)
-      fail(failure[0]);
+      }
+    };
+    t.start();
+    t.join();
   }
 
   public void testReadLockTransactionFailsWithTimeout() throws SQLiteException, InterruptedException {
-    final String[] failure = {null};
-    SQLiteConnection readc = fileDb();
-    try {
-      readc.open().exec("create table x (x)").exec("insert into x values (1)");
-      SQLiteStatement readst = readc.prepare("select * from x");
-      readst.step();
-      assertTrue(readst.hasRow());
+    SQLiteStatement st = myReader.prepare("select * from x");
+    st.step();
+    assertTrue(st.hasRow());
 
-      Thread t = new Thread() {
-        public void run() {
-          SQLiteConnection writec = fileDb();
+    Thread t = new Thread() {
+      public void run() {
+        try {
+          myWriter.open();
+          int timeout = 2000;
+          myWriter.setBusyTimeout(timeout);
+          myWriter.exec("begin immediate");
+          myWriter.exec("insert into x values (2)");
+          long t1 = System.currentTimeMillis();
           try {
-            writec.open();
-            int timeout = 2000;
-            writec.setBusyTimeout(timeout);
-            writec.exec("begin immediate");
-            writec.exec("insert into x values (2)");
-            long t1 = System.currentTimeMillis();
-            try {
-              writec.exec("commit");
-              failure[0] = "successfully committed";
-            } catch (SQLiteException e) {
-              long t2 = System.currentTimeMillis();
-              assertTrue(String.valueOf(t2 - t1), t2 - t1 > timeout - 100);
-              e.printStackTrace();
-            }
-          } catch (SQLiteException e) {
+            myWriter.exec("commit");
+            myFailure = "successfully committed";
+          } catch (SQLiteBusyException e) {
+            long t2 = System.currentTimeMillis();
+            assertTrue(String.valueOf(t2 - t1), t2 - t1 > timeout - 100);
             e.printStackTrace();
-            failure[0] = String.valueOf(e);
-          } finally {
-            writec.dispose();
+            if (myWriter.getAutoCommit())
+              myFailure = "transaction rolled back";
           }
+        } catch (SQLiteException e) {
+          e.printStackTrace();
+          myFailure = String.valueOf(e);
+        } finally {
+          myWriter.dispose();
         }
-      };
-      t.start();
-      t.join();
+      }
+    };
+    t.start();
+    t.join();
 
-    } finally {
-      readc.dispose();
-    }
-    if (failure[0] != null)
-      fail(failure[0]);
   }
 
   public void testReadLockTransactionWaits() throws SQLiteException, InterruptedException {
-    final String[] failure = {null};
     final int timeout = 2000;
-    SQLiteConnection readc = fileDb();
-    try {
-      readc.open().exec("create table x (x)").exec("insert into x values (1)");
-      SQLiteStatement readst = readc.prepare("select * from x");
-      readst.step();
-      assertTrue(readst.hasRow());
+    SQLiteStatement st = myReader.prepare("select * from x");
+    st.step();
+    assertTrue(st.hasRow());
 
-      final Semaphore s = new Semaphore(1);
-      s.acquire();
-      Thread t = new Thread() {
-        public void run() {
-          SQLiteConnection writec = fileDb();
-          try {
-            writec.open();
-            writec.setBusyTimeout(timeout);
-            writec.exec("begin immediate");
-            writec.exec("insert into x values (2)");
-            s.release();
-            long t1 = System.currentTimeMillis();
-            writec.exec("commit");
-            long t2 = System.currentTimeMillis();
-            System.out.println("commit waited for " + (t2 - t1));
-          } catch (SQLiteException e) {
-            e.printStackTrace();
-            failure[0] = String.valueOf(e);
-          } finally {
-            writec.dispose();
-          }
+    final Semaphore s = new Semaphore(1);
+    s.acquire();
+    Thread t = new Thread() {
+      public void run() {
+        try {
+          myWriter.open();
+          myWriter.setBusyTimeout(timeout);
+          myWriter.exec("begin immediate");
+          myWriter.exec("insert into x values (2)");
+          s.release();
+          long t1 = System.currentTimeMillis();
+          myWriter.exec("commit");
+          long t2 = System.currentTimeMillis();
+          System.out.println("commit waited for " + (t2 - t1));
+        } catch (SQLiteException e) {
+          e.printStackTrace();
+          myFailure = String.valueOf(e);
+        } finally {
+          myWriter.dispose();
         }
-      };
-      t.start();
-      s.acquire();
-      s.release();
-      Thread.sleep(timeout / 2);
-      readst.reset();
-      t.join();
-    } finally {
-      readc.dispose();
-    }
-    if (failure[0] != null)
-      fail(failure[0]);
+      }
+    };
+    t.start();
+    s.acquire();
+    s.release();
+    Thread.sleep(timeout / 2);
+    st.reset();
+    t.join();
   }
 
   public void testBusySpill() throws SQLiteException, InterruptedException {
-    final String[] failure = {null};
-    final File file = dbFile();
-    assertFalse(file.exists());
-    SQLiteConnection readc = new SQLiteConnection(file);
-    try {
-      readc.open().exec("pragma cache_size=5").exec("pragma page_size=1024");
-      readc.exec("create table x (x)").exec("insert into x values (1)");
-      SQLiteStatement readst = readc.prepare("select * from x");
-      readst.step();
-      assertTrue(readst.hasRow());
-
-      final Semaphore s = new Semaphore(1);
-      s.acquire();
-      Thread t = new Thread() {
-        public void run() {
-          SQLiteConnection writec = new SQLiteConnection(file);
+    SQLiteStatement st = myReader.prepare("select * from x");
+    st.step();
+    assertTrue(st.hasRow());
+    Thread t = new Thread() {
+      public void run() {
+        try {
+          myWriter.open().exec("pragma cache_size=5");
+          myWriter.exec("begin immediate");
+          SQLiteStatement st = myWriter.prepare("insert into x values (?)");
           try {
-            writec.open().exec("pragma cache_size=5");
-//            writec.setBusyTimeout(timeout);
-            writec.exec("begin immediate");
-            SQLiteStatement st = writec.prepare("insert into x values (?)");
             for (int i = 0; i < 20; i++) {
               st.bind(1, garbageString(512));
               st.step();
               st.reset();
             }
-            st.dispose();
-            s.release();
-            long t1 = System.currentTimeMillis();
-            writec.exec("commit");
-            long t2 = System.currentTimeMillis();
-            System.out.println("commit waited for " + (t2 - t1));
-          } catch (SQLiteException e) {
-            e.printStackTrace();
-            failure[0] = String.valueOf(e);
+            myFailure = "successfully inserted data in one transaction that exceeds disk cache and shared lock is preserved";
+          } catch (SQLiteBusyException e) {
+            if (!myWriter.getAutoCommit())
+              myFailure = "transaction not rolled back";
           } finally {
-            writec.dispose();
+            st.dispose();
           }
+        } catch (SQLiteException e) {
+          e.printStackTrace();
+          myFailure = String.valueOf(e);
+        } finally {
+          myWriter.dispose();
         }
-      };
-      t.start();
-//      s.acquire();
-//      s.release();
-//      Thread.sleep(timeout / 2);
-//      readst.reset();
-      t.join();
-    } finally {
-      readc.dispose();
-    }
-    if (failure[0] != null)
-      fail(failure[0]);
-
+      }
+    };
+    t.start();
+    t.join();
   }
-
-  protected SQLiteConnection fileDb() {
-    return new SQLiteConnection(dbFile());
-  }
-
 }

@@ -25,6 +25,10 @@ public final class SQLite {
       if (t != null)
         throw new SQLiteException(Wrapper.WRAPPER_CANNOT_LOAD_LIBRARY, "cannot load library: " + t, t);
       libraryLoaded = true;
+      int threadSafe = _SQLiteSwigged.sqlite3_threadsafe();
+      if (threadSafe == 0) {
+        Internal.logWarn(SQLite.class, "library is not thread-safe");
+      }
     }
   }
 

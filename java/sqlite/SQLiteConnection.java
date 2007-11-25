@@ -254,7 +254,7 @@ public final class SQLiteConnection {
         throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
     } else {
       if (Internal.isFineLogging())
-        Internal.logFine(this, "using cached stmt for " + sql);
+        Internal.logFine(this, "using cached stmt for [" + sql + "]");
     }
     SQLiteStatement statement = null;
     synchronized (myLock) {
@@ -288,6 +288,12 @@ public final class SQLiteConnection {
     int rc = _SQLiteSwigged.sqlite3_busy_timeout(handle(), (int) millis);
     throwResult(rc, "setBusyTimeout");
     return this;
+  }
+
+  public boolean getAutoCommit() throws SQLiteException {
+    checkThread();
+    int r = _SQLiteSwigged.sqlite3_get_autocommit(handle());
+    return r != 0;
   }
 
   private void finalizeStatements() {
@@ -456,7 +462,11 @@ public final class SQLiteConnection {
           Internal.log(Level.WARNING, this, "cannot get sqlite3_errmsg", e);
         }
       }
-      throw new SQLiteException(resultCode, message);
+      if (resultCode == Result.SQLITE_BUSY || resultCode == Result.SQLITE_IOERR_BLOCKED) {
+        throw new SQLiteBusyException(resultCode, message);
+      } else {
+        throw new SQLiteException(resultCode, message);
+      }
     }
   }
 

@@ -46,6 +46,20 @@ public interface SQLiteConstants {
     public static final int SQLITE_NOTADB = 26;   /* File opened that is not a database file */
     public static final int SQLITE_ROW = 100;  /* sqlite=3;_step() has another row ready */
     public static final int SQLITE_DONE = 101;  /* sqlite=3;_step() has finished executing */
+
+    public static final int SQLITE_IOERR_READ =       (SQLITE_IOERR | (1 << 8));
+    public static final int SQLITE_IOERR_SHORT_READ = (SQLITE_IOERR | (2 << 8));
+    public static final int SQLITE_IOERR_WRITE =      (SQLITE_IOERR | (3 << 8));
+    public static final int SQLITE_IOERR_FSYNC =      (SQLITE_IOERR | (4 << 8));
+    public static final int SQLITE_IOERR_DIR_FSYNC =  (SQLITE_IOERR | (5 << 8));
+    public static final int SQLITE_IOERR_TRUNCATE =   (SQLITE_IOERR | (6 << 8));
+    public static final int SQLITE_IOERR_FSTAT =      (SQLITE_IOERR | (7 << 8));
+    public static final int SQLITE_IOERR_UNLOCK =     (SQLITE_IOERR | (8 << 8));
+    public static final int SQLITE_IOERR_RDLOCK =     (SQLITE_IOERR | (9 << 8));
+    public static final int SQLITE_IOERR_DELETE =     (SQLITE_IOERR | (10 << 8));
+    public static final int SQLITE_IOERR_BLOCKED =    (SQLITE_IOERR | (11 << 8));
+    public static final int SQLITE_IOERR_NOMEM =      (SQLITE_IOERR | (12 << 8));
+
   }
 
   interface Wrapper {
