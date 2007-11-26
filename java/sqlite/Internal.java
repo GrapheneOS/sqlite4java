@@ -63,10 +63,11 @@ final class Internal {
   static Throwable loadLibraryX() {
     if (checkLoaded() == null)
       return null;
-    adjustLibraryPath();
+    String defaultPath = getDefaultLibPath();
     logFine(Internal.class, "loading library");
     logFine(Internal.class, "java.library.path=" + System.getProperty("java.library.path"));
     logFine(Internal.class, "cwd=" + new File(".").getAbsolutePath());
+    logFine(Internal.class, "defaultLibPath=" + (defaultPath == null ? "null " : new File(defaultPath).getAbsolutePath()));
     String arch = System.getProperty("os.arch");
     if (arch == null) {
       logWarn(Internal.class, "os.arch is null");
@@ -77,7 +78,7 @@ final class Internal {
     try {
       String[] suffixes = SQLite.isPreferDebugLibrary() ? DEBUG_SUFFIXES : RELEASE_SUFFIXES;
       for (String suffix : suffixes) {
-        bestReason = tryLoadWithSuffix(suffix, arch, bestReason, loadedSignal);
+        bestReason = tryLoadWithSuffix(suffix, arch, bestReason, loadedSignal, defaultPath);
       }
       if (bestReason == null)
         bestReason = new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "sqlite.Internal: lib loaded, check failed");
@@ -93,21 +94,18 @@ final class Internal {
     }
   }
 
-  private static void adjustLibraryPath() {
+  private static String getDefaultLibPath() {
     Class c = Internal.class;
     String name = c.getName().replace('.', '/') + ".class";
     URL url = c.getClassLoader().getResource(name);
     if (url == null)
-      return;
+      return null;
     String propKey = "java.library.path";
     String oldPath = System.getProperty(propKey);
-    String newPath = getAdjustedLibraryPath(oldPath, url.toString());
-    if (newPath != null) {
-      System.setProperty(propKey, newPath);
-    }
+    return getDefaultLibPath(oldPath, url.toString());
   }
 
-  static String getAdjustedLibraryPath(String libraryPath, String classUrl) {
+  static String getDefaultLibPath(String libraryPath, String classUrl) {
     String s = classUrl;
     String prefix = "jar:file:";
     if (!s.startsWith(prefix))
@@ -142,31 +140,49 @@ final class Internal {
     }
     String loadPath = loadDir.getPath();
     if (contains) {
-      logFine(Internal.class, "not adjusting library path with [" + loadPath + "]");
       return null;
     } else {
-      logFine(Internal.class, "appending to library path: [" + loadPath + "]");
-      StringBuilder b = new StringBuilder(libraryPath);
-      int len = b.length();
-      if (len > 0 && b.charAt(len - 1) != sep)
-        b.append(sep);
-      b.append(loadPath);
-      return b.toString();
+//      logFine(Internal.class, "appending to library path: [" + loadPath + "]");
+      return loadPath;
     }
   }
 
-  private static Throwable tryLoadWithSuffix(String suffix, String arch, Throwable bestReason, RuntimeException loadedSignal) {
+  private static Throwable tryLoadWithSuffix(String suffix, String arch, Throwable bestReason, RuntimeException loadedSignal, String defaultPath) {
     Throwable t = bestReason;
-    t = tryLoad(BASE_LIBRARY_NAME + "w" + arch + suffix, t, loadedSignal);
+    t = tryLoad(BASE_LIBRARY_NAME + "w" + arch + suffix, t, loadedSignal, defaultPath);
     if (arch.indexOf("64") > 0) {
-      t = tryLoad(BASE_LIBRARY_NAME + "wx86" + suffix, t, loadedSignal);
+      t = tryLoad(BASE_LIBRARY_NAME + "wx86" + suffix, t, loadedSignal, defaultPath);
     }
-    t = tryLoad(BASE_LIBRARY_NAME + "w" + suffix, t, loadedSignal);
-    t = tryLoad(BASE_LIBRARY_NAME + suffix, t, loadedSignal);
+    t = tryLoad(BASE_LIBRARY_NAME + "w" + suffix, t, loadedSignal, defaultPath);
+    t = tryLoad(BASE_LIBRARY_NAME + suffix, t, loadedSignal, defaultPath);
     return t;
   }
 
-  private static Throwable tryLoad(String libname, Throwable bestReason, RuntimeException loadedSignal) {
+  private static Throwable tryLoad(String libname, Throwable bestReason, RuntimeException loadedSignal, String defaultPath) {
+    Throwable t = bestReason;
+    t = tryLoadFromSystemPath(libname, t, loadedSignal);
+    if (defaultPath != null)
+      t = tryLoadFromDefaultPath(libname, t, loadedSignal, defaultPath);
+    return t;
+  }
+
+  private static Throwable tryLoadFromDefaultPath(String libname, Throwable bestReason, RuntimeException loadedSignal, String defaultPath) {
+    String libFile = System.mapLibraryName(libname);
+    File lib = new File(new File(defaultPath), libFile);
+    if (!lib.isFile() || !lib.canRead())
+      return bestReason;
+    String logname = libname + " from " + lib;
+    logFine(Internal.class, "trying to load " + logname);
+    try {
+      System.load(lib.getAbsolutePath());
+    } catch (Throwable t) {
+      logFine(Internal.class, "cannot load " + logname + ": " + t);
+      return bestLoadFailureReason(bestReason, t);
+    }
+    return verifyLoading(bestReason, loadedSignal, logname);
+  }
+
+  private static Throwable tryLoadFromSystemPath(String libname, Throwable bestReason, RuntimeException loadedSignal) {
     logFine(Internal.class, "trying to load " + libname);
     try {
       System.loadLibrary(libname);
@@ -174,13 +190,17 @@ final class Internal {
       logFine(Internal.class, "cannot load " + libname + ": " + t);
       return bestLoadFailureReason(bestReason, t);
     }
-    logInfo(Internal.class, "loaded " + libname);
+    return verifyLoading(bestReason, loadedSignal, libname);
+  }
+
+  private static Throwable verifyLoading(Throwable bestReason, RuntimeException loadedSignal, String logname) {
+    logInfo(Internal.class, "loaded " + logname);
     LinkageError linkError = checkLoaded();
     if (linkError == null) {
       // done -- exit cycle by throwing exception
       throw loadedSignal;
     }
-    logFine(Internal.class, "cannot use " + libname + ": " + linkError);
+    logFine(Internal.class, "cannot use " + logname + ": " + linkError);
     return bestLoadFailureReason(bestReason, linkError);
   }
 

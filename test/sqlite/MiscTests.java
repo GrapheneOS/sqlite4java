@@ -21,8 +21,11 @@ public class MiscTests extends SQLiteTestFixture {
     char c = File.pathSeparatorChar;
     String url = "jar:file:" + jar + "!/sqlite/Internal.class";
 
-    assertEquals(dir, Internal.getAdjustedLibraryPath(null, url));
-    assertEquals("xxx" + c + dir, Internal.getAdjustedLibraryPath("xxx", url));
-    assertEquals("xxx" + c + c + "yyy" + c + dir, Internal.getAdjustedLibraryPath("xxx" + c + c + "yyy" + c, url));
+    assertEquals(dir, Internal.getDefaultLibPath(null, url));
+    assertEquals(dir, Internal.getDefaultLibPath("xxx", url));
+    assertEquals(dir, Internal.getDefaultLibPath("xxx" + c + c + "yyy" + c, url));
+    assertNull(Internal.getDefaultLibPath("xxx" + File.pathSeparatorChar + File.pathSeparatorChar + dir, url));
+    assertEquals(dir, Internal.getDefaultLibPath(dir + "x", url));
+    assertNull(Internal.getDefaultLibPath(dir, url));
   }
 }
