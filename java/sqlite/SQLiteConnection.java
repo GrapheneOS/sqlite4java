@@ -302,6 +302,12 @@ public final class SQLiteConnection {
     return id;
   }
 
+  public int getChanges() throws SQLiteException {
+    checkThread();
+    int result = _SQLiteSwigged.sqlite3_changes(handle());
+    return result;
+  }
+
   private void finalizeStatements() {
     boolean alienThread = myConfinement != Thread.currentThread();
     if (!alienThread) {
