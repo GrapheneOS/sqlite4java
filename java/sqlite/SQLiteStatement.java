@@ -394,6 +394,18 @@ public final class SQLiteStatement {
     }
   }
 
+  public String columnName(int column) throws SQLiteException {
+    myController.validate();
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    checkColumn(column, handle);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnName(" + column + ")");
+    String r = _SQLiteSwigged.sqlite3_column_name(handle, column);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnName(" + column + ")=" + r);
+    return r;
+  }
+
   /**
    * Clear all data, disposing the statement. May be called by SQLiteConnection on close.
    */
