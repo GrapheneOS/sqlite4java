@@ -385,7 +385,8 @@ public final class SQLiteStatement {
     case ValueType.SQLITE_FLOAT:
       return columnDouble(column);
     case ValueType.SQLITE_INTEGER:
-      return columnLong(column);
+      long value = columnLong(column);
+      return value == ((long)((int)value)) ? Integer.valueOf((int)value) : Long.valueOf(value);
     case ValueType.SQLITE_TEXT:
       return columnString(column);
     default:

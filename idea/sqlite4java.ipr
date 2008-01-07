@@ -321,6 +321,14 @@
     <option name="GENERATE_IIOP_STUBS" value="false" />
     <option name="ADDITIONAL_OPTIONS_STRING" value="" />
   </component>
+  <component name="TL_PLUGIN">
+    <option name="myModel">
+      <IssueLinkModel />
+    </option>
+    <option name="myCheckinOptions">
+      <CheckinOptions />
+    </option>
+  </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="svn" />
   </component>
