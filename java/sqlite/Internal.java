@@ -29,6 +29,9 @@ final class Internal {
   }
 
   static void log(Level level, Object source, Object message, Throwable exception) {
+    if (!logger.isLoggable(level)) {
+      return;
+    }
     StringBuilder builder = new StringBuilder(LOG_PREFIX);
     if (source != null) {
       if (source instanceof Class) {
