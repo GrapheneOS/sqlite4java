@@ -583,6 +583,8 @@ public final class SQLiteConnection {
   }
 
   private abstract class BaseStatementController implements StatementController {
+    private StatementController myDisposedController = null;
+
     public void validate() throws SQLiteException {
       SQLiteConnection.this.checkThread();
       SQLiteConnection.this.handle();
@@ -590,6 +592,12 @@ public final class SQLiteConnection {
 
     public void throwResult(int resultCode, String message, Object additionalMessage) throws SQLiteException {
       SQLiteConnection.this.throwResult(resultCode, message, additionalMessage);
+    }
+
+    public StatementController getDisposedController() {
+      if (myDisposedController == null)
+        myDisposedController = new DisposedStatementController(this);
+      return myDisposedController;
     }
 
     protected boolean checkDispose(SQLiteStatement statement) {
@@ -624,6 +632,35 @@ public final class SQLiteConnection {
 
     public String toString() {
       return SQLiteConnection.this.toString() + "[U]";
+    }
+  }
+
+  /**
+   * A stub implementation that replaces connection-based implementation when statement is disposed.
+   */
+  class DisposedStatementController implements StatementController {
+    private final StatementController myPredessor;
+
+    DisposedStatementController(StatementController predecessor) {
+      myPredessor = predecessor;
+    }
+
+    public String toString() {
+      return myPredessor.toString() + "[D]";
+    }
+
+    public void validate() throws SQLiteException {
+      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_MISUSE, "statement is disposed");
+    }
+
+    public void throwResult(int resultCode, String message, Object additionalMessage) throws SQLiteException {
+    }
+
+    public void dispose(SQLiteStatement statement) {
+    }
+
+    public StatementController getDisposedController() {
+      return this;
     }
   }
 }

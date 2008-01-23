@@ -416,9 +416,7 @@ public final class SQLiteStatement {
     myColumnCount = 0;
     myHasBindings = false;
     myStepped = false;
-    if (!(myController instanceof StatementController.DisposedStatementController)) {
-      myController = new StatementController.DisposedStatementController(myController.toString());
-    }
+    myController = myController.getDisposedController();
     Internal.logFine(this, "cleared");
   }
 

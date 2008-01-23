@@ -1,7 +1,5 @@
 package sqlite;
 
-import sqlite.internal.SQLiteConstants;
-
 /**
  * This interface is used as a strategy for SQLiteStatement lifecycle. Initially it is set by {@link sqlite.SQLiteConnection#prepare}
  * method, and when statement is disposed the strategy is reset to the dummy implementation.
@@ -28,28 +26,5 @@ interface StatementController {
    */
   void dispose(SQLiteStatement statement);
 
-  /**
-   * A stub implementation that replaces connection-based implementation when statement is disposed.
-   */
-  class DisposedStatementController implements StatementController {
-    private final String myName;
-
-    DisposedStatementController(String predecessorName) {
-      myName = predecessorName + "[D]";
-    }
-
-    public String toString() {
-      return myName;
-    }
-
-    public void validate() throws SQLiteException {
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_MISUSE, "statement is disposed");
-    }
-
-    public void throwResult(int resultCode, String message, Object additionalMessage) throws SQLiteException {
-    }
-
-    public void dispose(SQLiteStatement statement) {
-    }
-  }
+  StatementController getDisposedController();
 }
