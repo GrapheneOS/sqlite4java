@@ -52,8 +52,10 @@ public class SQLParts {
   }
 
   public void append(String part) {
-    myParts.add(part);
-    myHash = 0;
+    if (part != null && part.length() > 0) {
+      myParts.add(part);
+      myHash = 0;
+    }
   }
 
   public String toString() {
