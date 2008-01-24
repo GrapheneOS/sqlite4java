@@ -125,11 +125,13 @@ public final class SQLiteStatement {
    */
   public SQLiteStatement reset(boolean clearBindings) throws SQLiteException {
     myController.validate();
-    if (Internal.isFineLogging())
+    boolean fineLogging = Internal.isFineLogging();
+    if (fineLogging)
       Internal.logFine(this, "reset(" + clearBindings + ")");
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     if (myStepped) {
-      Internal.logFine(this, "resetting");
+      if (fineLogging)
+        Internal.logFine(this, "resetting");
       int rc = _SQLiteSwigged.sqlite3_reset(handle);
       myController.throwResult(rc, "reset()", this);
     }
@@ -137,7 +139,8 @@ public final class SQLiteStatement {
     myColumnCount = 0;
     myStepped = false;
     if (clearBindings && myHasBindings) {
-      Internal.logFine(this, "clearing bindings");
+      if (fineLogging)
+        Internal.logFine(this, "clearing bindings");
       int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle);
       myController.throwResult(rc, "reset.clearBindings()", this);
       myHasBindings = false;

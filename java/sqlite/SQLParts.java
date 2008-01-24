@@ -53,12 +53,13 @@ public class SQLParts {
     mySql = null;
   }
 
-  public void append(String part) {
+  public SQLParts append(String part) {
     if (part != null && part.length() > 0) {
       myParts.add(part);
       myHash = 0;
       mySql = null;
     }
+    return this;
   }
 
   public String toString() {
