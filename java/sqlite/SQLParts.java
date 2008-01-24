@@ -62,6 +62,17 @@ public class SQLParts {
     return this;
   }
 
+  public SQLParts appendParams(int count) {
+    if (count < 1)
+      return this;
+    for (int i = 0; i < count - 1; i++)
+      myParts.add("?, ");
+    myParts.add("?");
+    myHash = 0;
+    mySql = null;
+    return this;
+  }
+
   public String toString() {
     if (mySql == null) {
       StringBuilder builder = new StringBuilder();
