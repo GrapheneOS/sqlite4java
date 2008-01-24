@@ -18,7 +18,7 @@ public class SQLParts {
 
   public SQLParts(String sql) {
     myParts = new ArrayList<String>(1);
-    myParts.add(sql);
+    append(sql);
   }
 
   public int hashCode() {
