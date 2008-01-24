@@ -66,7 +66,7 @@ public final class SQLiteConnection {
    * is disposed, the handle is placed back into cache, unless there's another statement already created for the
    * same SQL. 
    */
-  private final Map<String, SWIGTYPE_p_sqlite3_stmt> myStatementCache = new HashMap<String, SWIGTYPE_p_sqlite3_stmt>();
+  private final Map<SQLParts, SWIGTYPE_p_sqlite3_stmt> myStatementCache = new HashMap<SQLParts, SWIGTYPE_p_sqlite3_stmt>();
 
   /**
    * This controller provides service for cached statements.
@@ -226,35 +226,42 @@ public final class SQLiteConnection {
   }
 
   /**
+   * @see #prepare(SQLParts, boolean)
+   */
+  public SQLiteStatement prepare(String sql, boolean cached) throws SQLiteException {
+    return prepare(new SQLParts(sql), cached);
+  }
+
+  /**
    * Prepares SQL statement
    * @param cached if true, the statement handle will be cached by the connection, so after the SQLiteStatement
    * is disposed, the handle may be reused by another prepare() call.
    */
-  public SQLiteStatement prepare(String sql, boolean cached) throws SQLiteException {
+  public SQLiteStatement prepare(SQLParts parts, boolean cached) throws SQLiteException {
     checkThread();
     if (Internal.isFineLogging())
-      Internal.logFine(this, "prepare [" + sql + "]");
+      Internal.logFine(this, "prepare [" + parts + "]");
     SWIGTYPE_p_sqlite3 handle;
     SWIGTYPE_p_sqlite3_stmt stmt = null;
     int openCounter;
     synchronized (myLock) {
       if (cached) {
         // while the statement is in work, it is removed from cache. it is put back in cache by SQLiteStatement.dispose().
-        stmt = myStatementCache.remove(sql);
+        stmt = myStatementCache.put(parts, null);
       }
       handle = handle();
     }
     if (stmt == null) {
       if (Internal.isFineLogging())
-        Internal.logFine(this, "calling sqlite3_prepare_v2 for [" + sql + "]");
+        Internal.logFine(this, "calling sqlite3_prepare_v2 for [" + parts + "]");
       int[] rc = {Integer.MIN_VALUE};
-      stmt = _SQLiteManual.sqlite3_prepare_v2(handle, sql, rc);
-      throwResult(rc[0], "prepare()", sql);
+      stmt = _SQLiteManual.sqlite3_prepare_v2(handle, parts.toString(), rc);
+      throwResult(rc[0], "prepare()", parts);
       if (stmt == null)
         throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
     } else {
       if (Internal.isFineLogging())
-        Internal.logFine(this, "using cached stmt for [" + sql + "]");
+        Internal.logFine(this, "using cached stmt for [" + parts + "]");
     }
     SQLiteStatement statement = null;
     synchronized (myLock) {
@@ -262,10 +269,10 @@ public final class SQLiteConnection {
       // most probably that would throw SQLiteException earlier, but we'll check anyway
       if (myHandle != null) {
         StatementController controller = cached ? myCachedController : myUncachedController;
-        statement = new SQLiteStatement(controller, stmt, sql);
+        statement = new SQLiteStatement(controller, stmt, parts);
         myStatements.add(statement);
       } else {
-        Internal.logWarn(this, "connection disposed while preparing statement for [" + sql + "]");
+        Internal.logWarn(this, "connection disposed while preparing statement for [" + parts + "]");
       }
     }
     if (statement == null) {
@@ -325,11 +332,11 @@ public final class SQLiteConnection {
       }
       while (true) {
         SWIGTYPE_p_sqlite3_stmt stmt = null;
-        String sql = null;
+        SQLParts sql = null;
         synchronized (myLock) {
           if (myStatementCache.isEmpty())
             break;
-          Map.Entry<String, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.entrySet().iterator().next();
+          Map.Entry<SQLParts,SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.entrySet().iterator().next();
           sql = e.getKey();
           stmt = e.getValue();
         }
@@ -350,10 +357,10 @@ public final class SQLiteConnection {
     }
   }
 
-  private void finalizeStatement(SWIGTYPE_p_sqlite3_stmt handle, String sql) {
+  private void finalizeStatement(SWIGTYPE_p_sqlite3_stmt handle, SQLParts sql) {
     if (Internal.isFineLogging())
       Internal.logFine(this, "finalizing cached stmt for " + sql);
-    softFinalize(handle, sql, sql);
+    softFinalize(handle, sql);
     synchronized (myLock) {
       forgetCachedHandle(handle, sql);
     }
@@ -362,16 +369,16 @@ public final class SQLiteConnection {
   private void finalizeStatement(SQLiteStatement statement) {
     Internal.logFine(statement, "finalizing");
     SWIGTYPE_p_sqlite3_stmt handle = statement.statementHandle();
-    String sql = statement.getSql();
+    SQLParts sql = statement.getSqlParts();
     statement.clear();
-    softFinalize(handle, sql, statement);
+    softFinalize(handle, statement);
     synchronized (myLock) {
       forgetStatement(statement);
       forgetCachedHandle(handle, sql);
     }
   }
 
-  private void softFinalize(SWIGTYPE_p_sqlite3_stmt handle, String sql, Object source) {
+  private void softFinalize(SWIGTYPE_p_sqlite3_stmt handle, Object source) {
     int rc = _SQLiteSwigged.sqlite3_finalize(handle);
     if (rc != Result.SQLITE_OK) {
       Internal.logWarn(this, "error [" + rc + "] finishing " + source);
@@ -386,7 +393,7 @@ public final class SQLiteConnection {
       Internal.logFine(statement, "returning handle to cache");
     boolean finalize = false;
     SWIGTYPE_p_sqlite3_stmt handle = statement.statementHandle();
-    String sql = statement.getSql();
+    SQLParts sql = statement.getSqlParts();
     try {
       if (statement.hasStepped()) {
         int rc = _SQLiteSwigged.sqlite3_reset(handle);
@@ -424,7 +431,7 @@ public final class SQLiteConnection {
     }
   }
 
-  private void forgetCachedHandle(SWIGTYPE_p_sqlite3_stmt handle, String sql) {
+  private void forgetCachedHandle(SWIGTYPE_p_sqlite3_stmt handle, SQLParts sql) {
     assert Thread.holdsLock(myLock);
     SWIGTYPE_p_sqlite3_stmt removedHandle = myStatementCache.remove(sql);
     if (removedHandle != null && removedHandle != handle) {
@@ -586,8 +593,13 @@ public final class SQLiteConnection {
     private StatementController myDisposedController = null;
 
     public void validate() throws SQLiteException {
+      assert validateImpl();
+    }
+
+    private boolean validateImpl() throws SQLiteException {
       SQLiteConnection.this.checkThread();
       SQLiteConnection.this.handle();
+      return true;
     }
 
     public void throwResult(int resultCode, String message, Object additionalMessage) throws SQLiteException {

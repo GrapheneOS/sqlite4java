@@ -14,6 +14,7 @@ ant/windows-release.properties -text
 ant/windows.properties -text
 idea/sqlite4java.iml -text
 idea/sqlite4java.ipr -text
+java/sqlite/SQLParts.java -text
 java/sqlite/SQLiteBusyException.java -text
 java/sqlite/SQLiteConnection.java -text
 java/sqlite/SQLiteException.java -text

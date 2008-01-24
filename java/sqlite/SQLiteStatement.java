@@ -28,7 +28,7 @@ public final class SQLiteStatement {
   /**
    * The SQL of this statement.
    */
-  private final String mySql;
+  private final SQLParts mySqlParts;
 
   /**
    * The controller that handles connection-level operations. Initially it is set
@@ -66,11 +66,11 @@ public final class SQLiteStatement {
    *
    * @see sqlite.SQLiteConnection#prepare(String, boolean)
    */
-  SQLiteStatement(StatementController controller, SWIGTYPE_p_sqlite3_stmt handle, String sql) {
+  SQLiteStatement(StatementController controller, SWIGTYPE_p_sqlite3_stmt handle, SQLParts sqlParts) {
     assert handle != null;
     myController = controller;
     myHandle = handle;
-    mySql = sql;
+    mySqlParts = sqlParts;
     Internal.logFine(this, "instantiated");
   }
 
@@ -81,8 +81,8 @@ public final class SQLiteStatement {
     return myHandle == null;
   }
 
-  public String getSql() {
-    return mySql;
+  public SQLParts getSqlParts() {
+    return mySqlParts;
   }
 
   /**
@@ -461,7 +461,7 @@ public final class SQLiteStatement {
   }
 
   public String toString() {
-    return "[" + mySql + "]" + myController;
+    return "[" + mySqlParts + "]" + myController;
   }
 
   protected void finalize() throws Throwable {

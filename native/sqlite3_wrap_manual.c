@@ -110,6 +110,42 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1prepare_1
   return rc;
 }
 
+//
+//JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1prepare_1v2_1optimized(JNIEnv *jenv, jclass jcls,
+//  jlong jdb, jbyteArray jsql, jint jsqlLength, jlongArray jresult)
+//{
+//  sqlite3* db = 0;
+//  char *sql = 0;
+//  sqlite3_stmt* stmt = 0;
+//  const char *tail = 0;
+//  int rc = 0;
+//  jlong r = 0;
+//
+//  if (!jdb) return WRAPPER_INVALID_ARG_1;
+//  if (!jsql) return WRAPPER_INVALID_ARG_2;
+//  if (!jresult) return WRAPPER_INVALID_ARG_3;
+//  if ((*jenv)->GetArrayLength(jenv, jsql) <= jsqlLength) return WRAPPER_INVALID_ARG_4;
+//  if (jsqlLength < 0) return WRAPPER_INVALID_ARG_5;
+//  sql = (char*)(*jenv)->GetPrimitiveArrayCritical(jenv, jsql, 0);
+//  if (!sql) return WRAPPER_CANNOT_TRANSFORM_STRING;
+//  sql[jsqlLength] = 0;
+//
+//  db = *(sqlite3**)&jdb;
+//  stmt = (sqlite3_stmt*)0;
+//  tail = 0;
+//
+//  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, &tail);
+//
+//  if (stmt) {
+//    *((sqlite3_stmt**)&r) = stmt;
+//    (*jenv)->SetLongArrayRegion(jenv, jresult, 0, 1, &r);
+//  }
+//  (*jenv)->ReleasePrimitiveArrayCritical(jenv, jsql, sql, 0);
+//
+//  return rc;
+//}
+//
+
 JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jstring jvalue)
 {
