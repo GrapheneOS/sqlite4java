@@ -6,6 +6,7 @@ import java.util.List;
 public class SQLParts {
   private final List<String> myParts;
   private int myHash;
+  private String mySql;
 
   public SQLParts() {
     myParts = new ArrayList<String>(5);
@@ -49,20 +50,25 @@ public class SQLParts {
   public void clear() {
     myParts.clear();
     myHash = 0;
+    mySql = null;
   }
 
   public void append(String part) {
     if (part != null && part.length() > 0) {
       myParts.add(part);
       myHash = 0;
+      mySql = null;
     }
   }
 
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    for (int i = 0; i < myParts.size(); i++) {
-      builder.append(myParts.get(i));
+    if (mySql == null) {
+      StringBuilder builder = new StringBuilder();
+      for (int i = 0; i < myParts.size(); i++) {
+        builder.append(myParts.get(i));
+      }
+      mySql = builder.toString();
     }
-    return builder.toString();
+    return mySql;
   }
 }
