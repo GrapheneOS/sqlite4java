@@ -68,6 +68,7 @@ public final class SQLiteStatement {
    */
   SQLiteStatement(StatementController controller, SWIGTYPE_p_sqlite3_stmt handle, SQLParts sqlParts) {
     assert handle != null;
+    assert sqlParts.isFixed() : sqlParts;
     myController = controller;
     myHandle = handle;
     mySqlParts = sqlParts;
@@ -79,10 +80,6 @@ public final class SQLiteStatement {
    */
   public boolean isDisposed() {
     return myHandle == null;
-  }
-
-  public SQLParts getSqlParts() {
-    return mySqlParts;
   }
 
   /**
@@ -408,6 +405,13 @@ public final class SQLiteStatement {
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnName(" + column + ")=" + r);
     return r;
+  }
+
+  /**
+   * @return sql parts for this statement
+   */
+  SQLParts getSqlParts() {
+    return mySqlParts;
   }
 
   /**

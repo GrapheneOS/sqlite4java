@@ -7,6 +7,7 @@ public class SQLParts {
   private final List<String> myParts;
   private int myHash;
   private String mySql;
+  private boolean myFixed;
 
   public SQLParts() {
     myParts = new ArrayList<String>(5);
@@ -20,6 +21,11 @@ public class SQLParts {
   public SQLParts(String sql) {
     myParts = new ArrayList<String>(1);
     append(sql);
+  }
+
+  public SQLParts fix() {
+    myFixed = true;
+    return this;
   }
 
   public int hashCode() {
@@ -48,29 +54,41 @@ public class SQLParts {
   }
 
   public void clear() {
+    if (myFixed) {
+      throw new IllegalStateException(String.valueOf(this));
+    }
     myParts.clear();
-    myHash = 0;
-    mySql = null;
+    dropCachedValues();
   }
 
   public SQLParts append(String part) {
+    if (myFixed) {
+      throw new IllegalStateException(String.valueOf(this));
+    }
     if (part != null && part.length() > 0) {
       myParts.add(part);
-      myHash = 0;
-      mySql = null;
+      dropCachedValues();
     }
     return this;
   }
 
   public SQLParts appendParams(int count) {
+    if (myFixed) {
+      throw new IllegalStateException(String.valueOf(this));
+    }
     if (count < 1)
       return this;
+//    String params = getParams
     for (int i = 0; i < count - 1; i++)
       myParts.add("?, ");
     myParts.add("?");
+    dropCachedValues();
+    return this;
+  }
+
+  private void dropCachedValues() {
     myHash = 0;
     mySql = null;
-    return this;
   }
 
   public String toString() {
@@ -82,5 +100,9 @@ public class SQLParts {
       mySql = builder.toString();
     }
     return mySql;
+  }
+
+  boolean isFixed() {
+    return myFixed;
   }
 }

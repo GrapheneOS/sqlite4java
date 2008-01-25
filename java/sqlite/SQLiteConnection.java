@@ -65,10 +65,10 @@ public final class SQLiteConnection {
 
   /**
    * Compiled statement cache. Maps SQL string into a valid SQLite handle.
-   * <p>
+   * <p/>
    * When cached handle is used, it is removed from the cache and placed into SQLiteStatement. When SQLiteStatement
    * is disposed, the handle is placed back into cache, unless there's another statement already created for the
-   * same SQL. 
+   * same SQL.
    */
   private final FastMap<SQLParts, SWIGTYPE_p_sqlite3_stmt> myStatementCache = new FastMap<SQLParts, SWIGTYPE_p_sqlite3_stmt>();
 
@@ -167,6 +167,7 @@ public final class SQLiteConnection {
 
   /**
    * Tells whether the connection has been disposed. If it is disposed, nothing can be done with it.
+   *
    * @return
    */
   public boolean isDisposed() {
@@ -238,8 +239,9 @@ public final class SQLiteConnection {
 
   /**
    * Prepares SQL statement
+   *
    * @param cached if true, the statement handle will be cached by the connection, so after the SQLiteStatement
-   * is disposed, the handle may be reused by another prepare() call.
+   *               is disposed, the handle may be reused by another prepare() call.
    */
   public SQLiteStatement prepare(SQLParts parts, boolean cached) throws SQLiteException {
     checkThread();
@@ -247,14 +249,20 @@ public final class SQLiteConnection {
       Internal.logFine(this, "prepare [" + parts + "]");
     SWIGTYPE_p_sqlite3 handle;
     SWIGTYPE_p_sqlite3_stmt stmt = null;
+    SQLParts fixedKey = null;
     int openCounter;
     synchronized (myLock) {
       if (cached) {
         // while the statement is in work, it is removed from cache. it is put back in cache by SQLiteStatement.dispose().
         FastMap.Entry<SQLParts, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.getEntry(parts);
         if (e != null) {
+          fixedKey = e.getKey();
+          assert fixedKey != null;
+          assert fixedKey.isFixed() : parts;
           stmt = e.getValue();
-          e.setValue(null);
+          if (stmt != null) {
+            e.setValue(null);
+          }
         }
       }
       handle = handle();
@@ -277,7 +285,9 @@ public final class SQLiteConnection {
       // most probably that would throw SQLiteException earlier, but we'll check anyway
       if (myHandle != null) {
         StatementController controller = cached ? myCachedController : myUncachedController;
-        statement = new SQLiteStatement(controller, stmt, new SQLParts(parts));
+        if (fixedKey == null)
+          fixedKey = new SQLParts(parts).fix();
+        statement = new SQLiteStatement(controller, stmt, fixedKey);
         myStatements.add(statement);
       } else {
         Internal.logWarn(this, "connection disposed while preparing statement for [" + parts + "]");
@@ -344,7 +354,7 @@ public final class SQLiteConnection {
         synchronized (myLock) {
           if (myStatementCache.isEmpty())
             break;
-          Map.Entry<SQLParts,SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.entrySet().iterator().next();
+          Map.Entry<SQLParts, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.entrySet().iterator().next();
           sql = e.getKey();
           stmt = e.getValue();
         }
