@@ -171,7 +171,7 @@
     <copy todir="build/java" flatten="false">
       <fileset dir="java"/>
     </copy>
-    <javac srcdir="build/java" destdir="build/classes" debug="on"/>
+    <javac srcdir="build/java" destdir="build/classes" debug="on" classpath="lib/javolution.jar"/>
   </target>
 
   <target name="java.jar" depends="java.compile" unless="jar.uptodate">
@@ -182,6 +182,7 @@
     <property name="dist.suffix" value="w${os.arch}${dist.buildtype.marker}"/>
     <mkdir dir="dist/"/>
     <copy todir="dist" file="build/${jarname}"/>
+    <copy todir="dist" file="lib/javolution.jar"/>
     <copy todir="dist">
       <fileset dir="build" includes="${lib}"/>
       <mapper type="regexp" from="^(.*)${libname}(.*)$$" to="\1${libname}${dist.suffix}\2"/>
@@ -193,6 +194,7 @@
       <classpath>
         <pathelement location="build/${jarname}"/>
         <pathelement location="lib/junit.jar"/>
+        <pathelement location="lib/javolution.jar"/>
       </classpath>
     </javac>
     <mkdir dir="build/testrun"/>
@@ -206,6 +208,7 @@
         <pathelement location="build/test"/>
         <pathelement location="dist/${jarname}"/>
         <pathelement location="lib/junit.jar"/>
+        <pathelement location="lib/javolution.jar"/>
       </classpath>
       <batchtest todir="build/testrun">
         <fileset dir="test" includes="**/*Tests.java"/>

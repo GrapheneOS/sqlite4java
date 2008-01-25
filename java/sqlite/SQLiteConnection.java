@@ -1,10 +1,14 @@
 package sqlite;
 
+import javolution.util.FastMap;
 import sqlite.internal.*;
 import static sqlite.internal.SQLiteConstants.*;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
@@ -66,7 +70,7 @@ public final class SQLiteConnection {
    * is disposed, the handle is placed back into cache, unless there's another statement already created for the
    * same SQL. 
    */
-  private final Map<SQLParts, SWIGTYPE_p_sqlite3_stmt> myStatementCache = new HashMap<SQLParts, SWIGTYPE_p_sqlite3_stmt>();
+  private final FastMap<SQLParts, SWIGTYPE_p_sqlite3_stmt> myStatementCache = new FastMap<SQLParts, SWIGTYPE_p_sqlite3_stmt>();
 
   /**
    * This controller provides service for cached statements.
@@ -247,7 +251,11 @@ public final class SQLiteConnection {
     synchronized (myLock) {
       if (cached) {
         // while the statement is in work, it is removed from cache. it is put back in cache by SQLiteStatement.dispose().
-        stmt = myStatementCache.put(parts, null);
+        FastMap.Entry<SQLParts, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.getEntry(parts);
+        if (e != null) {
+          stmt = e.getValue();
+          e.setValue(null);
+        }
       }
       handle = handle();
     }
@@ -269,7 +277,7 @@ public final class SQLiteConnection {
       // most probably that would throw SQLiteException earlier, but we'll check anyway
       if (myHandle != null) {
         StatementController controller = cached ? myCachedController : myUncachedController;
-        statement = new SQLiteStatement(controller, stmt, parts);
+        statement = new SQLiteStatement(controller, stmt, new SQLParts(parts));
         myStatements.add(statement);
       } else {
         Internal.logWarn(this, "connection disposed while preparing statement for [" + parts + "]");

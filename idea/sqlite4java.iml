@@ -10,6 +10,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="junit" level="project" />
+    <orderEntry type="library" name="javolution" level="project" />
     <orderEntryProperties />
   </component>
 </module>

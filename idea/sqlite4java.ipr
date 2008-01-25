@@ -341,6 +341,13 @@
       <JAVADOC />
       <SOURCES />
     </library>
+    <library name="javolution">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../lib/javolution.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES />
+    </library>
   </component>
 </project>
 
