@@ -3,8 +3,11 @@ package sqlite;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLParts {
+public final class SQLParts {
+  private static final String[] PARAMS_STRINGS = new String[101];
+
   private final List<String> myParts;
+
   private int myHash;
   private String mySql;
   private boolean myFixed;
@@ -23,9 +26,16 @@ public class SQLParts {
     append(sql);
   }
 
+  /**
+   * Makes instance immutable
+   */
   public SQLParts fix() {
     myFixed = true;
     return this;
+  }
+
+  public SQLParts getFixedParts() {
+    return myFixed ? this : new SQLParts(this).fix();
   }
 
   public int hashCode() {
@@ -73,17 +83,28 @@ public class SQLParts {
   }
 
   public SQLParts appendParams(int count) {
-    if (myFixed) {
-      throw new IllegalStateException(String.valueOf(this));
-    }
+    return append(getParamsString(count));
+  }
+
+  private String getParamsString(int count) {
     if (count < 1)
-      return this;
-//    String params = getParams
-    for (int i = 0; i < count - 1; i++)
-      myParts.add("?, ");
-    myParts.add("?");
-    dropCachedValues();
-    return this;
+      return null;
+    if (count >= PARAMS_STRINGS.length)
+      return createParamsString(count);
+    String s = PARAMS_STRINGS[count];
+    if (s == null)
+      s = PARAMS_STRINGS[count] = createParamsString(count);
+    return s;
+  }
+
+  private String createParamsString(int count) {
+    StringBuilder b = new StringBuilder();
+    for (int i = 0; i < count; i++) {
+      if (i > 0)
+        b.append(',');
+      b.append('?');
+    }
+    return b.toString();
   }
 
   private void dropCachedValues() {

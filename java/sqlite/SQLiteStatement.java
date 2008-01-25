@@ -83,6 +83,13 @@ public final class SQLiteStatement {
   }
 
   /**
+   * @return sql parts for this statement (immutable)
+   */
+  public SQLParts getSqlParts() {
+    return mySqlParts;
+  }
+
+  /**
    * Disposes this statement and frees allocated resources. If statement handle is cached,
    * it is returned to connection's cache.
    * <p/>
@@ -408,13 +415,6 @@ public final class SQLiteStatement {
   }
 
   /**
-   * @return sql parts for this statement
-   */
-  SQLParts getSqlParts() {
-    return mySqlParts;
-  }
-
-  /**
    * Clear all data, disposing the statement. May be called by SQLiteConnection on close.
    */
   void clear() {
@@ -471,6 +471,7 @@ public final class SQLiteStatement {
     return "[" + mySqlParts + "]" + myController;
   }
 
+/*
   protected void finalize() throws Throwable {
     super.finalize();
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
@@ -478,6 +479,7 @@ public final class SQLiteStatement {
       Internal.recoverableError(this, "wasn't disposed", true);
     }
   }
+*/
 
   SWIGTYPE_p_sqlite3_stmt statementHandle() {
     return myHandle;

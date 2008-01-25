@@ -286,7 +286,7 @@ public final class SQLiteConnection {
       if (myHandle != null) {
         StatementController controller = cached ? myCachedController : myUncachedController;
         if (fixedKey == null)
-          fixedKey = new SQLParts(parts).fix();
+          fixedKey = parts.getFixedParts();
         statement = new SQLiteStatement(controller, stmt, fixedKey);
         myStatements.add(statement);
       } else {
