@@ -19,7 +19,7 @@ public interface SQLiteConstants {
   interface Result {
     public static final int SQLITE_OK = 0;   /* Successful result */
     public static final int SQLITE_ERROR = 1;   /* SQL error or missing database */
-    public static final int SQLITE_INTERNAL = 2;   /* NOT USED. Internal logic error in SQLite */
+    public static final int SQLITE_INTERNAL = 2;   /* Internal logic error in SQLite */
     public static final int SQLITE_PERM = 3;   /* Access permission denied */
     public static final int SQLITE_ABORT = 4;   /* Callback routine requested an abort */
     public static final int SQLITE_BUSY = 5;   /* The database file is locked */
