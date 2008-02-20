@@ -7,7 +7,6 @@ void *sqlite3_profile(sqlite3*,
 void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 
 
-int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
 
 const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
 
@@ -23,22 +22,11 @@ int sqlite3_table_column_metadata(
   int *pAutoinc               /* OUTPUT: True if column is auto-increment */
 );
 
-int sqlite3_blob_open(
-  sqlite3*,
-  const char *zDb,
-  const char *zTable,
-  const char *zColumn,
-  sqlite3_int64 iRow,
-  int flags,
-  sqlite3_blob **ppBlob
-);
-
-int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
-int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
 
 
 
-// done:
+
+// ============================================ done:
 
 int sqlite3_open_v2(
   const char *filename,   /* Database filename (UTF-8) */
@@ -67,3 +55,17 @@ int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
 int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
 const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
 
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);

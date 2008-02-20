@@ -1,10 +1,12 @@
 package sqlite;
 
+import sqlite.internal._SQLiteManual;
+
 /**
  * This interface is used as a strategy for SQLiteStatement lifecycle. Initially it is set by {@link sqlite.SQLiteConnection#prepare}
  * method, and when statement is disposed the strategy is reset to the dummy implementation.
  */
-interface StatementController {
+interface SQLiteController {
   /**
    * @throws SQLiteException if connection or statement cannot be used at this moment by the calling thread.
    */
@@ -25,6 +27,10 @@ interface StatementController {
    * @param statement statement that is about to be disposed
    */
   void dispose(SQLiteStatement statement);
+  
+  void dispose(SQLiteBlob blob);
 
-  StatementController getDisposedController();
+  SQLiteController getDisposedController();
+
+  _SQLiteManual getSQLiteManual();
 }

@@ -90,6 +90,11 @@ public interface SQLiteConstants {
 
     public static final int WRAPPER_COLUMN_OUT_OF_RANGE = -94;
 
+    /**
+     * Blob disposed
+     */
+    public static final int WRAPPER_BLOB_DISPOSED = -93;
+
     public static final int WRAPPER_INVALID_ARG_1 = -11;
     public static final int WRAPPER_INVALID_ARG_2 = -12;
     public static final int WRAPPER_INVALID_ARG_3 = -13;

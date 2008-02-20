@@ -2158,7 +2158,8 @@ int sqlite3_data_count(sqlite3_stmt *pStmt);
 // --MANUAL--
 //const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
 //int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
-// --OUT-- int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+//int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+// --OUT-- 
 double sqlite3_column_double(sqlite3_stmt*, int iCol);
 int sqlite3_column_int(sqlite3_stmt*, int iCol);
 sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);

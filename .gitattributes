@@ -15,11 +15,12 @@ ant/windows.properties -text
 idea/sqlite4java.iml -text
 idea/sqlite4java.ipr -text
 java/sqlite/SQLParts.java -text
+java/sqlite/SQLiteBlob.java -text
 java/sqlite/SQLiteBusyException.java -text
 java/sqlite/SQLiteConnection.java -text
+java/sqlite/SQLiteController.java -text
 java/sqlite/SQLiteException.java -text
 java/sqlite/SQLiteStatement.java -text
-java/sqlite/StatementController.java -text
 lib/javolution.jar -text
 lib/junit.jar -text
 native/sqlite3_manual.h -text
@@ -34,7 +35,9 @@ swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3_blob.java -text
 swig/stub/sqlite/internal/SWIGTYPE_p_sqlite3_stmt.java -text
 swig/stub/sqlite/internal/_SQLiteSwigged.java -text
 swig/stub/sqlite/internal/_SQLiteSwiggedJNI.java -text
+test/IncrementalIODemo.java -text
 test/Test.java -text
+test/sqlite/BlobTests.java -text
 test/sqlite/MiscTests.java -text
 test/sqlite/SQLPartsTests.java -text
 test/sqlite/SQLiteConnectionFixture.java -text

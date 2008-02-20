@@ -33,7 +33,7 @@ public final class SQLiteStatement {
   /**
    * The controller that handles connection-level operations. Initially it is set
    */
-  private StatementController myController;
+  private SQLiteController myController;
 
   /**
    * Statement handle wrapper. Becomes null when disposed.
@@ -66,7 +66,7 @@ public final class SQLiteStatement {
    *
    * @see sqlite.SQLiteConnection#prepare(String, boolean)
    */
-  SQLiteStatement(StatementController controller, SWIGTYPE_p_sqlite3_stmt handle, SQLParts sqlParts) {
+  SQLiteStatement(SQLiteController controller, SWIGTYPE_p_sqlite3_stmt handle, SQLParts sqlParts) {
     assert handle != null;
     assert sqlParts.isFixed() : sqlParts;
     myController = controller;
@@ -265,6 +265,14 @@ public final class SQLiteStatement {
   }
 
   /**
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
+
+  public SQLiteStatement bind(int index, byte[] value) throws SQLiteException {
+    return value == null ? bindNull(index) : bind(index, value, 0, value.length);
+  }
+
+  /**
    * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_text16</a>
    */
   public SQLiteStatement bind(int index, String value) throws SQLiteException {
@@ -281,6 +289,39 @@ public final class SQLiteStatement {
     }
     int rc = _SQLiteManual.sqlite3_bind_text(handle(), index, value);
     myController.throwResult(rc, "bind(String)", this);
+    myHasBindings = true;
+    return this;
+  }
+
+  public SQLiteStatement bind(int index, byte[] value, int offset, int length) throws SQLiteException {
+    if (value == null) {
+      Internal.logFine(this, "bind(null blob)");
+      return bindNull(index);
+    }
+    myController.validate();
+    if (Internal.isFineLogging()) {
+      Internal.logFine(this, "bind(" + index + ",[" + length + "])");
+    }
+    int rc = _SQLiteManual.sqlite3_bind_blob(handle(), index, value, offset, length);
+    myController.throwResult(rc, "bind(blob)", this);
+    myHasBindings = true;
+    return this;
+  }
+
+  /**
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
+  public SQLiteStatement bindZeroBlob(int index, int length) throws SQLiteException {
+    if (length < 0) {
+      Internal.logFine(this, "bind(null zeroblob)");
+      return bindNull(index);
+    }
+    myController.validate();
+    if (Internal.isFineLogging()) {
+      Internal.logFine(this, "bindZeroBlob(" + index + "," + length + ")");
+    }
+    int rc = _SQLiteSwigged.sqlite3_bind_zeroblob(handle(), index, length);
+    myController.throwResult(rc, "bindZeroBlob()", this);
     myHasBindings = true;
     return this;
   }
@@ -305,11 +346,11 @@ public final class SQLiteStatement {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
-    int[] rc = {Integer.MIN_VALUE};
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnString(" + column + ")");
-    String result = _SQLiteManual.sqlite3_column_text(handle, column, rc);
-    myController.throwResult(rc[0], "columnString()", this);
+    _SQLiteManual sqlite = myController.getSQLiteManual();
+    String result = sqlite.sqlite3_column_text(handle, column);
+    myController.throwResult(sqlite.getLastReturnCode(), "columnString()", this);
     if (Internal.isFineLogging()) {
       if (result == null) {
         Internal.logFine(this, "columnString(" + column + ") is null");
@@ -367,6 +408,20 @@ public final class SQLiteStatement {
     return r;
   }
 
+  public byte[] columnBlob(int column) throws SQLiteException {
+    myController.validate();
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    checkColumn(column, handle);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnBytes(" + column + ")");
+    _SQLiteManual sqlite = myController.getSQLiteManual();
+    byte[] r = sqlite.sqlite3_column_blob(handle, column);
+    myController.throwResult(sqlite.getLastReturnCode(), "columnBytes", this);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnBytes(" + column + ")=[" + (r == null ? "null" : r.length) + "]");
+    return r;
+  }
+
   /**
    * @return if the result for column was null
    * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_type</a>
@@ -387,18 +442,18 @@ public final class SQLiteStatement {
     myController.validate();
     int valueType = getColumnType(column, handle());
     switch (valueType) {
-    case ValueType.SQLITE_NULL:
-      return null;
-    case ValueType.SQLITE_FLOAT:
-      return columnDouble(column);
-    case ValueType.SQLITE_INTEGER:
-      long value = columnLong(column);
-      return value == ((long)((int)value)) ? Integer.valueOf((int)value) : Long.valueOf(value);
-    case ValueType.SQLITE_TEXT:
-      return columnString(column);
-    default:
-      Internal.recoverableError(this, "value type " + valueType + " not yet supported", true);
-      return null;
+      case ValueType.SQLITE_NULL:
+        return null;
+      case ValueType.SQLITE_FLOAT:
+        return columnDouble(column);
+      case ValueType.SQLITE_INTEGER:
+        long value = columnLong(column);
+        return value == ((long) ((int) value)) ? Integer.valueOf((int) value) : Long.valueOf(value);
+      case ValueType.SQLITE_TEXT:
+        return columnString(column);
+      default:
+        Internal.recoverableError(this, "value type " + valueType + " not yet supported", true);
+        return null;
     }
   }
 
@@ -413,6 +468,7 @@ public final class SQLiteStatement {
       Internal.logFine(this, "columnName(" + column + ")=" + r);
     return r;
   }
+
 
   /**
    * Clear all data, disposing the statement. May be called by SQLiteConnection on close.

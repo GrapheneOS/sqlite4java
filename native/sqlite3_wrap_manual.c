@@ -151,7 +151,6 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1tex
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
   int length = 0;
-  jboolean copied = 0;
   const jchar *value = 0;
   void (*destructor)(void*) = 0;
   int rc = 0;
@@ -160,7 +159,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1tex
   if (!jvalue) return WRAPPER_INVALID_ARG_3;
   length = (*jenv)->GetStringLength(jenv, jvalue) * sizeof(jchar);
   if (length > 0) {
-    value = (*jenv)->GetStringCritical(jenv, jvalue, &copied);
+    value = (*jenv)->GetStringCritical(jenv, jvalue, 0);
     destructor = SQLITE_TRANSIENT;
   } else {
     value = (const jchar*)"";
@@ -175,6 +174,34 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1tex
   }
   return rc;
 }
+
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1blob(JNIEnv *jenv, jclass jcls,
+  jlong jstmt, jint jindex, jbyteArray jvalue, jint joffset, jint jlength)
+{
+  sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
+  int length = 0;
+  void *value = 0;
+  int rc = 0;
+
+  if (!stmt) return WRAPPER_INVALID_ARG_1;
+  if (!jvalue) return WRAPPER_INVALID_ARG_2;
+  if (joffset < 0) return WRAPPER_INVALID_ARG_3;
+  if (jlength < 0) return WRAPPER_INVALID_ARG_4;
+  length = (int)(*jenv)->GetArrayLength(jenv, jvalue);
+  if (joffset > length) return WRAPPER_INVALID_ARG_5;
+  if (joffset + jlength > length) return WRAPPER_INVALID_ARG_6;
+
+  if (jlength == 0) {
+    rc = sqlite3_bind_zeroblob(stmt, jindex, 0);
+  } else {
+    value = (void*)(*jenv)->GetPrimitiveArrayCritical(jenv, jvalue, 0);
+    if (!value) return WRAPPER_CANNOT_TRANSFORM_STRING;
+    rc = sqlite3_bind_blob(stmt, jindex, (void*)(((unsigned char*)value) + joffset), jlength, SQLITE_TRANSIENT);
+    (*jenv)->ReleasePrimitiveArrayCritical(jenv, jvalue, value, 0);
+  }
+  return rc;
+}
+
 
 JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1column_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jcolumn, jobjectArray joutValue)
@@ -203,6 +230,131 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1column_1t
   }
   (*jenv)->SetObjectArrayElement(jenv, joutValue, 0, result);
   return SQLITE_OK;
+}
+
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1column_1blob(JNIEnv *jenv, jclass jcls,
+  jlong jstmt, jint jcolumn, jobjectArray joutValue)
+{
+  sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
+  const void *value = 0;
+  sqlite3* db = 0;
+  int err = 0;
+  int length = 0;
+  jbyteArray result = 0;
+  void* resultPtr = 0;
+
+  if (!stmt) return WRAPPER_INVALID_ARG_1;
+  if (!joutValue) return WRAPPER_INVALID_ARG_3;
+
+  value = sqlite3_column_blob(stmt, jcolumn);
+  if (!value) {
+    // maybe we're out of memory
+    db = sqlite3_db_handle(stmt);
+    if (!db) return WRAPPER_WEIRD;
+    err = sqlite3_errcode(db);
+    if (err == SQLITE_NOMEM) return err;
+  } else {
+    length = sqlite3_column_bytes(stmt, jcolumn);
+    if (length < 0) return WRAPPER_WEIRD_2;
+    result = (*jenv)->NewByteArray(jenv, length);
+    if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
+    resultPtr = (void*)(*jenv)->GetPrimitiveArrayCritical(jenv, result, 0);
+    if (!resultPtr) return WRAPPER_CANNOT_ALLOCATE_STRING;
+    memcpy(resultPtr, value, length);
+    (*jenv)->ReleasePrimitiveArrayCritical(jenv, result, resultPtr, 0);
+  }
+  (*jenv)->SetObjectArrayElement(jenv, joutValue, 0, result);
+  return SQLITE_OK;
+}
+
+
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1open(JNIEnv *jenv, jclass jcls,
+  jlong jdb, jstring jdbname, jstring jtable, jstring jcolumn, jlong jrowid, jboolean jwriteAccess, jlongArray jresult)
+{
+  sqlite3* db = 0;
+  const char *dbname = 0;
+  const char *table = 0;
+  const char *column = 0;
+  int rc = 0;
+  sqlite3_blob *blob = 0;
+  jlong r = 0;
+
+  if (!jdb) return WRAPPER_INVALID_ARG_1;
+  if (!jtable) return WRAPPER_INVALID_ARG_3;
+  if (!jcolumn) return WRAPPER_INVALID_ARG_4;
+  if (!jresult) return WRAPPER_INVALID_ARG_5;
+
+  db = *(sqlite3**)&jdb;
+  dbname = jdbname ? (*jenv)->GetStringUTFChars(jenv, jdbname, 0) : 0;
+  table = (*jenv)->GetStringUTFChars(jenv, jtable, 0);
+  column = (*jenv)->GetStringUTFChars(jenv, jcolumn, 0);
+  if (!table || !column || (!dbname && jdbname)) {
+    rc = WRAPPER_CANNOT_TRANSFORM_STRING;
+  } else {
+    rc = sqlite3_blob_open(db, dbname, table, column, jrowid, jwriteAccess ? 1 : 0, &blob);
+    if (blob) {
+      *((sqlite3_blob**)&r) = blob;
+      (*jenv)->SetLongArrayRegion(jenv, jresult, 0, 1, &r);
+    }
+  }
+  if (dbname) (*jenv)->ReleaseStringUTFChars(jenv, jdbname, dbname);
+  if (table) (*jenv)->ReleaseStringUTFChars(jenv, jtable, table);
+  if (column) (*jenv)->ReleaseStringUTFChars(jenv, jcolumn, column);
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1read(JNIEnv *jenv, jclass jcls,
+  jlong jblob, jint jblobOffset, jbyteArray jbuffer, jint jbufferOffset, jint jlength)
+{
+  int length = 0;
+  sqlite3_blob* blob = 0;
+  void *buffer = 0;
+  int rc = 0;
+
+  if (!jblob) return WRAPPER_INVALID_ARG_1;
+  if (!jbuffer) return WRAPPER_INVALID_ARG_2;
+  if (jbufferOffset < 0) return WRAPPER_INVALID_ARG_3;
+  if (jlength < 0) return WRAPPER_INVALID_ARG_4;
+  if (jlength == 0) return SQLITE_OK;
+
+  length = (int)(*jenv)->GetArrayLength(jenv, jbuffer);
+  if (jbufferOffset > length) return WRAPPER_INVALID_ARG_5;
+  if (jbufferOffset + jlength > length) return WRAPPER_INVALID_ARG_6;
+
+  blob = *(sqlite3_blob**)&jblob;
+  buffer = (void*)(*jenv)->GetPrimitiveArrayCritical(jenv, jbuffer, 0);
+  if (!buffer) return WRAPPER_CANNOT_TRANSFORM_STRING;
+
+  rc = sqlite3_blob_read(blob, (void*)(((unsigned char*)buffer) + jbufferOffset), jlength, jblobOffset);
+  (*jenv)->ReleasePrimitiveArrayCritical(jenv, jbuffer, buffer, 0);
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1write(JNIEnv *jenv, jclass jcls,
+  jlong jblob, jint jblobOffset, jbyteArray jbuffer, jint jbufferOffset, jint jlength)
+{
+  int length = 0;
+  sqlite3_blob* blob = 0;
+  void *buffer = 0;
+  int rc = 0;
+
+  if (!jblob) return WRAPPER_INVALID_ARG_1;
+  if (!jbuffer) return WRAPPER_INVALID_ARG_2;
+  if (jbufferOffset < 0) return WRAPPER_INVALID_ARG_3;
+  if (jlength < 0) return WRAPPER_INVALID_ARG_4;
+  if (jlength == 0) return SQLITE_OK;
+
+  length = (int)(*jenv)->GetArrayLength(jenv, jbuffer);
+  if (jbufferOffset > length) return WRAPPER_INVALID_ARG_5;
+  if (jbufferOffset + jlength > length) return WRAPPER_INVALID_ARG_6;
+
+  blob = *(sqlite3_blob**)&jblob;
+  buffer = (void*)(*jenv)->GetPrimitiveArrayCritical(jenv, jbuffer, 0);
+  if (!buffer) return WRAPPER_CANNOT_TRANSFORM_STRING;
+
+  rc = sqlite3_blob_write(blob, (void*)(((unsigned char*)buffer) + jbufferOffset), jlength, jblobOffset);
+  (*jenv)->ReleasePrimitiveArrayCritical(jenv, jbuffer, buffer, 0);
+  return rc;
 }
 
 

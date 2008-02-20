@@ -13,6 +13,8 @@ import java.util.Random;
 import java.util.logging.*;
 
 public abstract class SQLiteTestFixture extends TestCase {
+  private final _SQLiteManual sqliteManual = new _SQLiteManual();
+
   private File myTempDir;
   private int myLastResult;
   private SWIGTYPE_p_sqlite3 myLastDb;
@@ -82,9 +84,8 @@ public abstract class SQLiteTestFixture extends TestCase {
   }
 
   protected void open(String name, int flags) {
-    int[] rc = {0};
-    myLastDb = _SQLiteManual.sqlite3_open_v2(name, flags, rc);
-    myLastResult = rc[0];
+    myLastDb = sqliteManual.sqlite3_open_v2(name, flags);
+    myLastResult = sqliteManual.getLastReturnCode();
   }
 
   protected int lastResult() {
@@ -124,9 +125,8 @@ public abstract class SQLiteTestFixture extends TestCase {
   }
 
   protected SWIGTYPE_p_sqlite3_stmt prepare(String sql) {
-    int[] rc = {0};
-    SWIGTYPE_p_sqlite3_stmt stmt = _SQLiteManual.sqlite3_prepare_v2(myLastDb, sql, rc);
-    myLastResult = rc[0];
+    SWIGTYPE_p_sqlite3_stmt stmt = sqliteManual.sqlite3_prepare_v2(myLastDb, sql);
+    myLastResult = sqliteManual.getLastReturnCode();
     return stmt;
   }
 
@@ -151,9 +151,8 @@ public abstract class SQLiteTestFixture extends TestCase {
   }
 
   protected String columnText(SWIGTYPE_p_sqlite3_stmt stmt, int column) {
-    int[] rc = {0};
-    String r = _SQLiteManual.sqlite3_column_text(stmt, column, rc);
-    myLastResult = rc[0];
+    String r = sqliteManual.sqlite3_column_text(stmt, column);
+    myLastResult = sqliteManual.getLastReturnCode();
     return r;
   }
 
