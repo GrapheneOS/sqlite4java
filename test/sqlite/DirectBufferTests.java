@@ -1,6 +1,7 @@
 package sqlite;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
@@ -50,7 +51,6 @@ public class DirectBufferTests extends SQLiteConnectionFixture {
       // ok
     }
     st.dispose();
-/*
 
     st = db.prepare("select value from T");
     assertTrue(st.step());
@@ -76,7 +76,6 @@ public class DirectBufferTests extends SQLiteConnectionFixture {
     } catch (IOException e) {
       // ok
     }
-*/
 
     db.dispose();
   }

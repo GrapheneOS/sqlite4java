@@ -4,7 +4,9 @@ import javolution.util.FastTable;
 import static sqlite.SQLiteConstants.*;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 /**
@@ -67,6 +69,7 @@ public final class SQLiteStatement {
    * All currently active bind streams.
    */
   private FastTable<BindStream> myBindStreams;
+  private FastTable<ColumnStream> myColumnStreams;
 
   /**
    * Instances are constructed only by SQLiteConnection.
@@ -140,6 +143,7 @@ public final class SQLiteStatement {
     if (fineLogging)
       Internal.logFine(this, "reset(" + clearBindings + ")");
     SWIGTYPE_p_sqlite3_stmt handle = handle();
+    clearColumnStreams();
     if (myStepped) {
       if (fineLogging)
         Internal.logFine(this, "resetting");
@@ -190,6 +194,7 @@ public final class SQLiteStatement {
     Internal.logFine(this, "step");
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     clearBindStreams(true);
+    clearColumnStreams();
     int rc = _SQLiteSwigged.sqlite3_step(handle);
     myStepped = true;
     if (rc == Result.SQLITE_ROW) {
@@ -455,6 +460,25 @@ public final class SQLiteStatement {
     return r;
   }
 
+  public InputStream columnStream(int column) throws SQLiteException {
+    myController.validate();
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    checkColumn(column, handle);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnStream(" + column + ")");
+    _SQLiteManual sqlite = myController.getSQLiteManual();
+    ByteBuffer buffer = sqlite.wrapper_column_buffer(handle, column);
+    myController.throwResult(sqlite.getLastReturnCode(), "columnStream", this);
+    if (buffer == null)
+      return null;
+    ColumnStream in = new ColumnStream(buffer);
+    FastTable<ColumnStream> table = myColumnStreams;
+    if (table == null)
+      myColumnStreams = table = new FastTable<ColumnStream>(1);
+    table.add(in);
+    return in;
+  }
+
   /**
    * @return if the result for column was null
    * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_type</a>
@@ -470,6 +494,7 @@ public final class SQLiteStatement {
     ensureCorrectColumnCount(handle());
     return myColumnCount;
   }
+
 
   public Object columnValue(int column) throws SQLiteException {
     myController.validate();
@@ -505,12 +530,12 @@ public final class SQLiteStatement {
     return r;
   }
 
-
   /**
    * Clear all data, disposing the statement. May be called by SQLiteConnection on close.
    */
   void clear() {
     clearBindStreams(false);
+    clearColumnStreams();
     myHandle = null;
     myHasRow = false;
     myColumnCount = 0;
@@ -518,6 +543,20 @@ public final class SQLiteStatement {
     myStepped = false;
     myController = myController.getDisposedController();
     Internal.logFine(this, "cleared");
+  }
+
+  private void clearColumnStreams() {
+    FastTable<ColumnStream> table = myColumnStreams;
+    if (table != null) {
+      myColumnStreams = null;
+      for (int i = 0; i < table.size(); i++) {
+        try {
+          table.get(i).close();
+        } catch (IOException e) {
+          Internal.logFine(this, e.toString());
+        }
+      }
+    }
   }
 
   private void clearBindStreams(boolean bind) {
@@ -597,7 +636,7 @@ public final class SQLiteStatement {
     return myHandle;
   }
 
-  private class BindStream extends OutputStream {
+  private final class BindStream extends OutputStream {
     private final int myIndex;
     private DirectBuffer myBuffer;
 
@@ -610,29 +649,45 @@ public final class SQLiteStatement {
     public void write(int b) throws IOException {
       try {
         myController.validate();
-        DirectBuffer buffer = getBuffer();
-        ByteBuffer data = buffer.data();
-        if (data.remaining() == 0) {
-          DirectBuffer newBuffer = null;
-          try {
-            newBuffer = myController.allocateBuffer(buffer.getCapacity() * 2);
-          } catch (IOException e) {
-            dispose();
-            throw e;
-          }
-          ByteBuffer newData = newBuffer.data();
-          data.flip();
-          newData.put(data);
-          myController.freeBuffer(buffer);
-          data = newData;
-          myBuffer = buffer = newBuffer;
-          assert data.remaining() > 0 : data.capacity();
-        }
+        ByteBuffer data = buffer(1);
         data.put((byte) b);
       } catch (SQLiteException e) {
         dispose();
         throw new IOException("cannot write: " + e);
       }
+    }
+
+    public void write(byte b[], int off, int len) throws IOException {
+      try {
+        myController.validate();
+        ByteBuffer data = buffer(len);
+        data.put(b, off, len);
+      } catch (SQLiteException e) {
+        dispose();
+        throw new IOException("cannot write: " + e);
+      }
+    }
+
+    private ByteBuffer buffer(int len) throws IOException, SQLiteException {
+      DirectBuffer buffer = getBuffer();
+      ByteBuffer data = buffer.data();
+      if (data.remaining() < len) {
+        DirectBuffer newBuffer = null;
+        try {
+          newBuffer = myController.allocateBuffer(buffer.getCapacity() + len);
+        } catch (IOException e) {
+          dispose();
+          throw e;
+        }
+        ByteBuffer newData = newBuffer.data();
+        data.flip();
+        newData.put(data);
+        myController.freeBuffer(buffer);
+        data = newData;
+        myBuffer = newBuffer;
+        assert data.remaining() >= len : data.capacity();
+      }
+      return data;
     }
 
     public void close() throws IOException {
@@ -676,6 +731,59 @@ public final class SQLiteStatement {
       if (list != null) {
         list.remove(this);
       }
+    }
+  }
+
+  private class ColumnStream extends InputStream {
+    private ByteBuffer myBuffer;
+
+    public ColumnStream(ByteBuffer buffer) {
+      assert buffer != null;
+      myBuffer = buffer;
+    }
+
+    public int read() throws IOException {
+      ByteBuffer buffer = getBuffer();
+      if (buffer.remaining() <= 0)
+        return -1;
+      byte b = 0;
+      try {
+        b = buffer.get();
+      } catch (BufferUnderflowException e) {
+        Internal.logWarn(this, "weird: " + e);
+        return -1;
+      }
+      return ((int) b) & 0xFF;
+    }
+
+    public int read(byte b[], int off, int len) throws IOException {
+      ByteBuffer buffer = getBuffer();
+      int rem = buffer.remaining();
+      if (rem <= 0)
+        return -1;
+      try {
+        if (rem < len)
+          len = rem;
+        buffer.get(b, off, len);
+        return len;
+      } catch (BufferUnderflowException e) {
+        Internal.logWarn(this, "weird: " + e);
+        return -1;
+      }
+    }
+
+    public void close() throws IOException {
+      myBuffer = null;
+      FastTable<ColumnStream> table = myColumnStreams;
+      if (table != null)
+        table.remove(this);
+    }
+
+    public ByteBuffer getBuffer() throws IOException {
+      ByteBuffer buffer = myBuffer;
+      if (buffer == null)
+        throw new IOException("stream closed");
+      return buffer;
     }
   }
 }

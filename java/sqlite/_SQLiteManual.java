@@ -122,4 +122,13 @@ final class _SQLiteManual {
     int size = buffer.getPosition();
     return _SQLiteManualJNI.wrapper_bind_buffer(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), index, SWIGTYPE_p_direct_buffer.getCPtr(handle), size);
   }
+
+  public ByteBuffer wrapper_column_buffer(SWIGTYPE_p_sqlite3_stmt stmt, int column) {
+    myLastReturnCode = 0;
+    myObject[0] = null;
+    myLastReturnCode = _SQLiteManualJNI.wrapper_column_buffer(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), column, myObject);
+    ByteBuffer r = myObject[0] instanceof ByteBuffer ? (ByteBuffer) myObject[0] : null;
+    myObject[0] = null;
+    return r;
+  }
 }

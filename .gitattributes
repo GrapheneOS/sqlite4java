@@ -37,6 +37,7 @@ swig/stub/sqlite/SWIGTYPE_p_sqlite3_blob.java -text
 swig/stub/sqlite/SWIGTYPE_p_sqlite3_stmt.java -text
 swig/stub/sqlite/_SQLiteSwigged.java -text
 swig/stub/sqlite/_SQLiteSwiggedJNI.java -text
+test/sqlite/BlobComparisonPerformance.java -text
 test/sqlite/BlobTests.java -text
 test/sqlite/DirectBufferTests.java -text
 test/sqlite/IncrementalIODemo.java -text

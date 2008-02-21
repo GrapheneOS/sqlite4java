@@ -453,6 +453,39 @@ void bind_release(void *ptr) {
   }
 }
 
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1column_1buffer(JNIEnv *jenv, jclass jcls,
+  jlong jstmt, jint jcolumn, jobjectArray joutBuffer)
+{
+  sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
+  const void *value = 0;
+  sqlite3* db = 0;
+  int err = 0;
+  int length = 0;
+  jobject result = 0;
+
+  if (!stmt) return WRAPPER_INVALID_ARG_1;
+  if (!joutBuffer) return WRAPPER_INVALID_ARG_3;
+
+  value = sqlite3_column_blob(stmt, jcolumn);
+  if (!value) {
+    // maybe we're out of memory
+    db = sqlite3_db_handle(stmt);
+    if (!db) return WRAPPER_WEIRD;
+    err = sqlite3_errcode(db);
+    if (err == SQLITE_NOMEM) return err;
+  } else {
+    length = sqlite3_column_bytes(stmt, jcolumn);
+    if (length < 0) return WRAPPER_WEIRD_2;
+    result = (*jenv)->NewDirectByteBuffer(jenv, (void*)value, length);
+    if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
+  }
+  (*jenv)->SetObjectArrayElement(jenv, joutBuffer, 0, result);
+  return SQLITE_OK;
+}
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

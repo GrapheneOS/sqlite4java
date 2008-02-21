@@ -68,4 +68,6 @@ final class _SQLiteManualJNI {
   public final static native int wrapper_free(long buffer);
 
   public final static native int wrapper_bind_buffer(long stmt, int index, long data, int size);
+
+  public final static native int wrapper_column_buffer(long cPtr, int column, Object[] ppByteBuffer);
 }
