@@ -353,7 +353,9 @@
       <JAVADOC>
         <root url="file://$PROJECT_DIR$/../../../../../Dev/javolution-5.2/api" />
       </JAVADOC>
-      <SOURCES />
+      <SOURCES>
+        <root url="file://$PROJECT_DIR$/../../../../../Dev/javolution-5.2/src" />
+      </SOURCES>
     </library>
   </component>
 </project>

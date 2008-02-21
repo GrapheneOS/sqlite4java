@@ -1,7 +1,4 @@
-import sqlite.SQLiteBlob;
-import sqlite.SQLiteConnection;
-import sqlite.SQLiteException;
-import sqlite.SQLiteStatement;
+package sqlite;
 
 import java.io.File;
 import java.util.logging.ConsoleHandler;

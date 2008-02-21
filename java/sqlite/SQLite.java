@@ -1,7 +1,6 @@
 package sqlite;
 
-import static sqlite.internal.SQLiteConstants.Wrapper;
-import sqlite.internal._SQLiteSwigged;
+import static sqlite.SQLiteConstants.Wrapper;
 
 public final class SQLite {
   private static boolean preferDebugLibrary = "true".equalsIgnoreCase(System.getProperty("sqlite.prefer.debug.lib"));

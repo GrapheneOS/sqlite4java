@@ -1,6 +1,6 @@
 package sqlite;
 
-import sqlite.internal._SQLiteManual;
+import java.io.IOException;
 
 /**
  * This interface is used as a strategy for SQLiteStatement lifecycle. Initially it is set by {@link sqlite.SQLiteConnection#prepare}
@@ -33,4 +33,8 @@ interface SQLiteController {
   SQLiteController getDisposedController();
 
   _SQLiteManual getSQLiteManual();
+
+  DirectBuffer allocateBuffer(int sizeEstimate) throws IOException, SQLiteException;
+
+  void freeBuffer(DirectBuffer buffer);
 }

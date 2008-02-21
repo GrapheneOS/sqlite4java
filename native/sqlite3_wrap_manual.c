@@ -6,12 +6,12 @@
 extern "C" {
 #endif
 
-JNIEXPORT jstring JNICALL Java_sqlite_internal__1SQLiteManualJNI_wrapper_1version(JNIEnv *jenv, jclass jcls) {
+JNIEXPORT jstring JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1version(JNIEnv *jenv, jclass jcls) {
   jstring result = (*jenv)->NewStringUTF(jenv, WRAPPER_VERSION);
   return result;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
   jstring jfilename, jlongArray jresult, jint jflags)
 {
   const char *filename = 0;
@@ -41,7 +41,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1open_1v2(
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jobjectArray joutError)
 {
   sqlite3* db = 0;
@@ -80,7 +80,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1exec(JNIE
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jlongArray jresult)
 {
   sqlite3* db = 0;
@@ -111,7 +111,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1prepare_1
 }
 
 //
-//JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1prepare_1v2_1optimized(JNIEnv *jenv, jclass jcls,
+//JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1prepare_1v2_1optimized(JNIEnv *jenv, jclass jcls,
 //  jlong jdb, jbyteArray jsql, jint jsqlLength, jlongArray jresult)
 //{
 //  sqlite3* db = 0;
@@ -146,7 +146,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1prepare_1
 //}
 //
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jstring jvalue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -175,7 +175,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1tex
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1blob(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1bind_1blob(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jbyteArray jvalue, jint joffset, jint jlength)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -203,7 +203,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1bind_1blo
 }
 
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1column_1text(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1column_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jcolumn, jobjectArray joutValue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -232,7 +232,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1column_1t
   return SQLITE_OK;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1column_1blob(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1column_1blob(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jcolumn, jobjectArray joutValue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -268,7 +268,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1column_1b
 }
 
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1open(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1open(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jdbname, jstring jtable, jstring jcolumn, jlong jrowid, jboolean jwriteAccess, jlongArray jresult)
 {
   sqlite3* db = 0;
@@ -303,7 +303,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1ope
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1read(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1read(JNIEnv *jenv, jclass jcls,
   jlong jblob, jint jblobOffset, jbyteArray jbuffer, jint jbufferOffset, jint jlength)
 {
   int length = 0;
@@ -330,7 +330,7 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1rea
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1write(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1write(JNIEnv *jenv, jclass jcls,
   jlong jblob, jint jblobOffset, jbyteArray jbuffer, jint jbufferOffset, jint jlength)
 {
   int length = 0;
@@ -357,6 +357,101 @@ JNIEXPORT jint JNICALL Java_sqlite_internal__1SQLiteManualJNI_sqlite3_1blob_1wri
   return rc;
 }
 
+//typedef struct {
+//  char busy;  // if set, the buffer is used
+//  char dispose;  // if set, buffer must be freed when it is no longer busy
+//  char data[];
+//} wrapper_buffer;
+
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1alloc(JNIEnv *jenv, jclass jcls,
+  jint size, jlongArray ppBuf, jobjectArray ppByteBuffer)
+{
+  void *ptr = 0;
+  jlong lptr = 0;
+  jobject controlBuffer = 0;
+  jobject dataBuffer = 0;
+
+  if (size < 3) return WRAPPER_INVALID_ARG_1;
+  if (!ppBuf) return WRAPPER_INVALID_ARG_2;
+  if (!ppByteBuffer) return WRAPPER_INVALID_ARG_3;
+
+  ptr = sqlite3_malloc(size);
+  if (!ptr) return WRAPPER_OUT_OF_MEMORY;
+
+  *((void**)&lptr) = ptr;
+  controlBuffer = (*jenv)->NewDirectByteBuffer(jenv, ptr, 2);
+  if (!controlBuffer) {
+    sqlite3_free(ptr);
+    return WRAPPER_OUT_OF_MEMORY;
+  }
+  dataBuffer = (*jenv)->NewDirectByteBuffer(jenv, (void*)(((unsigned char*)ptr) + 2), size - 2);
+  if (!dataBuffer) {
+    sqlite3_free(ptr);
+    return WRAPPER_OUT_OF_MEMORY;
+  }
+
+  memset(ptr, 0, size);
+
+  (*jenv)->SetLongArrayRegion(jenv, ppBuf, 0, 1, &lptr);
+  (*jenv)->SetObjectArrayElement(jenv, ppByteBuffer, 0, controlBuffer);
+  (*jenv)->SetObjectArrayElement(jenv, ppByteBuffer, 1, dataBuffer);
+
+  return SQLITE_OK;
+}
+
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1free(JNIEnv *jenv, jclass jcls,
+  jlong jbuffer)
+{
+  unsigned char *ptr = *(unsigned char**)&jbuffer;
+  if (!ptr) return SQLITE_OK;
+
+  // actually free if not in use
+  if (!ptr[0]) {
+    ptr[1] = -1;
+    sqlite3_free((void*)ptr);
+  } else {
+    ptr[1] = 1;
+  }
+
+  return SQLITE_OK;
+}
+
+void bind_release(void *ptr);
+
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1bind_1buffer(JNIEnv *jenv, jclass jcls,
+  jlong jstmt, jint jindex, jlong jbuffer, jint jlength)
+{
+  sqlite3_stmt *stmt = *(sqlite3_stmt**)&jstmt;
+  unsigned char *buffer = *(unsigned char**)&jbuffer;
+  int rc = 0;
+
+  if (!stmt) return WRAPPER_INVALID_ARG_1;
+  if (!buffer) return WRAPPER_INVALID_ARG_2;
+
+  // if should be freed...
+  if (buffer[1]) return WRAPPER_INVALID_ARG_3;
+  // mark as used
+  buffer[0]++;
+
+  rc = sqlite3_bind_blob(stmt, jindex, (const void*)(buffer + 2), jlength, &bind_release);
+  if (rc != SQLITE_OK) {
+    buffer[0]--;
+  }
+
+  return rc;
+}
+
+void bind_release(void *ptr) {
+  unsigned char *buffer;
+  if (!ptr) return;
+  buffer = ((unsigned char *)ptr) - 2;
+  if (buffer[0] > 0) {
+    buffer[0]--;
+  }
+  if (buffer[1] == 1) {
+    sqlite3_free((void*)buffer);
+  }
+}
 
 #ifdef __cplusplus
 }

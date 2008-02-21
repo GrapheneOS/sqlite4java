@@ -1,7 +1,6 @@
-package sqlite.internal;
+package sqlite;
 
 import junit.framework.TestCase;
-import sqlite.SQLite;
 
 import java.io.File;
 import java.io.PrintWriter;

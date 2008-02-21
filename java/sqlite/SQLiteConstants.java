@@ -1,4 +1,4 @@
-package sqlite.internal;
+package sqlite;
 
 public interface SQLiteConstants {
   interface Open {
@@ -100,9 +100,14 @@ public interface SQLiteConstants {
     public static final int WRAPPER_INVALID_ARG_3 = -13;
     public static final int WRAPPER_INVALID_ARG_4 = -14;
     public static final int WRAPPER_INVALID_ARG_5 = -15;
+    public static final int WRAPPER_INVALID_ARG_6 = -16;
+    public static final int WRAPPER_INVALID_ARG_7 = -17;
+    public static final int WRAPPER_INVALID_ARG_8 = -18;
+    public static final int WRAPPER_INVALID_ARG_9 = -19;
 
     public static final int WRAPPER_CANNOT_TRANSFORM_STRING = -20;
     public static final int WRAPPER_CANNOT_ALLOCATE_STRING = -21;
+    public static final int WRAPPER_OUT_OF_MEMORY = -22;
 
     public static final int WRAPPER_WEIRD_2 = -199;
 

@@ -1,6 +1,6 @@
 package sqlite;
 
-import static sqlite.internal.SQLiteConstants.Result;
+import static sqlite.SQLiteConstants.Result;
 
 public class SQLiteBusyException extends SQLiteException {
   public SQLiteBusyException(int errorCode, String errorMessage) {

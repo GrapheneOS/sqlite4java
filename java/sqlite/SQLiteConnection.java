@@ -2,10 +2,10 @@ package sqlite;
 
 import javolution.util.FastMap;
 import javolution.util.FastTable;
-import sqlite.internal.*;
-import static sqlite.internal.SQLiteConstants.*;
+import static sqlite.SQLiteConstants.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
@@ -26,6 +26,8 @@ import java.util.logging.Level;
  * back.
  */
 public final class SQLiteConnection {
+  private static final int MAX_POOLED_DIRECT_BUFFER_SIZE = 1 << 20;
+
   /**
    * The database file, or null if it is memory database.
    */
@@ -65,7 +67,18 @@ public final class SQLiteConnection {
   /**
    * Statement registry. All statements that are not disposed are listed here.
    */
-  private final FastTable<SQLiteBlob> myBlobs = new FastTable<SQLiteBlob>(1);
+  private final FastTable<SQLiteBlob> myBlobs = new FastTable<SQLiteBlob>(10);
+
+  /**
+   * Allocated buffers pool. Sorted by pool size.
+   * todo pool size control
+   */
+  private final FastTable<DirectBuffer> myBuffers = new FastTable<DirectBuffer>(10);
+
+  /**
+   * Sum of myBuffer sizes
+   */
+  private int myBuffersTotalSize;
 
   /**
    * Compiled statement cache. Maps SQL string into a valid SQLite handle.
@@ -206,6 +219,7 @@ public final class SQLiteConnection {
     Internal.logFine(this, "disposing");
     finalizeStatements();
     finalizeBlobs();
+    finalizeBuffers();
     int rc = _SQLiteSwigged.sqlite3_close(handle);
     // rc may be SQLiteConstants.Result.SQLITE_BUSY if statements are open
     if (rc != SQLiteConstants.Result.SQLITE_OK) {
@@ -219,6 +233,25 @@ public final class SQLiteConnection {
     }
     Internal.logInfo(this, "connection closed");
     myConfinement = null;
+  }
+
+  private void finalizeBuffers() {
+    DirectBuffer[] buffers;
+    synchronized (myLock) {
+      if (myBuffers.isEmpty()) {
+        return;
+      }
+      buffers = myBuffers.toArray(new DirectBuffer[myBuffers.size()]);
+      myBuffers.clear();
+      myBuffersTotalSize = 0;
+    }
+    if (Thread.currentThread() == myConfinement) {
+      for (DirectBuffer buffer : buffers) {
+        _SQLiteManual.wrapper_free(buffer);
+      }
+    } else {
+      Internal.logWarn(this, "cannot free " + buffers.length + " buffers from alien thread (" + Thread.currentThread() + ")");
+    }
   }
 
   /**
@@ -707,6 +740,75 @@ public final class SQLiteConnection {
     return myHandle;
   }
 
+  private void freeBuffer(DirectBuffer buffer) throws SQLiteException {
+    checkThread();
+    boolean cached;
+    synchronized (myLock) {
+      cached = myBuffers.indexOf(buffer) >= 0;
+    }
+    buffer.decUsed();
+    if (!cached) {
+      int rc = _SQLiteManual.wrapper_free(buffer);
+      if (rc != 0) {
+        Internal.recoverableError(this, "error deallocating buffer", true);
+      }
+    }
+  }
+
+  private DirectBuffer allocateBuffer(int minimumSize) throws SQLiteException, IOException {
+    checkThread();
+    handle();
+    int size = 1024;
+    while (size < minimumSize + DirectBuffer.CONTROL_BYTES)
+      size <<= 1;
+    int payloadSize = size - DirectBuffer.CONTROL_BYTES;
+    int allocated;
+    DirectBuffer buffer = null;
+    synchronized (myLock) {
+      for (int i = myBuffers.size() - 1; i >= 0; i--) {
+        DirectBuffer b = myBuffers.get(i);
+        if (!b.isValid()) {
+          myBuffers.remove(i);
+          myBuffersTotalSize -= b.getCapacity();
+          continue;
+        }
+        if (b.getCapacity() < payloadSize) {
+          break;
+        }
+        if (!b.isUsed()) {
+          buffer = b;
+        }
+      }
+      if (buffer != null) {
+        buffer.incUsed();
+        buffer.data().clear();
+        return buffer;
+      }
+      allocated = myBuffersTotalSize;
+    }
+    assert buffer == null;
+    buffer = mySQLiteManual.wrapper_alloc(size);
+    throwResult(mySQLiteManual.getLastReturnCode(), "allocateBuffer", minimumSize);
+    if (buffer == null) {
+      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "cannot allocate buffer [" + minimumSize + "]");
+    }
+    buffer.incUsed();
+    buffer.data().clear();
+    if (allocated + size < MAX_POOLED_DIRECT_BUFFER_SIZE) {
+      synchronized (myLock) {
+        int i;
+        for (i = 0; i < myBuffers.size(); i++) {
+          DirectBuffer b = myBuffers.get(i);
+          if (b.getCapacity() > payloadSize)
+            break;
+        }
+        myBuffers.add(i, buffer);
+        myBuffersTotalSize += buffer.getCapacity();
+      }
+    }
+    return buffer;
+  }
+
   private abstract class BaseController implements SQLiteController {
     private SQLiteController myDisposedController = null;
 
@@ -749,7 +851,20 @@ public final class SQLiteConnection {
     public _SQLiteManual getSQLiteManual() {
       return mySQLiteManual;
     }
+
+    public DirectBuffer allocateBuffer(int sizeEstimate) throws IOException, SQLiteException {
+      return SQLiteConnection.this.allocateBuffer(sizeEstimate);
+    }
+
+    public void freeBuffer(DirectBuffer buffer) {
+      try {
+        SQLiteConnection.this.freeBuffer(buffer);
+      } catch (SQLiteException e) {
+        Internal.logWarn(SQLiteConnection.this, e.toString());
+      }
+    }
   }
+
 
   private class CachedController extends BaseController {
     public void dispose(SQLiteStatement statement) {
@@ -809,6 +924,13 @@ public final class SQLiteConnection {
     public _SQLiteManual getSQLiteManual() {
       // must not come here anyway
       return new _SQLiteManual();
+    }
+
+    public DirectBuffer allocateBuffer(int sizeEstimate) throws IOException, SQLiteException {
+      throw new IOException();
+    }
+
+    public void freeBuffer(DirectBuffer buffer) {
     }
   }
 }

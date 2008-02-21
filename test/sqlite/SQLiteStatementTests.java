@@ -1,7 +1,5 @@
 package sqlite;
 
-import sqlite.internal.SWIGTYPE_p_sqlite3_stmt;
-
 public class SQLiteStatementTests extends SQLiteConnectionFixture {
   public void testPrepareBad() throws SQLiteException {
     SQLiteConnection connection = fileDb();

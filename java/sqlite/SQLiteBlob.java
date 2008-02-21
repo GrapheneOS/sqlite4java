@@ -1,10 +1,5 @@
 package sqlite;
 
-import sqlite.internal.SQLiteConstants;
-import sqlite.internal.SWIGTYPE_p_sqlite3_blob;
-import sqlite.internal._SQLiteManual;
-import sqlite.internal._SQLiteSwigged;
-
 /**
  * This class encapsulates blob handle which is open for direct reading / writing
  */

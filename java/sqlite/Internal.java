@@ -1,9 +1,5 @@
 package sqlite;
 
-import sqlite.internal.SQLiteConstants;
-import sqlite.internal._SQLiteManual;
-import sqlite.internal._SQLiteSwigged;
-
 import java.io.File;
 import java.net.URL;
 import java.util.logging.Level;

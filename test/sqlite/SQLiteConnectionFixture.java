@@ -1,8 +1,7 @@
 package sqlite;
 
-import sqlite.internal.SQLiteTestFixture;
-
 import java.io.File;
+import java.util.Random;
 
 public abstract class SQLiteConnectionFixture extends SQLiteTestFixture {
   private SQLiteConnection myDB;
@@ -44,5 +43,13 @@ public abstract class SQLiteConnectionFixture extends SQLiteTestFixture {
     }
     myDB = new SQLiteConnection(dbfile);
     return myDB;
+  }
+
+  protected byte[] generate(int size) {
+    byte[] result = new byte[size];
+    Random r = new Random();
+    for (int i = 0; i < result.length; i++)
+      result[i] = (byte) r.nextInt();
+    return result;
   }
 }

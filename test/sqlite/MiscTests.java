@@ -1,7 +1,5 @@
 package sqlite;
 
-import sqlite.internal.SQLiteTestFixture;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;

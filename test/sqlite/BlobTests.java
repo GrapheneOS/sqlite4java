@@ -1,7 +1,5 @@
 package sqlite;
 
-import java.util.Random;
-
 public class BlobTests extends SQLiteConnectionFixture {
   private static final int SIZE = 100000;
 
@@ -97,14 +95,6 @@ public class BlobTests extends SQLiteConnectionFixture {
       p += length;
     }
     db.dispose();
-  }
-
-  private byte[] generate(int size) {
-    byte[] result = new byte[size];
-    Random r = new Random();
-    for (int i = 0; i < result.length; i++)
-      result[i] = (byte) r.nextInt();
-    return result;
   }
 
   public void testMultipleOpen() throws SQLiteException {

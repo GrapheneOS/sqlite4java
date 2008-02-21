@@ -1,6 +1,8 @@
-package sqlite.internal;
+package sqlite;
 
-public final class _SQLiteManual {
+import java.nio.ByteBuffer;
+
+final class _SQLiteManual {
   /**
    * These arrays are used for return values. SQLiteConnection facade must ensure the methods are called
    * from the same thread, so these values are confined.
@@ -8,6 +10,7 @@ public final class _SQLiteManual {
   private final long[] myLong = {0};
   private final String[] myString = {null};
   private final byte[][] myByteArray = {null};
+  private final Object[] myObject = {null, null};
 
   /**
    * Last return code received for non-static methods.
@@ -86,5 +89,37 @@ public final class _SQLiteManual {
     long ptr = myLong[0];
     myLong[0] = 0;
     return ptr == 0 ? null : new SWIGTYPE_p_sqlite3_blob(ptr, true);
+  }
+
+  public DirectBuffer wrapper_alloc(int size) {
+    myLastReturnCode = 0;
+    myLong[0] = 0;
+    myObject[0] = null;
+    myObject[1] = null;
+    myLastReturnCode = _SQLiteManualJNI.wrapper_alloc(size, myLong, myObject);
+    ByteBuffer controlBuffer = myObject[0] instanceof ByteBuffer ? (ByteBuffer) myObject[0] : null;
+    ByteBuffer dataBuffer = myObject[1] instanceof ByteBuffer ? (ByteBuffer) myObject[1] : null;
+    long ptr = myLong[0];
+    if (controlBuffer == null || dataBuffer == null || ptr == 0) {
+      return null;
+    }
+    return new DirectBuffer(new SWIGTYPE_p_direct_buffer(ptr, true), controlBuffer, dataBuffer, size);
+  }
+
+  public static int wrapper_free(DirectBuffer buffer) {
+    SWIGTYPE_p_direct_buffer handle = buffer.getHandle();
+    buffer.invalidate();
+    if (handle == null)
+      return 0;
+    int rc = _SQLiteManualJNI.wrapper_free(SWIGTYPE_p_direct_buffer.getCPtr(handle));
+    return rc;
+  }
+
+  public static int wrapper_bind_buffer(SWIGTYPE_p_sqlite3_stmt stmt, int index, DirectBuffer buffer) {
+    SWIGTYPE_p_direct_buffer handle = buffer.getHandle();
+    if (handle == null)
+      return SQLiteConstants.Wrapper.WRAPPER_WEIRD;
+    int size = buffer.getPosition();
+    return _SQLiteManualJNI.wrapper_bind_buffer(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), index, SWIGTYPE_p_direct_buffer.getCPtr(handle), size);
   }
 }

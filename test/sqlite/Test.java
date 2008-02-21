@@ -1,8 +1,6 @@
-import static sqlite.internal.SQLiteConstants.Open;
-import sqlite.internal.SWIGTYPE_p_sqlite3;
-import sqlite.internal.SWIGTYPE_p_sqlite3_stmt;
-import sqlite.internal._SQLiteManual;
-import sqlite.internal._SQLiteSwigged;
+package sqlite;
+
+import static sqlite.SQLiteConstants.Open;
 
 public class Test {
   public static void main(String[] args) {

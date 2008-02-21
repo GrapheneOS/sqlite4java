@@ -1,6 +1,6 @@
-package sqlite.internal;
+package sqlite;
 
-class _SQLiteManualJNI {
+final class _SQLiteManualJNI {
   public final static native String wrapper_version();
 
   /**
@@ -62,4 +62,10 @@ class _SQLiteManualJNI {
   public final static native int sqlite3_blob_read(long blob, int blobOffset, byte[] buffer, int bufferOffset, int length);
 
   public final static native int sqlite3_blob_write(long blob, int blobOffset, byte[] buffer, int bufferOffset, int length);
+
+  public final static native int wrapper_alloc(int size, long[] ppBuf, Object[] ppByteBuffer);
+
+  public final static native int wrapper_free(long buffer);
+
+  public final static native int wrapper_bind_buffer(long stmt, int index, long data, int size);
 }

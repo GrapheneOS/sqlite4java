@@ -1,9 +1,11 @@
 package sqlite;
 
-import static sqlite.internal.SQLiteConstants.*;
-import sqlite.internal.SWIGTYPE_p_sqlite3_stmt;
-import sqlite.internal._SQLiteManual;
-import sqlite.internal._SQLiteSwigged;
+import javolution.util.FastTable;
+import static sqlite.SQLiteConstants.*;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * This class encapsulates sqlite statement. It is linked to the opening connection through controller, and confined to
@@ -60,6 +62,11 @@ public final class SQLiteStatement {
    * be requested at first need.
    */
   private int myColumnCount;
+
+  /**
+   * All currently active bind streams.
+   */
+  private FastTable<BindStream> myBindStreams;
 
   /**
    * Instances are constructed only by SQLiteConnection.
@@ -147,6 +154,7 @@ public final class SQLiteStatement {
         Internal.logFine(this, "clearing bindings");
       int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle);
       myController.throwResult(rc, "reset.clearBindings()", this);
+      clearBindStreams(false);
       myHasBindings = false;
     }
     return this;
@@ -164,6 +172,7 @@ public final class SQLiteStatement {
       Internal.logFine(this, "clearing bindings");
       int rc = _SQLiteSwigged.sqlite3_clear_bindings(handle());
       myController.throwResult(rc, "clearBindings()", this);
+      clearBindStreams(false);
     }
     myHasBindings = false;
     return this;
@@ -180,6 +189,7 @@ public final class SQLiteStatement {
     myController.validate();
     Internal.logFine(this, "step");
     SWIGTYPE_p_sqlite3_stmt handle = handle();
+    clearBindStreams(true);
     int rc = _SQLiteSwigged.sqlite3_step(handle);
     myStepped = true;
     if (rc == Result.SQLITE_ROW) {
@@ -339,6 +349,29 @@ public final class SQLiteStatement {
     return this;
   }
 
+  public OutputStream bindStream(int index) throws SQLiteException {
+    return bindStream(index, 0);
+  }
+
+  public OutputStream bindStream(int index, int minimumSize) throws SQLiteException {
+    myController.validate();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "bindStream(" + index + "," + minimumSize + ")");
+    try {
+      DirectBuffer buffer = myController.allocateBuffer(minimumSize);
+      BindStream out = new BindStream(index, buffer);
+      FastTable<BindStream> list = myBindStreams;
+      if (list == null) {
+        myBindStreams = list = new FastTable<BindStream>(1);
+      }
+      myBindStreams.add(out);
+      myHasBindings = true;
+      return out;
+    } catch (IOException e) {
+      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "cannot allocate buffer", e);
+    }
+  }
+
   /**
    * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_text16</a>
    */
@@ -451,11 +484,14 @@ public final class SQLiteStatement {
         return value == ((long) ((int) value)) ? Integer.valueOf((int) value) : Long.valueOf(value);
       case ValueType.SQLITE_TEXT:
         return columnString(column);
+      case ValueType.SQLITE_BLOB:
+        return columnBlob(column);
       default:
         Internal.recoverableError(this, "value type " + valueType + " not yet supported", true);
         return null;
     }
   }
+
 
   public String columnName(int column) throws SQLiteException {
     myController.validate();
@@ -474,6 +510,7 @@ public final class SQLiteStatement {
    * Clear all data, disposing the statement. May be called by SQLiteConnection on close.
    */
   void clear() {
+    clearBindStreams(false);
     myHandle = null;
     myHasRow = false;
     myColumnCount = 0;
@@ -483,6 +520,25 @@ public final class SQLiteStatement {
     Internal.logFine(this, "cleared");
   }
 
+  private void clearBindStreams(boolean bind) {
+    FastTable<BindStream> table = myBindStreams;
+    if (table != null) {
+      myBindStreams = null;
+      for (int i = 0; i < table.size(); i++) {
+        BindStream stream = table.get(i);
+        if (bind && !stream.isDisposed()) {
+          try {
+            stream.close();
+          } catch (IOException e) {
+            Internal.logFine(this, e.toString());
+          }
+        } else {
+          stream.dispose();
+        }
+      }
+      table.clear();
+    }
+  }
 
   private SWIGTYPE_p_sqlite3_stmt handle() throws SQLiteException {
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
@@ -539,5 +595,87 @@ public final class SQLiteStatement {
 
   SWIGTYPE_p_sqlite3_stmt statementHandle() {
     return myHandle;
+  }
+
+  private class BindStream extends OutputStream {
+    private final int myIndex;
+    private DirectBuffer myBuffer;
+
+    public BindStream(int index, DirectBuffer buffer) throws IOException {
+      myIndex = index;
+      myBuffer = buffer;
+      myBuffer.data().clear();
+    }
+
+    public void write(int b) throws IOException {
+      try {
+        myController.validate();
+        DirectBuffer buffer = getBuffer();
+        ByteBuffer data = buffer.data();
+        if (data.remaining() == 0) {
+          DirectBuffer newBuffer = null;
+          try {
+            newBuffer = myController.allocateBuffer(buffer.getCapacity() * 2);
+          } catch (IOException e) {
+            dispose();
+            throw e;
+          }
+          ByteBuffer newData = newBuffer.data();
+          data.flip();
+          newData.put(data);
+          myController.freeBuffer(buffer);
+          data = newData;
+          myBuffer = buffer = newBuffer;
+          assert data.remaining() > 0 : data.capacity();
+        }
+        data.put((byte) b);
+      } catch (SQLiteException e) {
+        dispose();
+        throw new IOException("cannot write: " + e);
+      }
+    }
+
+    public void close() throws IOException {
+      try {
+        myController.validate();
+        DirectBuffer buffer = myBuffer;
+        if (buffer == null)
+          return;
+        if (Internal.isFineLogging())
+          Internal.logFine(SQLiteStatement.this, "BindStream.close:bind([" + buffer.data().capacity() + "])");
+        int rc = _SQLiteManual.wrapper_bind_buffer(handle(), myIndex, buffer);
+        dispose();
+        myController.throwResult(rc, "bind(buffer)", SQLiteStatement.this);
+      } catch (SQLiteException e) {
+        throw new IOException("cannot write: " + e);
+      }
+    }
+
+    public boolean isDisposed() {
+      return myBuffer == null;
+    }
+
+    private DirectBuffer getBuffer() throws IOException {
+      DirectBuffer buffer = myBuffer;
+      if (buffer == null)
+        throw new IOException("stream discarded");
+      if (!buffer.isValid())
+        throw new IOException("buffer discarded");
+      if (!buffer.isUsed())
+        throw new IOException("buffer not used");
+      return buffer;
+    }
+
+    public void dispose() {
+      DirectBuffer buffer = myBuffer;
+      if (buffer != null) {
+        myBuffer = null;
+        myController.freeBuffer(buffer);
+      }
+      FastTable<BindStream> list = myBindStreams;
+      if (list != null) {
+        list.remove(this);
+      }
+    }
   }
 }
