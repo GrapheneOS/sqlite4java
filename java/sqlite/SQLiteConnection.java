@@ -281,6 +281,10 @@ public final class SQLiteConnection {
     return prepare(new SQLParts(sql), cached);
   }
 
+  public SQLiteStatement prepare(SQLParts parts) throws SQLiteException {
+    return prepare(parts, true);
+  }
+
   /**
    * Prepares SQL statement
    *
