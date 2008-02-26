@@ -13,7 +13,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     try {
       connection.prepare((SQLParts) null);
       fail("prepared null");
-    } catch (SQLiteException e) {
+    } catch (IllegalArgumentException e) {
       //ok
     }
     try {

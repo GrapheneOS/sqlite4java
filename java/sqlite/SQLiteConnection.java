@@ -295,6 +295,8 @@ public final class SQLiteConnection {
     checkThread();
     if (Internal.isFineLogging())
       Internal.logFine(this, "prepare [" + parts + "]");
+    if (parts == null)
+      throw new IllegalArgumentException();
     SWIGTYPE_p_sqlite3 handle;
     SWIGTYPE_p_sqlite3_stmt stmt = null;
     SQLParts fixedKey = null;
