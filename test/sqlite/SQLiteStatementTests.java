@@ -11,7 +11,7 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
       // ok
     }
     try {
-      connection.prepare(null);
+      connection.prepare((SQLParts) null);
       fail("prepared null");
     } catch (SQLiteException e) {
       //ok
