@@ -27,6 +27,8 @@ import java.nio.ByteBuffer;
  * </pre>
  */
 public final class SQLiteStatement {
+  public static final SQLiteStatement DISPOSED = new SQLiteStatement();
+
   private static final int COLUMN_COUNT_UNKNOWN = -1;
 
   /**
@@ -83,6 +85,15 @@ public final class SQLiteStatement {
     myHandle = handle;
     mySqlParts = sqlParts;
     Internal.logFine(this, "instantiated");
+  }
+
+  /**
+   * Constructs an empty disposed statement
+   */
+  private SQLiteStatement() {
+    myController = SQLiteController.getDisposed(null);
+    myHandle = null;
+    mySqlParts = new SQLParts().fix();
   }
 
   /**
@@ -541,7 +552,7 @@ public final class SQLiteStatement {
     myColumnCount = 0;
     myHasBindings = false;
     myStepped = false;
-    myController = myController.getDisposedController();
+    myController = SQLiteController.getDisposed(myController);
     Internal.logFine(this, "cleared");
   }
 

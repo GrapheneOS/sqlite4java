@@ -809,9 +809,7 @@ public final class SQLiteConnection {
     return buffer;
   }
 
-  private abstract class BaseController implements SQLiteController {
-    private SQLiteController myDisposedController = null;
-
+  private abstract class BaseController extends SQLiteController {
     public void validate() throws SQLiteException {
       assert validateImpl();
     }
@@ -830,12 +828,6 @@ public final class SQLiteConnection {
       if (checkDispose(blob)) {
         SQLiteConnection.this.finalizeBlob(blob);
       }
-    }
-
-    public SQLiteController getDisposedController() {
-      if (myDisposedController == null)
-        myDisposedController = new DisposedController(this);
-      return myDisposedController;
     }
 
     protected boolean checkDispose(Object object) {
@@ -887,50 +879,6 @@ public final class SQLiteConnection {
 
     public String toString() {
       return SQLiteConnection.this.toString() + "[U]";
-    }
-  }
-
-  /**
-   * A stub implementation that replaces connection-based implementation when statement is disposed.
-   */
-  class DisposedController implements SQLiteController {
-    private final SQLiteController myPredessor;
-
-    DisposedController(SQLiteController predecessor) {
-      myPredessor = predecessor;
-    }
-
-    public String toString() {
-      return myPredessor.toString() + "[D]";
-    }
-
-    public void validate() throws SQLiteException {
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_MISUSE, "statement is disposed");
-    }
-
-    public void throwResult(int resultCode, String message, Object additionalMessage) throws SQLiteException {
-    }
-
-    public void dispose(SQLiteStatement statement) {
-    }
-
-    public void dispose(SQLiteBlob blob) {
-    }
-
-    public SQLiteController getDisposedController() {
-      return this;
-    }
-
-    public _SQLiteManual getSQLiteManual() {
-      // must not come here anyway
-      return new _SQLiteManual();
-    }
-
-    public DirectBuffer allocateBuffer(int sizeEstimate) throws IOException, SQLiteException {
-      throw new IOException();
-    }
-
-    public void freeBuffer(DirectBuffer buffer) {
     }
   }
 }

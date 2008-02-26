@@ -110,7 +110,7 @@ public final class SQLiteBlob {
    */
   void clear() {
     myHandle = null;
-    myController = myController.getDisposedController();
+    myController = SQLiteController.getDisposed(myController);
     Internal.logFine(this, "cleared");
   }
 

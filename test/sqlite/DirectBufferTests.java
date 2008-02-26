@@ -24,6 +24,35 @@ public class DirectBufferTests extends SQLiteConnectionFixture {
     assertFalse(buffer.isValid());
   }
 
+  public void testMemory() throws SQLiteException, IOException {
+    SQLite.loadLibrary();
+    long m1 = _SQLiteSwigged.sqlite3_memory_used();
+    _SQLiteManual sqlite = new _SQLiteManual();
+    int sz = SIZE * SIZE;
+    DirectBuffer buffer = sqlite.wrapper_alloc(sz);
+    long m2 = _SQLiteSwigged.sqlite3_memory_used();
+    assertTrue(m1 + " " + sz + " " + m2, Math.abs(m2 - m1 - sz) < 16);
+    _SQLiteManual.wrapper_free(buffer);
+    assertEquals(m1, _SQLiteSwigged.sqlite3_memory_used());
+
+    SQLiteConnection db = memDb().open(true);
+    db.exec("create table t (v)");
+    SQLiteStatement st = db.prepare("insert into t values (?)");
+
+    long m3 = _SQLiteSwigged.sqlite3_memory_used();
+    OutputStream out = st.bindStream(1, sz - 10);
+    m2 = _SQLiteSwigged.sqlite3_memory_used();
+    assertTrue(m3 + " " + sz + " " + m2, Math.abs(m2 - m3 - sz) < 16);
+    out.write(generate(sz - 10));
+    out.close();
+    assertEquals(m2, _SQLiteSwigged.sqlite3_memory_used());
+    st.step();
+//    assertEquals(m2, _SQLiteSwigged.sqlite3_memory_used());
+
+    db.dispose();
+    assertEquals(m1, _SQLiteSwigged.sqlite3_memory_used());
+  }
+
   public void testBind() throws SQLiteException, IOException {
     SQLiteConnection db = fileDb().open(true);
     db.exec("drop table if exists T");

@@ -40,6 +40,7 @@ swig/stub/sqlite/_SQLiteSwiggedJNI.java -text
 test/sqlite/BlobComparisonPerformance.java -text
 test/sqlite/BlobTests.java -text
 test/sqlite/DirectBufferTests.java -text
+test/sqlite/IncrementalBlobIOAnalysis.java -text
 test/sqlite/IncrementalIODemo.java -text
 test/sqlite/MiscTests.java -text
 test/sqlite/SQLPartsTests.java -text
