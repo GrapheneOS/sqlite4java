@@ -418,6 +418,26 @@ public final class SQLiteConnection {
     return result;
   }
 
+  public int getTotalChanges() throws SQLiteException {
+    checkThread();
+    int result = _SQLiteSwigged.sqlite3_total_changes(handle());
+    return result;
+  }
+
+  public void interrupt() throws SQLiteException {
+    _SQLiteSwigged.sqlite3_interrupt(handle());
+  }
+
+  public int getErrorCode() throws SQLiteException {
+    checkThread();
+    return _SQLiteSwigged.sqlite3_errcode(handle());
+  }
+
+  public String getErrorMessage() throws SQLiteException {
+    checkThread();
+    return _SQLiteSwigged.sqlite3_errmsg(handle());
+  }
+
   private void finalizeStatements() {
     boolean alienThread = myConfinement != Thread.currentThread();
     if (!alienThread) {

@@ -251,6 +251,21 @@ public final class SQLiteStatement {
     return myStepped;
   }
 
+  public int getBindParameterCount() throws SQLiteException {
+    myController.validate();
+    return _SQLiteSwigged.sqlite3_bind_parameter_count(handle());
+  }
+
+  public String getBindParameterName(int index) throws SQLiteException {
+    myController.validate();
+    return _SQLiteSwigged.sqlite3_bind_parameter_name(handle(), index);
+  }
+
+  public int getBindParameterIndex(String name) throws SQLiteException {
+    myController.validate();
+    return _SQLiteSwigged.sqlite3_bind_parameter_index(handle(), name);
+  }
+
   /**
    * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_double</a>
    */
@@ -538,6 +553,42 @@ public final class SQLiteStatement {
     String r = _SQLiteSwigged.sqlite3_column_name(handle, column);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnName(" + column + ")=" + r);
+    return r;
+  }
+
+  public String columnTableName(int column) throws SQLiteException {
+    myController.validate();
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    checkColumn(column, handle);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnTableName(" + column + ")");
+    String r = _SQLiteSwigged.sqlite3_column_table_name(handle, column);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnTableName(" + column + ")=" + r);
+    return r;
+  }
+
+  public String columnDatabaseName(int column) throws SQLiteException {
+    myController.validate();
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    checkColumn(column, handle);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnDatabaseName(" + column + ")");
+    String r = _SQLiteSwigged.sqlite3_column_database_name(handle, column);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnDatabaseName(" + column + ")=" + r);
+    return r;
+  }
+
+  public String columnOriginName(int column) throws SQLiteException {
+    myController.validate();
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    checkColumn(column, handle);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnOriginName(" + column + ")");
+    String r = _SQLiteSwigged.sqlite3_column_origin_name(handle, column);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "columnOriginName(" + column + ")=" + r);
     return r;
   }
 

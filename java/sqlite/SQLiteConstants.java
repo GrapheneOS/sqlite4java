@@ -113,6 +113,8 @@ public interface SQLiteConstants {
 
     public static final int WRAPPER_CANNOT_LOAD_LIBRARY = -93;
     public static final int WRAPPER_MISUSE = -92;
+
+    public static final int WRAPPER_USER_ERROR = -999;
   }
 
   interface ValueType {

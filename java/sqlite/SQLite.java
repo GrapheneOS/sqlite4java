@@ -31,10 +31,54 @@ public final class SQLite {
     }
   }
 
-  public static String getSqliteVersion() throws SQLiteException {
+  public static String getSQLiteVersion() throws SQLiteException {
     loadLibrary();
     return _SQLiteSwigged.sqlite3_libversion();
   }
 
-  private SQLite() {}
+  public static int getSQLiteVersionNumber() throws SQLiteException {
+    loadLibrary();
+    return _SQLiteSwigged.sqlite3_libversion_number();
+  }
+
+  public static boolean isThreadSafe() throws SQLiteException {
+    loadLibrary();
+    return _SQLiteSwigged.sqlite3_threadsafe() != 0;
+  }
+
+  public static boolean isComplete(String sql) throws SQLiteException {
+    loadLibrary();
+    return _SQLiteSwigged.sqlite3_complete(sql) != 0;
+  }
+
+  public static long getMemoryUsed() throws SQLiteException {
+    loadLibrary();
+    return _SQLiteSwigged.sqlite3_memory_used();
+  }
+
+  public static long getMemoryHighwater(boolean reset) throws SQLiteException {
+    loadLibrary();
+    return _SQLiteSwigged.sqlite3_memory_highwater(reset ? 1 : 0);
+  }
+
+  public static void releaseMemory(int m) throws SQLiteException {
+    loadLibrary();
+    int rc = _SQLiteSwigged.sqlite3_release_memory(m);
+    if (rc != SQLiteConstants.Result.SQLITE_OK) {
+      throw new SQLiteException(rc, "");
+    }
+  }
+
+  public static void setSoftHeapLimit(int limit) throws SQLiteException {
+    loadLibrary();
+    _SQLiteSwigged.sqlite3_soft_heap_limit(limit);
+  }
+
+  public static void setSharedCache(boolean enabled) throws SQLiteException {
+    loadLibrary();
+    _SQLiteSwigged.sqlite3_enable_shared_cache(enabled ? 1 : 0);
+  }
+
+  private SQLite() {
+  }
 }

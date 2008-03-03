@@ -37,16 +37,24 @@ abstract class SQLiteController {
   public abstract void freeBuffer(DirectBuffer buffer);
 
   public static SQLiteController getDisposed(SQLiteController controller) {
-    if (controller instanceof Disposed)
+    if (controller instanceof Disposed) {
       return controller;
-    else
+    }
+    boolean debug = false;
+    assert debug = true;
+    if (!debug) {
+      return Disposed.INSTANCE;
+    } else {
       return new Disposed(controller == null ? "" : controller.toString());
+    }
   }
 
   /**
    * A stub implementation that replaces connection-based implementation when statement is disposed.
    */
   private static class Disposed extends SQLiteController {
+    public static final Disposed INSTANCE = new Disposed("");
+
     private final String myName;
 
     private Disposed(String namePrefix) {
