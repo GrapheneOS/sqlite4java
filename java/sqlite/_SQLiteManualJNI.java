@@ -70,4 +70,8 @@ final class _SQLiteManualJNI {
   public final static native int wrapper_bind_buffer(long stmt, int index, long data, int size);
 
   public final static native int wrapper_column_buffer(long cPtr, int column, Object[] ppByteBuffer);
+
+  public final static native int install_progress_handler(long db, int steps, long[] ppBuf, Object[] ppByteBuffer);
+
+  public final static native int uninstall_progress_handler(long db, long ptr);
 }

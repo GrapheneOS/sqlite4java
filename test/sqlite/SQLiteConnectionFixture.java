@@ -42,6 +42,7 @@ public abstract class SQLiteConnectionFixture extends SQLiteTestFixture {
       myDB.dispose();
     }
     myDB = new SQLiteConnection(dbfile);
+    myDB.setStepsPerCallback(1);
     return myDB;
   }
 

@@ -27,6 +27,7 @@ import java.util.logging.Level;
  */
 public final class SQLiteConnection {
   private static final int MAX_POOLED_DIRECT_BUFFER_SIZE = 1 << 20;
+  private static final int DEFAULT_STEPS_PER_CALLBACK = 1;
 
   /**
    * The database file, or null if it is memory database.
@@ -106,6 +107,16 @@ public final class SQLiteConnection {
   private final _SQLiteManual mySQLiteManual = new _SQLiteManual();
 
   /**
+   * Native byte buffer to communicate between Java and SQLite to report progress and cancel execution.
+   */
+  private ProgressHandler myProgressHandler;
+
+  /**
+   * May be set only before first exec() or step().
+   */
+  private int myStepsPerCallback = DEFAULT_STEPS_PER_CALLBACK;
+
+  /**
    * Create connection to database located in the specified file.
    * Database is not opened by this method.
    *
@@ -137,6 +148,12 @@ public final class SQLiteConnection {
    */
   public boolean isMemoryDatabase() {
     return myFile == null;
+  }
+
+  public void setStepsPerCallback(int stepsPerCallback) {
+    if (stepsPerCallback > 0) {
+      myStepsPerCallback = stepsPerCallback;
+    }
   }
 
   /**
@@ -220,6 +237,7 @@ public final class SQLiteConnection {
     finalizeStatements();
     finalizeBlobs();
     finalizeBuffers();
+    finalizeProgressHandler(handle);
     int rc = _SQLiteSwigged.sqlite3_close(handle);
     // rc may be SQLiteConstants.Result.SQLITE_BUSY if statements are open
     if (rc != SQLiteConstants.Result.SQLITE_OK) {
@@ -233,6 +251,15 @@ public final class SQLiteConnection {
     }
     Internal.logInfo(this, "connection closed");
     myConfinement = null;
+  }
+
+  private void finalizeProgressHandler(SWIGTYPE_p_sqlite3 handle) {
+    if (Thread.currentThread() == myConfinement) {
+      ProgressHandler handler = myProgressHandler;
+      if (handler != null) {
+        _SQLiteManual.uninstall_progress_handler(handle, handler);
+      }
+    }
   }
 
   private void finalizeBuffers() {
@@ -261,10 +288,32 @@ public final class SQLiteConnection {
     checkThread();
     if (Internal.isFineLogging())
       Internal.logFine(this, "exec [" + sql + "]");
-    String[] error = {null};
-    int rc = _SQLiteManual.sqlite3_exec(handle(), sql, error);
-    throwResult(rc, "exec()", error[0]);
+    SWIGTYPE_p_sqlite3 handle = handle();
+    ProgressHandler ph = getProgressHandler();
+    ph.reset();
+    try {
+      String[] error = {null};
+      int rc = _SQLiteManual.sqlite3_exec(handle, sql, error);
+      throwResult(rc, "exec()", error[0]);
+    } finally {
+      if (Internal.isFineLogging())
+        Internal.logFine(this, "exec [" + sql + "]: " + ph.getSteps() + " steps");
+      ph.reset();
+    }
     return this;
+  }
+
+  private ProgressHandler getProgressHandler() throws SQLiteException {
+    ProgressHandler handler = myProgressHandler;
+    if (handler == null) {
+      handler = mySQLiteManual.install_progress_handler(handle(), myStepsPerCallback);
+      if (handler == null) {
+        Internal.logWarn(this, "cannot install progress handler [" + mySQLiteManual.getLastReturnCode() + "]");
+        handler = ProgressHandler.DISPOSED;
+      }
+      myProgressHandler = handler;
+    }
+    return handler;
   }
 
   /**
@@ -660,6 +709,8 @@ public final class SQLiteConnection {
       }
       if (resultCode == Result.SQLITE_BUSY || resultCode == Result.SQLITE_IOERR_BLOCKED) {
         throw new SQLiteBusyException(resultCode, message);
+      } else if (resultCode == Result.SQLITE_INTERRUPT) {
+        throw new SQLiteCancelledException(resultCode, message);
       } else {
         throw new SQLiteException(resultCode, message);
       }
@@ -880,6 +931,10 @@ public final class SQLiteConnection {
       } catch (SQLiteException e) {
         Internal.logWarn(SQLiteConnection.this, e.toString());
       }
+    }
+
+    public ProgressHandler getProgressHandler() throws SQLiteException {
+      return SQLiteConnection.this.getProgressHandler();
     }
   }
 

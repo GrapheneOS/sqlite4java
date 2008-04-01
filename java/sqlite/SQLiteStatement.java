@@ -74,6 +74,17 @@ public final class SQLiteStatement {
   private FastTable<ColumnStream> myColumnStreams;
 
   /**
+   * Contains progress handler instance - only when step() is in progress. Used to cancel the execution.
+   * Protected for MT access with this.
+   */
+  private ProgressHandler myProgressHandler;
+
+  /**
+   * True if statement has been cancelled. Cleared at statement reset.
+   */
+  private boolean myCancelled;
+
+  /**
    * Instances are constructed only by SQLiteConnection.
    *
    * @see sqlite.SQLiteConnection#prepare(String, boolean)
@@ -172,6 +183,9 @@ public final class SQLiteStatement {
       clearBindStreams(false);
       myHasBindings = false;
     }
+    synchronized (this) {
+      myCancelled = false;
+    }
     return this;
   }
 
@@ -202,11 +216,29 @@ public final class SQLiteStatement {
    */
   public boolean step() throws SQLiteException {
     myController.validate();
-    Internal.logFine(this, "step");
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "step");
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     clearBindStreams(true);
     clearColumnStreams();
-    int rc = _SQLiteSwigged.sqlite3_step(handle);
+    int rc;
+    ProgressHandler ph = myController.getProgressHandler();
+    ph.reset();
+    synchronized (this) {
+      if (myCancelled)
+        throw new SQLiteCancelledException();
+      myProgressHandler = ph;
+    }
+    try {
+      rc = _SQLiteSwigged.sqlite3_step(handle);
+    } finally {
+      synchronized (this) {
+        myProgressHandler = null;
+      }
+      if (Internal.isFineLogging())
+        Internal.logFine(this, "step " + ph.getSteps() + " steps");
+      ph.reset();
+    }
     myStepped = true;
     if (rc == Result.SQLITE_ROW) {
       Internal.logFine(this, "step ROW");
@@ -228,6 +260,17 @@ public final class SQLiteStatement {
   public SQLiteStatement stepThrough() throws SQLiteException {
     while (step()) ;
     return this;
+  }
+
+  public void cancel() {
+    ProgressHandler handler;
+    synchronized (this) {
+      myCancelled = true;
+      handler = myProgressHandler;
+    }
+    if (handler != null) {
+      handler.cancel();
+    }
   }
 
   /**

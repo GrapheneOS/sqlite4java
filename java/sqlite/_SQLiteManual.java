@@ -131,4 +131,25 @@ final class _SQLiteManual {
     myObject[0] = null;
     return r;
   }
+
+  public ProgressHandler install_progress_handler(SWIGTYPE_p_sqlite3 db, int stepsPerCallback) {
+    myLastReturnCode = 0;
+    myLong[0] = 0;
+    myObject[0] = null;
+    myLastReturnCode = _SQLiteManualJNI.install_progress_handler(SWIGTYPE_p_sqlite3.getCPtr(db), stepsPerCallback, myLong, myObject);
+    ByteBuffer r = myObject[0] instanceof ByteBuffer ? (ByteBuffer) myObject[0] : null;
+    myObject[0] = null;
+    long ptr = myLong[0];
+    myLong[0] = 0;
+    if (ptr == 0 || r == null)
+      return null;
+    return new ProgressHandler(new SWIGTYPE_p_direct_buffer(ptr, true), r, stepsPerCallback);
+  }
+
+  public static int uninstall_progress_handler(SWIGTYPE_p_sqlite3 db, ProgressHandler handler) {
+    SWIGTYPE_p_direct_buffer pointer = handler.dispose();
+    if (pointer == null)
+      return 0;
+    return _SQLiteManualJNI.uninstall_progress_handler(SWIGTYPE_p_sqlite3.getCPtr(db), SWIGTYPE_p_direct_buffer.getCPtr(pointer));
+  }
 }

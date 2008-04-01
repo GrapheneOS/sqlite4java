@@ -80,6 +80,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv,
   return rc;
 }
 
+
 JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jlongArray jresult)
 {
@@ -484,7 +485,72 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1column_1buffer(JNI
 }
 
 
+int progress_handler(void *ptr);
 
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_install_1progress_1handler(JNIEnv *jenv, jclass jcls,
+  jlong jdb, jint steps, jlongArray ppBuf, jobjectArray ppByteBuffer)
+{
+  sqlite3* db = 0;
+  int rc = 0;
+  void *ptr = 0;
+  jlong lptr = 0;
+  jobject buffer = 0;
+  int len = 2 * sizeof(jlong);
+
+  if (!jdb) return WRAPPER_INVALID_ARG_1;
+  if (!ppBuf) return WRAPPER_INVALID_ARG_2;
+  if (!ppByteBuffer) return WRAPPER_INVALID_ARG_3;
+  if (steps < 1) return WRAPPER_INVALID_ARG_4;
+  db = *(sqlite3**)&jdb;
+
+  ptr = (jlong*)sqlite3_malloc(len);
+  if (!ptr) return WRAPPER_OUT_OF_MEMORY;
+
+  *((void**)&lptr) = ptr;
+  buffer = (*jenv)->NewDirectByteBuffer(jenv, ptr, len);
+  if (!buffer) {
+    sqlite3_free(ptr);
+    return WRAPPER_OUT_OF_MEMORY;
+  }
+
+  memset(ptr, 0, len);
+
+  (*jenv)->SetLongArrayRegion(jenv, ppBuf, 0, 1, &lptr);
+  (*jenv)->SetObjectArrayElement(jenv, ppByteBuffer, 0, buffer);
+
+  sqlite3_progress_handler(db, steps, &progress_handler, ptr);
+
+  return SQLITE_OK;
+}
+
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_uninstall_1progress_1handler(JNIEnv *jenv, jclass jcls,
+  jlong jdb, jlong jptr)
+{
+  sqlite3* db = 0;
+  void *ptr = 0;
+
+  if (!jdb) return WRAPPER_INVALID_ARG_1;
+  if (!jptr) return WRAPPER_INVALID_ARG_2;
+  db = *(sqlite3**)&jdb;
+  ptr = *(void**)&jptr;
+
+  sqlite3_progress_handler(db, 1, 0, 0);
+  sqlite3_free(ptr);
+
+  return SQLITE_OK;
+}
+
+int progress_handler(void *ptr) {
+  jlong* lptr = 0;
+
+  if (!ptr) return 1;
+  lptr = *(jlong**)&ptr;
+
+  lptr[1]++;
+  if (lptr[0] != 0) return -1;
+
+  return 0;
+}
 
 #ifdef __cplusplus
 }

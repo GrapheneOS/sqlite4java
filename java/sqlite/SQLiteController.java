@@ -36,6 +36,8 @@ abstract class SQLiteController {
 
   public abstract void freeBuffer(DirectBuffer buffer);
 
+  public abstract ProgressHandler getProgressHandler() throws SQLiteException;
+
   public static SQLiteController getDisposed(SQLiteController controller) {
     if (controller instanceof Disposed) {
       return controller;
@@ -48,6 +50,7 @@ abstract class SQLiteController {
       return new Disposed(controller == null ? "" : controller.toString());
     }
   }
+
 
   /**
    * A stub implementation that replaces connection-based implementation when statement is disposed.
@@ -88,6 +91,10 @@ abstract class SQLiteController {
     }
 
     public void freeBuffer(DirectBuffer buffer) {
+    }
+
+    public ProgressHandler getProgressHandler() {
+      return ProgressHandler.DISPOSED;
     }
   }
 }
