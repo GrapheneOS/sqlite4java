@@ -552,6 +552,40 @@ int progress_handler(void *ptr) {
   return 0;
 }
 
+JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1load_1ints(JNIEnv *jenv, jclass jcls,
+  jlong jstmt, jint column, jintArray ppBuf, jint offset, jint count, jintArray ppCount)
+{
+  sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
+  jint loaded = 0;
+  int p = offset;
+  int rc = 0;
+  jint *buf = 0;
+  jint len = 0;
+
+  if (!stmt) return WRAPPER_INVALID_ARG_1;
+  if (!ppBuf) return WRAPPER_INVALID_ARG_2;
+  if (!ppCount) return WRAPPER_INVALID_ARG_3;
+  if (count <= 0) return WRAPPER_INVALID_ARG_4;
+
+  len = (*jenv)->GetArrayLength(jenv, ppBuf);
+  if (offset < 0 || offset + count > len) return WRAPPER_INVALID_ARG_4;
+
+  buf = (*jenv)->GetIntArrayElements(jenv, ppBuf, 0);
+  if (!buf) return WRAPPER_CANNOT_ALLOCATE_STRING;
+
+  while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+    buf[p++] = sqlite3_column_int(stmt, column);
+    if (++loaded >= count) {
+      break;
+    }
+  }
+
+  (*jenv)->ReleaseIntArrayElements(jenv, ppBuf, buf, 0);
+  (*jenv)->SetIntArrayRegion(jenv, ppCount, 0, 1, &loaded);
+
+  return rc;
+}
+
 #ifdef __cplusplus
 }
 #endif

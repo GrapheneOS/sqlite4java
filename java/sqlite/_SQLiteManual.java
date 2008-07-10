@@ -7,6 +7,7 @@ final class _SQLiteManual {
    * These arrays are used for return values. SQLiteConnection facade must ensure the methods are called
    * from the same thread, so these values are confined.
    */
+  private final int[] myInt = {0};
   private final long[] myLong = {0};
   private final String[] myString = {null};
   private final byte[][] myByteArray = {null};
@@ -151,5 +152,14 @@ final class _SQLiteManual {
     if (pointer == null)
       return 0;
     return _SQLiteManualJNI.uninstall_progress_handler(SWIGTYPE_p_sqlite3.getCPtr(db), SWIGTYPE_p_direct_buffer.getCPtr(pointer));
+  }
+
+  public int wrapper_load_ints(SWIGTYPE_p_sqlite3_stmt stmt, int column, int[] buffer, int offset, int count) {
+    myLastReturnCode = 0;
+    myInt[0] = 0;
+    myLastReturnCode = _SQLiteManualJNI.wrapper_load_ints(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), column, buffer, offset, count, myInt);
+    int r = myInt[0];
+    myInt[0] = 0;
+    return r;
   }
 }

@@ -74,4 +74,6 @@ final class _SQLiteManualJNI {
   public final static native int install_progress_handler(long db, int steps, long[] ppBuf, Object[] ppByteBuffer);
 
   public final static native int uninstall_progress_handler(long db, long ptr);
+
+  public final static native int wrapper_load_ints(long stmt, int column, int[] buffer, int offset, int count, int[] ppCount);
 }

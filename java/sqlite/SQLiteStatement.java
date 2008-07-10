@@ -262,6 +262,53 @@ public final class SQLiteStatement {
     return this;
   }
 
+  public int loadInts(int column, int[] buffer, int offset, int count) throws SQLiteException {
+    myController.validate();
+    if (buffer == null || count <= 0 || offset < 0 || offset + count > buffer.length) {
+      assert false;
+      return 0;
+    }
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "loadInts(" + column + "," + offset + "," + count + ")");
+    if (myStepped && !myHasRow)
+      return 0;
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    clearBindStreams(true);
+    clearColumnStreams();
+    int r;
+    int rc;
+    ProgressHandler ph = myController.getProgressHandler();
+    ph.reset();
+    synchronized (this) {
+      if (myCancelled)
+        throw new SQLiteCancelledException();
+      myProgressHandler = ph;
+    }
+    try {
+      _SQLiteManual manual = myController.getSQLiteManual();
+      r = manual.wrapper_load_ints(handle, column, buffer, offset, count);
+      rc = manual.getLastReturnCode();
+    } finally {
+      synchronized (this) {
+        myProgressHandler = null;
+      }
+      ph.reset();
+    }
+    myStepped = true;
+    if (rc == Result.SQLITE_ROW) {
+      if (!myHasRow) {
+        myColumnCount = COLUMN_COUNT_UNKNOWN;
+      }
+      myHasRow = true;
+    } else if (rc == Result.SQLITE_DONE) {
+      myColumnCount = 0;
+      myHasRow = false;
+    } else {
+      myController.throwResult(rc, "loadInts()", this);
+    }
+    return r;
+  }
+
   public void cancel() {
     ProgressHandler handler;
     synchronized (this) {
