@@ -14,6 +14,8 @@ public interface SQLiteConstants {
     public static final int SQLITE_OPEN_TEMP_JOURNAL = 0x00001000;
     public static final int SQLITE_OPEN_SUBJOURNAL = 0x00002000;
     public static final int SQLITE_OPEN_MASTER_JOURNAL = 0x00004000;
+    public static final int SQLITE_OPEN_NOMUTEX          = 0x00008000;
+    public static final int SQLITE_OPEN_FULLMUTEX        = 0x00010000;
   }
 
   interface Result {
@@ -59,7 +61,9 @@ public interface SQLiteConstants {
     public static final int SQLITE_IOERR_DELETE =     (SQLITE_IOERR | (10 << 8));
     public static final int SQLITE_IOERR_BLOCKED =    (SQLITE_IOERR | (11 << 8));
     public static final int SQLITE_IOERR_NOMEM =      (SQLITE_IOERR | (12 << 8));
-
+    public static final int SQLITE_IOERR_ACCESS            = (SQLITE_IOERR | (13<<8));
+    public static final int SQLITE_IOERR_CHECKRESERVEDLOCK = (SQLITE_IOERR | (14<<8));
+    public static final int SQLITE_IOERR_LOCK              = (SQLITE_IOERR | (15<<8));
   }
 
   interface Wrapper {

@@ -1,3 +1,12 @@
+// ---- added when migrating from 3.5.9 to 3.6.5
+
+int sqlite3_initialize(void);
+int sqlite3_shutdown(void);
+int sqlite3_extended_errcode(sqlite3 *db);
+
+// -----------------------------------------------
+
+
 // This header file has been adapted for SWIG generation
 // of simple functions. Complex functions are made by hand.
 // Unneeded declarations are commented out with "// --OUT-- ".
