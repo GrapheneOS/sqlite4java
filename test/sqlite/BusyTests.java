@@ -132,9 +132,11 @@ public class BusyTests extends SQLiteConnectionFixture {
     t.join();
   }
 
-  public void testBusySpill() throws SQLiteException, InterruptedException {
-    if (true)
+  public void testBusySpillPre36() throws SQLiteException, InterruptedException {
+    if (SQLite.getSQLiteVersionNumber() >= 3006000) {
+      // skipping
       return;
+    }
     SQLiteStatement st = myReader.prepare("select * from x");
     st.step();
     assertTrue(st.hasRow());
@@ -154,6 +156,49 @@ public class BusyTests extends SQLiteConnectionFixture {
           } catch (SQLiteBusyException e) {
             if (!myWriter.getAutoCommit())
               myFailure = "transaction not rolled back";
+          } finally {
+            st.dispose();
+          }
+        } catch (SQLiteException e) {
+          e.printStackTrace();
+          myFailure = String.valueOf(e);
+        } finally {
+          myWriter.dispose();
+        }
+      }
+    };
+    t.start();
+    t.join();
+  }
+
+  public void testBusySpillPost36() throws SQLiteException, InterruptedException {
+    if (SQLite.getSQLiteVersionNumber() < 3006000) {
+      // skipping
+      return;
+    }
+    SQLiteStatement st = myReader.prepare("select * from x");
+    st.step();
+    assertTrue(st.hasRow());
+    Thread t = new Thread() {
+      public void run() {
+        try {
+          myWriter.open().exec("pragma cache_size=5");
+          myWriter.exec("begin immediate");
+          SQLiteStatement st = myWriter.prepare("insert into x values (?)");
+          try {
+            myFailure = "couldn't insert data";
+            for (int i = 0; i < 20; i++) {
+              st.bind(1, garbageString(512));
+              st.step();
+              st.reset();
+            }
+            // should get here
+            myFailure = "commit didn't throw busy exception";
+            myWriter.exec("commit");
+          } catch (SQLiteBusyException e) {
+            if (myWriter.getAutoCommit())
+              myFailure = "transaction rolled back";
+            myFailure = null;
           } finally {
             st.dispose();
           }
