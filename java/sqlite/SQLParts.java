@@ -82,6 +82,17 @@ public final class SQLParts {
     return this;
   }
 
+  public SQLParts append(SQLParts parts) {
+    if (myFixed) {
+      throw new IllegalStateException(String.valueOf(this));
+    }
+    if (parts != null && !parts.myParts.isEmpty()) {
+      myParts.addAll(parts.myParts);
+      dropCachedValues();
+    }
+    return this;
+  }
+
   public SQLParts appendParams(int count) {
     return append(getParamsString(count));
   }
