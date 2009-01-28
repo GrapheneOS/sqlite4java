@@ -6,6 +6,8 @@ import static sqlite.SQLiteConstants.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
@@ -885,6 +887,66 @@ public final class SQLiteConnection {
     }
     return buffer;
   }
+
+  public String debug(String sql) {
+    SQLiteStatement st = null;
+    try {
+      st = prepare(sql);
+      boolean r = st.step();
+      if (!r) {
+        return "";
+      }
+      int columns = st.columnCount();
+      if (columns == 0) {
+        return "";
+      }
+      int[] widths = new int[columns];
+      String[] columnNames = new String[columns];
+      for (int i = 0; i < columns; i++) {
+        columnNames[i] = String.valueOf(st.columnName(i));
+        widths[i] = columnNames[i].length();
+      }
+      List<String> cells = new ArrayList<String>();
+      do {
+        for (int i = 0; i < columns; i++) {
+          String v = st.columnNull(i) ? "<null>" : String.valueOf(st.columnValue(i));
+          cells.add(v);
+          widths[i] = Math.max(widths[i], v.length());
+        }
+      } while (st.step());
+
+      StringBuilder buf = new StringBuilder();
+      buf.append('|');
+      for (int i = 0; i < columns; i++) {
+        appendW(buf, columnNames[i], widths[i], ' ');
+        buf.append('|');
+      }
+      buf.append("\n|");
+      for (int i = 0; i < columns; i++) {
+        appendW(buf, "", widths[i], '-');
+        buf.append('|');
+      }
+      for (int i = 0; i < cells.size(); i++) {
+        if (i % columns == 0) {
+          buf.append("\n|");
+        }
+        appendW(buf, cells.get(i), widths[i % columns], ' ');
+        buf.append('|');
+      }
+      return buf.toString();
+    } catch (SQLiteException e) {
+      return e.getMessage();
+    } finally {
+      if (st != null) st.dispose();
+    }
+  }
+
+  private static void appendW(StringBuilder buf, String what, int width, char filler) {
+    buf.append(what);
+    for (int i = what.length(); i < width; i++)
+      buf.append(filler);
+  }
+
 
   private abstract class BaseController extends SQLiteController {
     public void validate() throws SQLiteException {
