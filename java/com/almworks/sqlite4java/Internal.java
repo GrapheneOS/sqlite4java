@@ -18,6 +18,8 @@ package com.almworks.sqlite4java;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,13 +28,13 @@ final class Internal {
   private static final String LOG_PREFIX = "[sqlite] ";
 
   private static final String BASE_LIBRARY_NAME = "sqlite4java";
-  private static final String[] DEBUG_SUFFIXES = {"d", ""};
-  private static final String[] RELEASE_SUFFIXES = {"", "d"};
+  private static final String[] DEBUG_SUFFIXES = {"-d", ""};
+  private static final String[] RELEASE_SUFFIXES = {"", "-d"};
 
-  private static int lastConnectionNumber = 0;
+  private static final AtomicInteger lastConnectionNumber = new AtomicInteger(0);
 
-  static synchronized int nextConnectionNumber() {
-    return ++lastConnectionNumber;
+  static int nextConnectionNumber() {
+    return lastConnectionNumber.incrementAndGet();
   }
 
   static void recoverableError(Object source, String message, boolean throwAssertion) {
@@ -83,17 +85,14 @@ final class Internal {
     logFine(Internal.class, "java.library.path=" + System.getProperty("java.library.path"));
     logFine(Internal.class, "cwd=" + new File(".").getAbsolutePath());
     logFine(Internal.class, "defaultLibPath=" + (defaultPath == null ? "null " : new File(defaultPath).getAbsolutePath()));
-    String arch = System.getProperty("os.arch");
-    if (arch == null) {
-      logWarn(Internal.class, "os.arch is null");
-      arch = "x86";
-    }
+    String os = getOs();
+    String arch = getArch(os);
     RuntimeException loadedSignal = new RuntimeException("loaded");
     Throwable bestReason = null;
     try {
       String[] suffixes = SQLite.isPreferDebugLibrary() ? DEBUG_SUFFIXES : RELEASE_SUFFIXES;
       for (String suffix : suffixes) {
-        bestReason = tryLoadWithSuffix(suffix, arch, bestReason, loadedSignal, defaultPath);
+        bestReason = tryLoadWithSuffix(suffix, os, arch, bestReason, loadedSignal, defaultPath);
       }
       if (bestReason == null)
         bestReason = new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "sqlite4java.Internal: lib loaded, check failed");
@@ -107,6 +106,41 @@ final class Internal {
         throw e;
       }
     }
+  }
+
+  private static String getArch(String os) {
+    String arch = System.getProperty("os.arch");
+    if (arch == null) {
+      logWarn(Internal.class, "os.arch is null");
+      arch = "x86";
+    } else {
+      arch = arch.toLowerCase(Locale.US);
+      if ("win32".equals(os) && "amd64".equals(arch)) {
+        arch = "x64";
+      }
+    }
+    logFine(Internal.class, "os.arch=" + arch);
+    return arch;
+  }
+
+  private static String getOs() {
+    String osname = System.getProperty("os.name");
+    String os;
+    if (osname == null) {
+      logWarn(Internal.class, "os.name is null");
+      os = "linux";
+    } else {
+      osname = osname.toLowerCase(Locale.US);
+      if (osname.startsWith("mac") || osname.startsWith("darwin") || osname.startsWith("os x")) {
+        os = "osx";
+      } else if (osname.startsWith("windows")) {
+        os = "win32";
+      } else {
+        os = "linux";
+      }
+    }
+    logFine(Internal.class, "os.name=" + osname + "; os=" + os);
+    return os;
   }
 
   private static String getDefaultLibPath() {
@@ -162,13 +196,19 @@ final class Internal {
     }
   }
 
-  private static Throwable tryLoadWithSuffix(String suffix, String arch, Throwable bestReason, RuntimeException loadedSignal, String defaultPath) {
+  private static Throwable tryLoadWithSuffix(String suffix, String os, String arch, Throwable bestReason, RuntimeException loadedSignal, String defaultPath) {
     Throwable t = bestReason;
-    t = tryLoad(BASE_LIBRARY_NAME + "w" + arch + suffix, t, loadedSignal, defaultPath);
-    if (arch.indexOf("64") > 0) {
-      t = tryLoad(BASE_LIBRARY_NAME + "wx86" + suffix, t, loadedSignal, defaultPath);
+    t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-" + arch + suffix, t, loadedSignal, defaultPath);
+    if (arch.equals("x86_64") || arch.equals("x64")) {
+      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-amd64" + suffix, t, loadedSignal, defaultPath);
+    } else if (arch.equals("powerpc")) {
+      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-ppc" + suffix, t, loadedSignal, defaultPath);
+    } else if (arch.equals("x86")) {
+      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-i386" + suffix, t, loadedSignal, defaultPath);
+    } else if (arch.equals("i386")) {
+      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-x86" + suffix, t, loadedSignal, defaultPath);
     }
-    t = tryLoad(BASE_LIBRARY_NAME + "w" + suffix, t, loadedSignal, defaultPath);
+    t = tryLoad(BASE_LIBRARY_NAME + "-" + os + suffix, t, loadedSignal, defaultPath);
     t = tryLoad(BASE_LIBRARY_NAME + suffix, t, loadedSignal, defaultPath);
     return t;
   }

@@ -9,7 +9,7 @@
       <maximumHeapSize value="128" />
       <maximumStackSize value="32" />
       <properties>
-        <property name="jdk.home" value="C:\Dev\jdk15" />
+        <property name="jdk.home" value="C:\Dev\jdk16u17" />
         <property name="wsdk.home" value="C:\Dev\wsdk60" />
         <property name="swig.home" value="C:\Dev\swigwin-1.3.32\" />
       </properties>
@@ -66,7 +66,19 @@
   <component name="CodeStyleSettingsManager">
     <option name="PER_PROJECT_SETTINGS">
       <value>
+        <option name="USE_SAME_INDENTS" value="true" />
         <option name="JAVA_INDENT_OPTIONS">
+          <value>
+            <option name="INDENT_SIZE" value="2" />
+            <option name="CONTINUATION_INDENT_SIZE" value="2" />
+            <option name="TAB_SIZE" value="8" />
+            <option name="USE_TAB_CHARACTER" value="false" />
+            <option name="SMART_TABS" value="false" />
+            <option name="LABEL_INDENT_SIZE" value="0" />
+            <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+          </value>
+        </option>
+        <option name="OTHER_INDENT_OPTIONS">
           <value>
             <option name="INDENT_SIZE" value="2" />
             <option name="CONTINUATION_INDENT_SIZE" value="2" />

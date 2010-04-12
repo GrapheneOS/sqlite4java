@@ -112,7 +112,7 @@
       <attribute name="outfile"/>
       <sequential>
         <delete file="@{outfile}"/>
-        <exec command="cmd /C echo @{arg} | cmd /V:ON /D /K &quot;${msenv}&quot; /${os.arch} /${buildtype} ${msenv.extra}"/>
+        <exec command="cmd /C echo @{arg} | cmd /V:ON /D /K &quot;${msenv}&quot; /${setenv.arch} /${buildtype} ${msenv.extra}"/>
         <condition property="execerr">
           <not>
             <available file="@{outfile}"/>
@@ -121,7 +121,7 @@
         <fail if="execerr" message="${execerr}"/>
       </sequential>
     </macrodef>
-    <exec command="cmd /C echo set | cmd /V:ON /D /K &quot;${msenv}&quot; /${os.arch} /${buildtype} ${msenv.extra}"/>
+    <exec command="cmd /C echo set | cmd /V:ON /D /K &quot;${msenv}&quot; /${setenv.arch} /${buildtype} ${msenv.extra}"/>
   </target>
 
   <target name="init.jdk">
@@ -179,7 +179,16 @@
   </target>
 
   <target name="dist" depends="lib.link, java.jar">
-    <property name="dist.suffix" value="w${os.arch}${dist.buildtype.marker}"/>
+    <condition property="lib.os.suffix" value="-${os}">
+      <not><isset property="lib.os.suffix"/></not>
+    </condition>
+    <condition property="lib.arch.suffix" value="-${os.arch}">
+      <not><isset property="lib.arch.suffix"/></not>
+    </condition>
+    <condition property="dist.buildtype.marker" value="">
+      <not><isset property="dist.buildtype.marker"/></not>
+    </condition>
+    <property name="dist.suffix" value="${lib.os.suffix}${lib.arch.suffix}${dist.buildtype.marker}"/>
     <mkdir dir="dist/"/>
     <copy todir="dist" file="build/${jarname}"/>
     <copy todir="dist" file="lib/javolution.jar"/>
