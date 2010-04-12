@@ -1,12 +1,6 @@
 package com.almworks.sqlite4java;
 
-import com.almworks.sqlite4java.SQLite;
-import com.almworks.sqlite4java.SQLiteConstants;
-import com.almworks.sqlite4java._SQLiteManual;
 import junit.framework.TestCase;
-import sqlite.SWIGTYPE_p_sqlite3;
-import sqlite.SWIGTYPE_p_sqlite3_stmt;
-import sqlite._SQLiteSwigged;
 
 import java.io.File;
 import java.io.PrintWriter;

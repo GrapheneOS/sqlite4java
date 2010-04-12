@@ -2,10 +2,6 @@ package com.almworks.sqlite4java;
 
 import javolution.util.FastMap;
 import javolution.util.FastTable;
-import sqlite.SWIGTYPE_p_sqlite3;
-import sqlite.SWIGTYPE_p_sqlite3_blob;
-import sqlite.SWIGTYPE_p_sqlite3_stmt;
-import sqlite._SQLiteSwigged;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +10,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
+
+import static com.almworks.sqlite4java.SQLiteConstants.*;
 
 /**
  * SQLiteConnection is a single connection to sqlite database. Most methods are thread-confined,
@@ -178,13 +176,13 @@ public final class SQLiteConnection {
    *                    be true
    */
   public SQLiteConnection open(boolean allowCreate) throws SQLiteException {
-    int flags = SQLiteConstants.Open.SQLITE_OPEN_READWRITE;
+    int flags = Open.SQLITE_OPEN_READWRITE;
     if (!allowCreate) {
       if (isMemoryDatabase()) {
-        throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "cannot open memory database without creation");
+        throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "cannot open memory database without creation");
       }
     } else {
-      flags |= SQLiteConstants.Open.SQLITE_OPEN_CREATE;
+      flags |= Open.SQLITE_OPEN_CREATE;
     }
     openX(flags);
     return this;
@@ -195,9 +193,9 @@ public final class SQLiteConnection {
    */
   public SQLiteConnection openReadonly() throws SQLiteException {
     if (isMemoryDatabase()) {
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "cannot open memory database in read-only mode");
+      throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "cannot open memory database in read-only mode");
     }
-    openX(SQLiteConstants.Open.SQLITE_OPEN_READONLY);
+    openX(Open.SQLITE_OPEN_READONLY);
     return this;
   }
 
@@ -377,7 +375,7 @@ public final class SQLiteConnection {
       stmt = mySQLiteManual.sqlite3_prepare_v2(handle, parts.toString());
       throwResult(mySQLiteManual.getLastReturnCode(), "prepare()", parts);
       if (stmt == null)
-        throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
+        throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
     } else {
       if (Internal.isFineLogging())
         Internal.logFine(this, "using cached stmt for [" + parts + "]");
@@ -403,7 +401,7 @@ public final class SQLiteConnection {
       } catch (Exception e) {
         // ignore
       }
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_NOT_OPENED, "connection disposed");
+      throw new SQLiteException(Wrapper.WRAPPER_NOT_OPENED, "connection disposed");
     }
     return statement;
   }
@@ -420,7 +418,7 @@ public final class SQLiteConnection {
     SWIGTYPE_p_sqlite3_blob blob = mySQLiteManual.sqlite3_blob_open(handle, dbname, table, column, rowid, writeAccess);
     throwResult(mySQLiteManual.getLastReturnCode(), "openBlob()", null);
     if (blob == null)
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "sqlite did not return blob");
+      throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "sqlite did not return blob");
     SQLiteBlob result = null;
     synchronized (myLock) {
       // the connection may close while openBlob in progress
@@ -439,7 +437,7 @@ public final class SQLiteConnection {
       } catch (Exception e) {
         // ignore
       }
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_NOT_OPENED, "connection disposed");
+      throw new SQLiteException(Wrapper.WRAPPER_NOT_OPENED, "connection disposed");
     }
     return result;
   }
@@ -596,14 +594,14 @@ public final class SQLiteConnection {
 
   private void softFinalize(SWIGTYPE_p_sqlite3_stmt handle, Object source) {
     int rc = _SQLiteSwigged.sqlite3_finalize(handle);
-    if (rc != SQLiteConstants.Result.SQLITE_OK) {
+    if (rc != Result.SQLITE_OK) {
       Internal.logWarn(this, "error [" + rc + "] finishing " + source);
     }
   }
 
   private void softClose(SWIGTYPE_p_sqlite3_blob handle, Object source) {
     int rc = _SQLiteSwigged.sqlite3_blob_close(handle);
-    if (rc != SQLiteConstants.Result.SQLITE_OK) {
+    if (rc != Result.SQLITE_OK) {
       Internal.logWarn(this, "error [" + rc + "] finishing " + source);
     }
   }
@@ -682,10 +680,10 @@ public final class SQLiteConnection {
   private SWIGTYPE_p_sqlite3 handle() throws SQLiteException {
     synchronized (myLock) {
       if (myDisposed)
-        throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_MISUSE, "connection is disposed");
+        throw new SQLiteException(Wrapper.WRAPPER_MISUSE, "connection is disposed");
       SWIGTYPE_p_sqlite3 handle = myHandle;
       if (handle == null)
-        throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_NOT_OPENED, null);
+        throw new SQLiteException(Wrapper.WRAPPER_NOT_OPENED, null);
       return handle;
     }
   }
@@ -712,9 +710,9 @@ public final class SQLiteConnection {
           Internal.log(Level.WARNING, this, "cannot get sqlite3_errmsg", e);
         }
       }
-      if (resultCode == SQLiteConstants.Result.SQLITE_BUSY || resultCode == SQLiteConstants.Result.SQLITE_IOERR_BLOCKED) {
+      if (resultCode == Result.SQLITE_BUSY || resultCode == Result.SQLITE_IOERR_BLOCKED) {
         throw new SQLiteBusyException(resultCode, message);
-      } else if (resultCode == SQLiteConstants.Result.SQLITE_INTERRUPT) {
+      } else if (resultCode == Result.SQLITE_INTERRUPT) {
         throw new SQLiteCancelledException(resultCode, message);
       } else {
         throw new SQLiteException(resultCode, message);
@@ -729,7 +727,7 @@ public final class SQLiteConnection {
     SWIGTYPE_p_sqlite3 handle;
     synchronized (myLock) {
       if (myDisposed) {
-        throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_MISUSE, "cannot reopen closed connection");
+        throw new SQLiteException(Wrapper.WRAPPER_MISUSE, "cannot reopen closed connection");
       }
       if (myConfinement == null) {
         myConfinement = Thread.currentThread();
@@ -749,7 +747,7 @@ public final class SQLiteConnection {
       Internal.logFine(this, "dbname [" + dbname + "]");
     handle = mySQLiteManual.sqlite3_open_v2(dbname, flags);
     int rc = mySQLiteManual.getLastReturnCode();
-    if (rc != SQLiteConstants.Result.SQLITE_OK) {
+    if (rc != Result.SQLITE_OK) {
       if (handle != null) {
         if (Internal.isFineLogging())
           Internal.logFine(this, "error on open (" + rc + "), closing handle");
@@ -763,7 +761,7 @@ public final class SQLiteConnection {
       throw new SQLiteException(rc, errorMessage);
     }
     if (handle == null) {
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "sqlite didn't return db handle");
+      throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "sqlite didn't return db handle");
     }
     synchronized (myLock) {
       myHandle = handle;
@@ -774,7 +772,7 @@ public final class SQLiteConnection {
 
   private void configureConnection(SWIGTYPE_p_sqlite3 handle) {
     int rc = _SQLiteSwigged.sqlite3_extended_result_codes(handle, 1);
-    if (rc != SQLiteConstants.Result.SQLITE_OK) {
+    if (rc != Result.SQLITE_OK) {
       Internal.logWarn(this, "cannot enable extended result codes [" + rc + "]");
     }
   }
@@ -796,7 +794,7 @@ public final class SQLiteConnection {
     Thread thread = Thread.currentThread();
     if (thread != confinement) {
       String message = this + " confined(" + confinement + ") used(" + thread + ")";
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_CONFINEMENT_VIOLATED, message);
+      throw new SQLiteException(Wrapper.WRAPPER_CONFINEMENT_VIOLATED, message);
     }
   }
 

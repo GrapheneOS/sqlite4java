@@ -1,6 +1,6 @@
 package com.almworks.sqlite4java;
 
-import sqlite._SQLiteSwigged;
+import static com.almworks.sqlite4java.SQLiteConstants.Wrapper;
 
 public final class SQLite {
   private static boolean preferDebugLibrary = "true".equalsIgnoreCase(System.getProperty("sqlite.prefer.debug.lib"));
@@ -22,7 +22,7 @@ public final class SQLite {
     if (!libraryLoaded) {
       Throwable t = Internal.loadLibraryX();
       if (t != null)
-        throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_CANNOT_LOAD_LIBRARY, "cannot load library: " + t, t);
+        throw new SQLiteException(Wrapper.WRAPPER_CANNOT_LOAD_LIBRARY, "cannot load library: " + t, t);
       libraryLoaded = true;
       int threadSafe = _SQLiteSwigged.sqlite3_threadsafe();
       if (threadSafe == 0) {

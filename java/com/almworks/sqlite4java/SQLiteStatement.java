@@ -1,16 +1,14 @@
 package com.almworks.sqlite4java;
 
 import javolution.util.FastTable;
-import sqlite.SWIGTYPE_p_sqlite3_stmt;
-import sqlite._SQLiteSwigged;
-
-import static com.almworks.sqlite4java.SQLiteConstants.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+
+import static com.almworks.sqlite4java.SQLiteConstants.*;
 
 /**
  * This class encapsulates sqlite statement. It is linked to the opening connection through controller, and confined to

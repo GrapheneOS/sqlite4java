@@ -1,11 +1,9 @@
 package com.almworks.sqlite4java;
 
-import sqlite.SWIGTYPE_p_sqlite3_stmt;
+import java.io.*;
 
 import static com.almworks.sqlite4java.SQLiteConstants.Open;
 import static com.almworks.sqlite4java.SQLiteConstants.Result;
-
-import java.io.*;
 
 public class SQLiteBasicTests extends SQLiteTestFixture {
   private static final int RW = Open.SQLITE_OPEN_READWRITE | Open.SQLITE_OPEN_CREATE;

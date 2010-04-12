@@ -1,8 +1,5 @@
 package com.almworks.sqlite4java;
 
-import sqlite.SWIGTYPE_p_sqlite3_blob;
-import sqlite._SQLiteSwigged;
-
 /**
  * This class encapsulates blob handle which is open for direct reading / writing
  */

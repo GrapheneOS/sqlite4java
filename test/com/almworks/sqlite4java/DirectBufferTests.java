@@ -1,7 +1,5 @@
 package com.almworks.sqlite4java;
 
-import sqlite._SQLiteSwigged;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

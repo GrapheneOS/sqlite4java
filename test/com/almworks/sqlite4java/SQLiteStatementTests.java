@@ -1,7 +1,5 @@
 package com.almworks.sqlite4java;
 
-import sqlite.SWIGTYPE_p_sqlite3_stmt;
-
 public class SQLiteStatementTests extends SQLiteConnectionFixture {
   public void testPrepareBad() throws SQLiteException {
     SQLiteConnection connection = fileDb();

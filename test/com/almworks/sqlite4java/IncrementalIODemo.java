@@ -1,10 +1,5 @@
 package com.almworks.sqlite4java;
 
-import com.almworks.sqlite4java.SQLiteBlob;
-import com.almworks.sqlite4java.SQLiteConnection;
-import com.almworks.sqlite4java.SQLiteException;
-import com.almworks.sqlite4java.SQLiteStatement;
-
 import java.io.File;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;

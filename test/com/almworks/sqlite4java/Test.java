@@ -1,10 +1,5 @@
 package com.almworks.sqlite4java;
 
-import com.almworks.sqlite4java._SQLiteManual;
-import sqlite.SWIGTYPE_p_sqlite3;
-import sqlite.SWIGTYPE_p_sqlite3_stmt;
-import sqlite._SQLiteSwigged;
-
 import static com.almworks.sqlite4java.SQLiteConstants.Open;
 
 public class Test {

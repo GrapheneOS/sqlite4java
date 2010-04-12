@@ -6,12 +6,12 @@
 extern "C" {
 #endif
 
-JNIEXPORT jstring JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1version(JNIEnv *jenv, jclass jcls) {
+JNIEXPORT jstring JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1version(JNIEnv *jenv, jclass jcls) {
   jstring result = (*jenv)->NewStringUTF(jenv, WRAPPER_VERSION);
   return result;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
   jstring jfilename, jlongArray jresult, jint jflags)
 {
   const char *filename = 0;
@@ -41,7 +41,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *j
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jobjectArray joutError)
 {
   sqlite3* db = 0;
@@ -81,7 +81,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1exec(JNIEnv *jenv,
 }
 
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jlongArray jresult)
 {
   sqlite3* db = 0;
@@ -112,7 +112,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv
 }
 
 //
-//JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1prepare_1v2_1optimized(JNIEnv *jenv, jclass jcls,
+//JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1prepare_1v2_1optimized(JNIEnv *jenv, jclass jcls,
 //  jlong jdb, jbyteArray jsql, jint jsqlLength, jlongArray jresult)
 //{
 //  sqlite3* db = 0;
@@ -147,7 +147,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv
 //}
 //
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jstring jvalue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -176,7 +176,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv 
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1bind_1blob(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1bind_1blob(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jbyteArray jvalue, jint joffset, jint jlength)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -204,7 +204,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1bind_1blob(JNIEnv 
 }
 
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1column_1text(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1column_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jcolumn, jobjectArray joutValue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -233,7 +233,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1column_1text(JNIEn
   return SQLITE_OK;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1column_1blob(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1column_1blob(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jcolumn, jobjectArray joutValue)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -269,7 +269,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1column_1blob(JNIEn
 }
 
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1open(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1blob_1open(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jdbname, jstring jtable, jstring jcolumn, jlong jrowid, jboolean jwriteAccess, jlongArray jresult)
 {
   sqlite3* db = 0;
@@ -304,7 +304,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1open(JNIEnv 
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1read(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1blob_1read(JNIEnv *jenv, jclass jcls,
   jlong jblob, jint jblobOffset, jbyteArray jbuffer, jint jbufferOffset, jint jlength)
 {
   int length = 0;
@@ -331,7 +331,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1read(JNIEnv 
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1write(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1blob_1write(JNIEnv *jenv, jclass jcls,
   jlong jblob, jint jblobOffset, jbyteArray jbuffer, jint jbufferOffset, jint jlength)
 {
   int length = 0;
@@ -364,7 +364,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_sqlite3_1blob_1write(JNIEnv
 //  char data[];
 //} wrapper_buffer;
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1alloc(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1alloc(JNIEnv *jenv, jclass jcls,
   jint size, jlongArray ppBuf, jobjectArray ppByteBuffer)
 {
   void *ptr = 0;
@@ -400,7 +400,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1alloc(JNIEnv *jenv
   return SQLITE_OK;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1free(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1free(JNIEnv *jenv, jclass jcls,
   jlong jbuffer)
 {
   unsigned char *ptr = *(unsigned char**)&jbuffer;
@@ -419,7 +419,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1free(JNIEnv *jenv,
 
 void bind_release(void *ptr);
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1bind_1buffer(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1bind_1buffer(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jlong jbuffer, jint jlength)
 {
   sqlite3_stmt *stmt = *(sqlite3_stmt**)&jstmt;
@@ -454,7 +454,7 @@ void bind_release(void *ptr) {
   }
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1column_1buffer(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1column_1buffer(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jcolumn, jobjectArray joutBuffer)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
@@ -487,7 +487,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1column_1buffer(JNI
 
 int progress_handler(void *ptr);
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_install_1progress_1handler(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_install_1progress_1handler(JNIEnv *jenv, jclass jcls,
   jlong jdb, jint steps, jlongArray ppBuf, jobjectArray ppByteBuffer)
 {
   sqlite3* db = 0;
@@ -523,7 +523,7 @@ JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_install_1progress_1handler(
   return SQLITE_OK;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_uninstall_1progress_1handler(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_uninstall_1progress_1handler(JNIEnv *jenv, jclass jcls,
   jlong jdb, jlong jptr)
 {
   sqlite3* db = 0;
@@ -552,7 +552,7 @@ int progress_handler(void *ptr) {
   return 0;
 }
 
-JNIEXPORT jint JNICALL Java_sqlite__1SQLiteManualJNI_wrapper_1load_1ints(JNIEnv *jenv, jclass jcls,
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1load_1ints(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint column, jintArray ppBuf, jint offset, jint count, jintArray ppCount)
 {
   sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;

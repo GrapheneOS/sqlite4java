@@ -1,9 +1,5 @@
 package com.almworks.sqlite4java;
 
-import sqlite.SWIGTYPE_p_sqlite3;
-import sqlite.SWIGTYPE_p_sqlite3_blob;
-import sqlite.SWIGTYPE_p_sqlite3_stmt;
-
 import java.nio.ByteBuffer;
 
 final class _SQLiteManual {

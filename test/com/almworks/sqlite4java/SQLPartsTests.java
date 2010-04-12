@@ -1,6 +1,5 @@
 package com.almworks.sqlite4java;
 
-import com.almworks.sqlite4java.SQLParts;
 import junit.framework.TestCase;
 
 public class SQLPartsTests extends TestCase {

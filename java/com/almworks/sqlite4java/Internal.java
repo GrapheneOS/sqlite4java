@@ -1,17 +1,15 @@
 package com.almworks.sqlite4java;
 
-import sqlite._SQLiteSwigged;
-
 import java.io.File;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 final class Internal {
-  private static final Logger logger = Logger.getLogger("sqlite");
+  private static final Logger logger = Logger.getLogger("com.almworks.sqlite4java");
   private static final String LOG_PREFIX = "[sqlite] ";
 
-  private static final String BASE_LIBRARY_NAME = "sqlite";
+  private static final String BASE_LIBRARY_NAME = "sqlite4java";
   private static final String[] DEBUG_SUFFIXES = {"d", ""};
   private static final String[] RELEASE_SUFFIXES = {"", "d"};
 
