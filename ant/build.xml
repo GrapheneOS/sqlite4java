@@ -1,7 +1,7 @@
 <project basedir=".." name="sqlite4java" default="all">
   <property file="ant/global.properties"/>
 
-  <target name="all" depends="dist, test, srczip, javadoc"/>
+  <target name="all" depends="dist, test, srczip, javadoc, finalzip"/>
 
   <presetdef name="exec">
     <exec failifexecutionfails="true" failonerror="true"/>
@@ -45,7 +45,15 @@
 
   <target name="buildtype.check" depends="debug"/>
 
-  <target name="props" depends="os.check, buildtype.check">
+  <target name="version.prop">
+    <mkdir dir="build/ant"/>
+    <javac classpath="lib/junit.jar" srcdir="ant" destdir="build/ant" debug="on" includes="TaskSvnVersion.java"/>
+    <taskdef name="svnVersion" classname="TaskSvnVersion" classpath="build/ant"/>
+    <svnVersion property="version" dir="."/>
+    <echo message="version=${version}"/>
+  </target>
+
+  <target name="props" depends="os.check, buildtype.check, version.prop">
     <echo message="os=${os}"/>
     <echo message="arch=${os.arch}"/>
     <echo message="buildtype=${buildtype}"/>
@@ -175,7 +183,18 @@
   </target>
 
   <target name="java.jar" depends="java.compile" unless="jar.uptodate">
-    <jar destfile="build/${jarname}" basedir="build/classes"/>
+    <jar destfile="build/${jarname}" basedir="build/classes">
+      <manifest>
+        <attribute name="Main-Class" value="com.almworks.sqlite4java.SQLite"/>
+        <attribute name="Specification-Title" value="sqlite4java"/>
+        <attribute name="Specification-Version" value="${version}"/>
+        <attribute name="Specification-Vendor" value="ALM Works"/>
+        <attribute name="Implementation-Title" value="sqlite4java"/>
+        <attribute name="Implementation-URL" value="http://code.google.com/p/sqlite4java"/>
+        <attribute name="Implementation-Vendor" value="ALM Works"/>
+        <attribute name="Implementation-Version" value="${version}"/>
+      </manifest>
+    </jar>
   </target>
 
   <target name="dist" depends="lib.link, java.jar">
@@ -233,11 +252,23 @@
   <target name="javadoc" depends="dist" unless="os.windows">
     <mkdir dir="build/javadoc"/>
     <javadoc sourcepath="build/java" destdir="build/javadoc" access="public" packagenames="sqlite"/>
-    <zip destfile="dist/${javadoczipname}" basedir="build/javadoc"/>
+    <zip destfile="dist/sqlite4java-${version}-docs.zip" basedir="build/javadoc"/>
 <!--
     <copy todir="dist">
       <fileset dir="build" includes="javadoc/**/*"/>
     </copy>
 -->
+  </target>
+
+  <target name="finalzip" depends="dist">
+    <mkdir dir="build/sqlite4java${dist.suffix}-${version}"/>
+    <copy todir="build/sqlite4java${dist.suffix}-${version}">
+      <fileset dir="dist">
+        <include name="*.jar"/>
+        <include name="*.zip"/>
+        <include name="*${dist.suffix}*"/>
+      </fileset>
+    </copy>
+    <zip destfile="dist/sqlite4java${dist.suffix}-${version}.zip" basedir="build" includes="sqlite4java${dist.suffix}-${version}/*"/>
   </target>
 </project>

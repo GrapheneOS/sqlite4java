@@ -1,4 +1,5 @@
 * text=auto !eol
+ant/TaskSvnVersion.java -text
 ant/build.xml -text
 ant/debug.properties -text
 ant/default.properties -text

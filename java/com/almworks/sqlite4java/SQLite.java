@@ -16,11 +16,20 @@
 
 package com.almworks.sqlite4java;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import static com.almworks.sqlite4java.SQLiteConstants.Wrapper;
 
 public final class SQLite {
   private static boolean preferDebugLibrary = "true".equalsIgnoreCase(System.getProperty("sqlite.prefer.debug.lib"));
   private static boolean libraryLoaded = false;
+  private static String jarVersion = null;
 
   public static synchronized void setPreferDebugLibrary(boolean debug) {
     if (libraryLoaded) {
@@ -95,6 +104,60 @@ public final class SQLite {
     _SQLiteSwigged.sqlite3_enable_shared_cache(enabled ? 1 : 0);
   }
 
+  public static synchronized String getJarVersion() {
+    if (jarVersion == null) {
+      String name = SQLite.class.getName().replace('.', '/') + ".class";
+      URL url = SQLite.class.getClassLoader().getResource(name);
+      if (url == null)
+        return null;
+      String s = url.toString();
+      if (!s.startsWith("jar:"))
+        return null;
+      int k = s.lastIndexOf('!');
+      if (k < 0)
+        return null;
+      s = s.substring(0, k + 1) + "/META-INF/MANIFEST.MF";
+      InputStream input = null;
+      Manifest manifest = null;
+      try {
+        input = new URL(s).openStream();
+        manifest = new Manifest(input);
+      } catch (IOException e) {
+        Internal.logWarn(SQLite.class, "error reading jar manifest" + e);
+      } finally {
+        try {
+          if (input != null) input.close();
+        } catch (IOException e) { /**/}
+      }
+      if (manifest != null) {
+        Attributes attr = manifest.getMainAttributes();
+        jarVersion = attr.getValue("Implementation-Version");
+      }
+    }
+    if (jarVersion == null) {
+      Internal.logWarn(SQLite.class, "unknown jar version");
+    }
+    return jarVersion;
+  }
+
   private SQLite() {
+  }
+
+  public static void main(String[] args) {
+    Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.SEVERE);
+    String v = getJarVersion();
+    if (v == null) v = "(UNKNOWN VERSION)";
+    System.out.println("sqlite4java " + v);
+    Throwable t = libraryLoaded ? null : Internal.loadLibraryX();
+    if (t != null) {
+      System.out.println("Error: cannot load SQLite");
+      t.printStackTrace();
+    } else {
+      try {
+        System.out.println("SQLite " + getSQLiteVersion());
+      } catch (SQLiteException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }
