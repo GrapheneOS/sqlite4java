@@ -1,274 +1,29 @@
-<project basedir=".." name="sqlite4java" default="all">
-  <property file="ant/global.properties"/>
+<project basedir="." name="gant-helper">
+  <property environment="env"/>
+  <property name="gantHome" value="${env.GANT_HOME}"/>
+  <property name="groovyHome" value="${env.GROOVY_HOME}"/>
 
-  <target name="all" depends="dist, test, srczip, javadoc, finalzip"/>
+  <taskdef name="gant" classname="org.codehaus.gant.ant.Gant">
+    <classpath>
+      <fileset dir="${gantHome}/lib" includes="*.jar"/>
+      <fileset dir="${groovyHome}/lib" includes="*.jar"/>
+      <pathelement location="."/>
+    </classpath>
+  </taskdef>
 
-  <presetdef name="exec">
-    <exec failifexecutionfails="true" failonerror="true"/>
-  </presetdef>
-  <presetdef name="copy">
-    <copy overwrite="true" failonerror="true"/>
-  </presetdef>
-
-  <target name="os">
-    <echo message="os.name=${os.name}"/>
-    <echo message="os.arch=${os.arch}"/>
-    <echo message="os.version=${os.version}"/>
-    <condition property="os" value="linux">
-      <os family="unix" name="Linux"/>
-    </condition>
-    <condition property="os" value="mac">
-      <os family="mac"/>
-    </condition>
-    <condition property="os" value="windows">
-      <os family="windows"/>
-    </condition>
-    <condition property="os.undefined">
-      <not>
-        <isset property="os"/>
-      </not>
-    </condition>
+  <target name="integrate">
+    <gant file="build.gant" target="integrate"/>
   </target>
 
-  <target name="os.check" depends="os" if="os.undefined">
-    <fail message="Unrecognized operating system"/>
+  <target name="all">
+    <gant file="build.gant" target="all"/>
   </target>
 
-  <target name="release" depends="clean">
-    <fail if="buildtype" message="buildtype is already set to ${buildtype}"/>
-    <property name="buildtype" value="release"/>
+  <target name="test">
+    <gant file="build.gant" target="test"/>
   </target>
 
-  <target name="debug">
-    <property name="buildtype" value="debug"/>
-  </target>
-
-  <target name="buildtype.check" depends="debug"/>
-
-  <target name="version.prop">
-    <mkdir dir="build/ant"/>
-    <javac classpath="lib/junit.jar" srcdir="ant" destdir="build/ant" debug="on" includes="TaskSvnVersion.java"/>
-    <taskdef name="svnVersion" classname="TaskSvnVersion" classpath="build/ant"/>
-    <svnVersion property="version" dir="."/>
-    <echo message="version=${version}"/>
-  </target>
-
-  <target name="props" depends="os.check, buildtype.check, version.prop">
-    <echo message="os=${os}"/>
-    <echo message="arch=${os.arch}"/>
-    <echo message="buildtype=${buildtype}"/>
-    <macrodef name="loadprop">
-      <attribute name="file"/>
-      <sequential>
-        <available file="@{file}" property="available.@{file}" value="++++++++++++++ loading: "/>
-        <property name="available.@{file}" value="                        "/>
-        <echo message="${available.@{file}} @{file}"/>
-        <property file="@{file}"/>
-      </sequential>
-    </macrodef>
-    <loadprop file="ant/${os}-${os.arch}-${buildtype}.properties"/>
-    <loadprop file="ant/${os}-${os.arch}.properties"/>
-    <loadprop file="ant/${os}-${buildtype}.properties"/>
-    <loadprop file="ant/${os}.properties"/>
-    <loadprop file="ant/${buildtype}.properties"/>
-    <loadprop file="ant/default.properties"/>
-  </target>
-
-  <target name="clean">
-    <delete dir="build"/>
-    <!--<delete dir="dist"/>-->
-  </target>
-
-  <target name="uptodate">
-    <uptodate property="lib.uptodate" targetfile="build/${lib}">
-      <srcfiles dir="swig"/>
-      <srcfiles dir="build" includes="**/*.c"/>
-      <srcfiles dir="build" includes="**/*.o"/>
-      <srcfiles dir="native"/>
-    </uptodate>
-    <uptodate property="sqlite.uptodate" targetfile="build/sqlite3.o">
-      <srcfiles dir="sqlite"/>
-    </uptodate>
-    <uptodate property="jar.uptodate" targetfile="build/${jarname}">
-      <srcfiles dir="swig"/>
-      <srcfiles dir="build/java"/>
-      <srcfiles dir="build/classes"/>
-      <srcfiles dir="java"/>
-    </uptodate>
-    <condition property="all.uptodate">
-      <and>
-        <isset property="lib.uptodate"/>
-        <isset property="jar.uptodate"/>
-      </and>
-    </condition>
-  </target>
-
-  <target name="init" depends="props, uptodate">
-    <echo message="buildtype=${buildtype}"/>
-    <mkdir dir="build"/>
-    <mkdir dir="build/java/${java.package.dir}"/>
-    <mkdir dir="build/native"/>
-    <mkdir dir="build/classes"/>
-    <mkdir dir="build/test"/>
-  </target>
-
-  <target name="init.windows" if="os.windows">
-    <fail message="no wsdk.home" unless="wsdk.home"/>
-    <echo message="wsdk.home=${wsdk.home}"/>
-    <macrodef name="wsdk">
-      <attribute name="arg"/>
-      <attribute name="outfile"/>
-      <sequential>
-        <delete file="@{outfile}"/>
-        <exec command="cmd /C echo @{arg} | cmd /V:ON /D /K &quot;${msenv}&quot; /${setenv.arch} /${buildtype} ${msenv.extra}"/>
-        <condition property="execerr">
-          <not>
-            <available file="@{outfile}"/>
-          </not>
-        </condition>
-        <fail if="execerr" message="${execerr}"/>
-      </sequential>
-    </macrodef>
-    <exec command="cmd /C echo set | cmd /V:ON /D /K &quot;${msenv}&quot; /${setenv.arch} /${buildtype} ${msenv.extra}"/>
-  </target>
-
-  <target name="init.jdk">
-    <fail message="no jdk.home" unless="jdk.home"/>
-    <echo message="jdk.home=${jdk.home}"/>
-  </target>
-
-  <target name="lib.swig" depends="init" unless="all.uptodate">
-    <fail message="no swig.home" unless="swig.home"/>
-    <exec command="${swig} -java -package ${java.package}
-      -outdir build/java/${java.package.dir} -o build/native/sqlite_wrap.c swig/sqlite.i"/>
-  </target>
-
-  <target name="lib.compile.unix" if="os.unix" unless="sqlite.uptodate">
-    <exec command="${cc} ${cc.args} ${cc.sqlite} -c sqlite/sqlite3.c -o build/sqlite3.o"/>
-  </target>
-
-  <target name="lib.compile.windows" if="os.windows" unless="sqlite.uptodate">
-    <wsdk arg="${cl} ${cl.args} ${cl.sqlite} -Fobuild/sqlite3.o sqlite/sqlite3.c" outfile="build/sqlite3.o"/>
-  </target>
-
-  <target name="lib.compile" depends="init, init.jdk, init.windows, lib.compile.unix, lib.compile.windows"/>
-
-  <target name="lib.wrap.compile.unix" if="os.unix" unless="lib.uptodate">
-    <exec command="${cc} ${cc.args} ${cc.paranoid} -c build/native/sqlite_wrap.c -o build/sqlite_wrap.o"/>
-    <exec command="${cc} ${cc.args} ${cc.paranoid} -c native/sqlite3_wrap_manual.c -o build/sqlite3_wrap_manual.o"/>
-  </target>
-
-  <target name="lib.wrap.compile.windows" if="os.windows" unless="lib.uptodate">
-    <wsdk arg="${cl} ${cl.args} ${cl.paranoid} -Fobuild/sqlite_wrap.o build/native/sqlite_wrap.c" outfile="build/sqlite_wrap.o"/>
-    <wsdk arg="${cl} ${cl.args} ${cl.paranoid} -Fobuild/sqlite3_wrap_manual.o native/sqlite3_wrap_manual.c" outfile="build/sqlite3_wrap_manual.o"/>
-  </target>
-
-  <target name="lib.wrap.compile" depends="init, init.jdk, init.windows, lib.swig, lib.wrap.compile.unix, lib.wrap.compile.windows" unless="lib.uptodate"/>
-
-  <target name="lib.link.unix" if="os.unix" unless="lib.uptodate">
-    <exec command="${cc} ${cc.args} ${cc.link} -o build/${lib}
-      build/sqlite3.o build/sqlite_wrap.o build/sqlite3_wrap_manual.o"/>
-  </target>
-  <target name="lib.link.windows" if="os.windows" unless="lib.uptodate">
-    <wsdk arg="${link} ${link.args} /OUT:build/${lib} build/sqlite3.o build/sqlite_wrap.o build/sqlite3_wrap_manual.o" outfile="build/${lib}"/>
-  </target>
-
-  <target name="lib.link" depends="lib.compile, lib.wrap.compile, lib.link.unix, lib.link.windows" unless="lib.uptodate"/>
-
-  <target name="java.compile" depends="lib.swig" unless="jar.uptodate">
-    <copy todir="build/java" flatten="false">
-      <fileset dir="java"/>
-    </copy>
-    <javac srcdir="build/java" destdir="build/classes" debug="on" classpath="lib/javolution.jar"/>
-  </target>
-
-  <target name="java.jar" depends="java.compile" unless="jar.uptodate">
-    <jar destfile="build/${jarname}" basedir="build/classes">
-      <manifest>
-        <attribute name="Main-Class" value="com.almworks.sqlite4java.SQLite"/>
-        <attribute name="Specification-Title" value="sqlite4java"/>
-        <attribute name="Specification-Version" value="${version}"/>
-        <attribute name="Specification-Vendor" value="ALM Works"/>
-        <attribute name="Implementation-Title" value="sqlite4java"/>
-        <attribute name="Implementation-URL" value="http://code.google.com/p/sqlite4java"/>
-        <attribute name="Implementation-Vendor" value="ALM Works"/>
-        <attribute name="Implementation-Version" value="${version}"/>
-      </manifest>
-    </jar>
-  </target>
-
-  <target name="dist" depends="lib.link, java.jar">
-    <condition property="lib.os.suffix" value="-${os}">
-      <not><isset property="lib.os.suffix"/></not>
-    </condition>
-    <condition property="lib.arch.suffix" value="-${os.arch}">
-      <not><isset property="lib.arch.suffix"/></not>
-    </condition>
-    <condition property="dist.buildtype.marker" value="">
-      <not><isset property="dist.buildtype.marker"/></not>
-    </condition>
-    <property name="dist.suffix" value="${lib.os.suffix}${lib.arch.suffix}${dist.buildtype.marker}"/>
-    <mkdir dir="dist/"/>
-    <copy todir="dist" file="build/${jarname}"/>
-    <copy todir="dist" file="lib/javolution.jar"/>
-    <copy todir="dist">
-      <fileset dir="build" includes="${lib}"/>
-      <mapper type="regexp" from="^(.*)${libname}(.*)$$" to="\1${libname}${dist.suffix}\2"/>
-    </copy>
-  </target>
-
-  <target name="test" depends="dist">
-    <javac srcdir="test" destdir="build/test" debug="on">
-      <classpath>
-        <pathelement location="build/${jarname}"/>
-        <pathelement location="lib/junit.jar"/>
-        <pathelement location="lib/javolution.jar"/>
-      </classpath>
-    </javac>
-    <mkdir dir="build/testrun"/>
-    <junit fork="yes" printsummary="true" haltonfailure="true" showoutput="true">
-      <formatter type="plain"/>
-      <!--<jvmarg value="-verbose:jni"/>-->
-      <jvmarg value="-Djava.awt.headless=true"/>
-      <jvmarg value="-ea"/>
-      <jvmarg value="-Djava.library.path=${basedir}/dist"/>
-      <classpath>
-        <pathelement location="build/test"/>
-        <pathelement location="dist/${jarname}"/>
-        <pathelement location="lib/junit.jar"/>
-        <pathelement location="lib/javolution.jar"/>
-      </classpath>
-      <batchtest todir="build/testrun">
-        <fileset dir="test" includes="**/*Tests.java"/>
-      </batchtest>
-    </junit>
-  </target>
-
-  <target name="srczip" depends="dist">
-    <delete file="dist/${srczipname}"/>
-    <zip destfile="dist/${srczipname}" basedir="build/java"/>
-  </target>
-
-  <target name="javadoc" depends="dist" unless="os.windows">
-    <mkdir dir="build/javadoc"/>
-    <javadoc sourcepath="build/java" destdir="build/javadoc" access="public" packagenames="sqlite"/>
-    <zip destfile="dist/sqlite4java-${version}-docs.zip" basedir="build/javadoc"/>
-<!--
-    <copy todir="dist">
-      <fileset dir="build" includes="javadoc/**/*"/>
-    </copy>
--->
-  </target>
-
-  <target name="finalzip" depends="dist">
-    <mkdir dir="build/sqlite4java${dist.suffix}-${version}"/>
-    <copy todir="build/sqlite4java${dist.suffix}-${version}">
-      <fileset dir="dist">
-        <include name="*.jar"/>
-        <include name="*.zip"/>
-        <include name="*${dist.suffix}*"/>
-      </fileset>
-    </copy>
-    <zip destfile="dist/sqlite4java${dist.suffix}-${version}.zip" basedir="build" includes="sqlite4java${dist.suffix}-${version}/*"/>
+  <target name="dist">
+    <gant file="build.gant" target="dist"/>
   </target>
 </project>
