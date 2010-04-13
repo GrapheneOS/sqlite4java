@@ -28,13 +28,14 @@ ant.property(file: "global.properties")
 final String mod = rel('..')
 final String build = rel("../build")
 final String buildClasses = "$build/classes"
-final String javolution = rel('../lib/javolution/javolution.jar')
-final String junit = rel('../lib/junit/junit.jar')
+final String javolution = rel('../lib/javolution.jar')
+final String junit = rel('../lib/junit.jar')
 
 String os = "unknown"
 final buildtypes = ["debug", "release"]
 final platforms = []
-final libname = { String platform, String buildtype -> antProp('libname') + "-$platform" + ("debug".equals(buildtype) ? "-d" : "") }
+
+final libname = { String platform, String buildtype -> antProp('lib.prefix') + antProp('libname') + "-$platform" + ("debug".equals(buildtype) ? "-d" : "") + antProp('lib.suffix') }
 
 target('debug': 'build only debug binaries') {
   buildtypes.remove("release")
@@ -73,17 +74,23 @@ target(name: 'init') {
     os = "linux"
   }
 
-  def info = "svn info .".execute().text
+  def info = "svn info $mod".execute().text
   def m = info =~ /Revision: (\d+)/
   if (!m) { ant.echo(message: "WARNING: no version"); }
   else {
     version = m[0][1];
-    def status = "svn status .".execute().text
-    if (status ==~ /^[^\?]/) {
+    def status = "svn status $mod".execute().text
+    System.err.println("STATUS: " + status)
+    if (status =~ /(?m)^[^\?]/) {
       ant.echo(message: "WARNING: dirty build")
       version += "+";
+    } else {
+      def mmm = status =~ /^(.*)$/;
+      System.err.println("d: " + mmm[0][1])
+
     }
   }
+  ant.echo(message: "version=" + version)
 
   ant.echo(message: "os=${os}")
   ant.echo(message: "arch=${antProp('os.arch')}")
@@ -118,7 +125,7 @@ target(name: 'uptodate') {
   depends(['init'])
   buildtypes.each { String buildtype ->
     platforms.each { String platform ->
-      ant.uptodate(property: "lib.uptodate.$buildtype.$platform", targetfile: build + "/lib.$buildtype.$platform/" + antProp('lib')) {
+      ant.uptodate(property: "lib.uptodate.$buildtype.$platform", targetfile: build + "/lib.$buildtype.$platform/" + libname(platform, buildtype)) {
         srcfiles(dir: "$mod/swig")
         srcfiles(dir: "$build", includes: "**/*.c")
         srcfiles(dir: "$build/cc.$buildtype.$platform", includes: "*.o")
@@ -199,11 +206,11 @@ target(name: 'lib.link') {
       String cc = "$build/cc.$buildtype.$platform"
       if (os == "windows") {
         def arch = antProp("arch.$platform")
-        wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${antProp('lib')} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o",
-          "$out/${antProp('lib')}", arch, buildtype)
+        wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o",
+          "$out/${libname(platform, buildtype)}", arch, buildtype)
       } else {
         def clargs = antProp("${buildtype}.cc.args");
-        ant.exec(dir: mod, command: "${antProp('cc')} $clargs ${antProp('cc.link')} -o $out/${antProp('lib')} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o")
+        ant.exec(dir: mod, command: "${antProp('cc')} $clargs ${antProp('cc.link')} -o $out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o")
       }
     }
   }
@@ -218,7 +225,7 @@ target(name: 'lib') {
     }
   }
   if (!changes) return
-  depends(['lib.compile', 'lib.wrap.compile', 'lib.link'])
+  depends(['lib.compile', 'lib.link'])
 }
 
 target(name: 'java.compile') {
@@ -253,13 +260,12 @@ target(name: 'java.jar') {
 
 target('dist': 'create distributable artifacts') {
   depends(['lib', 'java.jar'])
-  String distSuffix = "w" + antProp('os.arch') + antProp('dist.buildtype.marker')
   ant.mkdir(dir: "$build/dist")
   ant.copy(todir: "$build/dist", file: "$build/jar/${antProp('jarname')}")
   buildtypes.each { String buildtype ->
     platforms.each { String platform ->
       def libn = libname(platform, buildtype);
-      ant.copy(tofile: "$build/dist/$libn", file: "$build/lib.$buildtype.$platform/${antProp('lib')}")
+      ant.copy(tofile: "$build/dist/$libn", file: "$build/lib.$buildtype.$platform/$libn")
     }
   }
 }

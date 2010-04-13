@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -144,7 +146,16 @@ public final class SQLite {
   }
 
   public static void main(String[] args) {
-    Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.SEVERE);
+    if (args.length > 0 && "-d".equals(args[0])) {
+      // debug
+      Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.FINE);
+      Handler[] handlers = Logger.getLogger("").getHandlers();
+      for (Handler handler : handlers) {
+        if (handler instanceof ConsoleHandler) handler.setLevel(Level.FINE);
+      }
+    } else {
+      Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.SEVERE);
+    }
     String v = getJarVersion();
     if (v == null) v = "(UNKNOWN VERSION)";
     System.out.println("sqlite4java " + v);

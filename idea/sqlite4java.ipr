@@ -232,6 +232,9 @@
   <component name="EntryPointsManager">
     <entry_points version="2.0" />
   </component>
+  <component name="GantSettings">
+    <option name="SDK_HOME" value="C:/Dev/gant-1.6.1" />
+  </component>
   <component name="IdProvider" IDEtalkID="9002BA8BC3541C632E0E7EEB5FDAFAC5" />
   <component name="JavadocGenerationManager">
     <option name="OUTPUT_DIRECTORY" />
