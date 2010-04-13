@@ -1,18 +1,20 @@
+import java.nio.channels.FileChannel
+
 /*
- * Copyright 2010 ALM Works Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright 2010 ALM Works Ltd
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
 final String baseDir = {
   String v = ant.project.baseDir.getCanonicalPath().replace('\\', '/');
@@ -50,16 +52,35 @@ final checkProp = {
   }
 }
 
-String version="0"
+final collectFiles = { List names ->
+  def r = [];
+  names.each { String s ->
+    def f = new File(s);
+    if (!f.isDirectory()) r << f;
+    else f.eachFileRecurse { if (it.isFile() && !it.getPath().contains(".svn")) r << it }
+  }
+  r
+}
+
+final upToDate = { List sources, List targets ->
+  def s = collectFiles(sources)
+  def t = collectFiles(targets)
+  def maxSource = s.inject(0) { prev, File f -> def m = f.exists() ? f.lastModified() : 0; return m > prev ? m : prev }
+  def minTarget = t.isEmpty() ? 0 : t.inject(Long.MAX_VALUE) { prev, File f -> def m = f.exists() ? f.lastModified() : 0; return m < prev ? m : prev }
+  return minTarget >= maxSource;
+}
+
+String version = "0"
 
 target(name: 'init') {
+  ant.echo(message: "[init]")
   ant.echo(message: "building " + new File(mod).getCanonicalPath())
 
   ant.presetdef(name: 'exec') {
     exec(failifexecutionfails: "true", failonerror: "true", dir: mod)
   }
   ant.presetdef(name: "copy") {
-    copy(overwrite: "true", failonerror: "true")
+    copy(overwrite: "true", failonerror: "true", preservelastmodified: "true")
   }
 
   ant.echo(message: "os.name=" + antProp('os.name'))
@@ -80,7 +101,6 @@ target(name: 'init') {
   else {
     version = m[0][1];
     def status = "svn status $mod".execute().text
-    System.err.println("STATUS: " + status)
     if (status =~ /(?m)^[^\?]/) {
       ant.echo(message: "WARNING: dirty build")
       version += "+";
@@ -117,29 +137,6 @@ target(name: 'init') {
   ant.echo(message: "platforms=$platforms")
 }
 
-target(name: 'uptodate') {
-  depends(['init'])
-  buildtypes.each { String buildtype ->
-    platforms.each { String platform ->
-      ant.uptodate(property: "lib.uptodate.$buildtype.$platform", targetfile: build + "/lib.$buildtype.$platform/" + libname(platform, buildtype)) {
-        srcfiles(dir: "$mod/swig")
-        srcfiles(dir: "$build", includes: "**/*.c")
-        srcfiles(dir: "$build/cc.$buildtype.$platform", includes: "*.o")
-        srcfiles(dir: "$mod/native")
-      }
-      ant.uptodate(property: "sqlite.uptodate.$buildtype.$platform", targetfile: build + "/cc.$buildtype.$platform/sqlite3.o") {
-        srcfiles(dir: "$mod/sqlite")
-      }
-    }
-  }
-  ant.uptodate(property: 'jar.uptodate', targetfile: build + "/jar/" + antProp('jarname')) {
-    srcfiles(dir: "$mod/swig")
-    srcfiles(dir: "$build/java")
-    srcfiles(dir: "$build/classes")
-    srcfiles(dir: "$mod/java")
-  }
-}
-
 final wsdk = {String arg, String out, String arch, String buildtype ->
   ant.delete(file: out)
   ant.exec(dir: mod, command: "cmd /C echo $arg | cmd /V:ON /D /K \"${antProp('msenv')}\" /$arch /$buildtype ${antProp('msenv.extra')}")
@@ -154,29 +151,30 @@ target(name: 'init.wincompile') {
 }
 
 target(name: 'lib.compile') {
-  depends(['init', 'uptodate', 'lib.swig'])
+  depends(['init', 'lib.swig'])
+  ant.echo(message: "[lib.compile]")
   buildtypes.each { String buildtype ->
     platforms.each { String platform ->
-      ant.echo(message: "compiling .c for $platform / $buildtype")
       String out = "$build/cc.$buildtype.$platform"
+      if (upToDate(["$mod/sqlite", "$build/swig", "$mod/native"], [out])) {
+        ant.echo(message: "UP-TO-DATE: COMPILE $platform / $buildtype")
+        return
+      }
+      ant.echo(message: "COMPILE $platform / $buildtype")
       ant.mkdir(dir: out)
       if (os == "windows") {
         depends(['init.wincompile'])
         checkProp("arch.$platform")
         def arch = antProp("arch.$platform")
-        if (!antProp("sqlite.uptodate.$buildtype.$platform")) {
-          def clargs = antProp("${buildtype}.cl.args") + " " + antProp("${buildtype}.cl.sqlite");
-          wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3.o sqlite/sqlite3.c", "$out/sqlite3.o", arch, buildtype)
-        }
-        def clargs = antProp("${buildtype}.cl.args") + " " + antProp("cl.paranoid");
+        def clargs = antProp("${buildtype}.cl.args") + " " + antProp("${buildtype}.cl.sqlite");
+        wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3.o sqlite/sqlite3.c", "$out/sqlite3.o", arch, buildtype)
+        clargs = antProp("${buildtype}.cl.args") + " " + antProp("cl.paranoid");
         wsdk("${antProp('cl')} $clargs -Fo$out/sqlite_wrap.o $build/swig/sqlite_wrap.c", "$out/sqlite_wrap.o", arch, buildtype)
         wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3_wrap_manual.o native/sqlite3_wrap_manual.c", "$out/sqlite3_wrap_manual.o", arch, buildtype)
       } else {
-        if (!antProp("sqlite.uptodate.$buildtype.$platform")) {
-          def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite");
-          ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
-        }
-        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid");
+        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite");
+        ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
+        clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid");
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c $build/swig/sqlite_wrap.c -o $out/sqlite_wrap.o")
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c native/sqlite3_wrap_manual.c -o $out/sqlite3_wrap_manual.o")
       }
@@ -186,20 +184,31 @@ target(name: 'lib.compile') {
 
 target(name: 'lib.swig') {
   depends(['init'])
-  ant.mkdir(dir: "$build/swig")
+  ant.echo(message: "[lib.swig]")
   String outDir = "$build/java/${antProp('java.package.dir')}"
+  if (upToDate(["$mod/swig/sqlite.i", "$mod/swig/sqlite3_swigged.h"], [outDir, "$build/swig"])) {
+    ant.echo(message: "UP-TO-DATE: SWIG")
+    return
+  }
+  ant.mkdir(dir: "$build/swig")
   ant.mkdir(dir: outDir)
   ant.exec(dir: mod, command: "${antProp('swig')} -java -package ${antProp('java.package')} -outdir $outDir -o $build/swig/sqlite_wrap.c swig/sqlite.i")
 }
 
 target(name: 'lib.link') {
   depends(['lib.compile'])
+  ant.echo(message: "[lib.link]")
   buildtypes.each { String buildtype ->
     platforms.each { String platform ->
-      ant.echo(message: "linking .o for $platform / $buildtype")
       String out = "$build/lib.$buildtype.$platform"
-      ant.mkdir(dir: out)
       String cc = "$build/cc.$buildtype.$platform"
+      if (upToDate([cc], [out])) {
+        ant.echo(message: "UP-TO-DATE: LINK $platform / $buildtype")
+        return
+      } else {
+        ant.echo(message: "LINK $platform / $buildtype")
+      }
+      ant.mkdir(dir: out)
       if (os == "windows") {
         def arch = antProp("arch.$platform")
         wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o",
@@ -213,21 +222,18 @@ target(name: 'lib.link') {
 }
 
 target(name: 'lib') {
-  depends(['uptodate'])
-  boolean changes = false
-  buildtypes.each { String buildtype ->
-    platforms.each { String platform ->
-      if (!antProp('lib.uptodate')) { changes = true }
-    }
-  }
-  if (!changes) return
   depends(['lib.compile', 'lib.link'])
 }
 
 target(name: 'java.compile') {
-  depends(['uptodate'])
-  if (antProp('jar.uptodate')) return
   depends(['lib.swig'])
+  ant.echo(message: "[java.compile]")
+  if (upToDate(["$mod/java", "$build/java"], [buildClasses])) {
+    ant.echo(message: "UP-TO-DATE: JAVAC")
+    return
+  } else {
+    ant.echo(message: "JAVAC")
+  }
   ant.copy(todir: "$build/java") {
     fileset(dir: "$mod/java")
   }
@@ -236,26 +242,32 @@ target(name: 'java.compile') {
 }
 
 target(name: 'java.jar') {
-  depends(['uptodate'])
-  if (antProp('jar.uptodate')) return
   depends(['java.compile'])
+  ant.echo(message: "[java.jar]")
+  if (upToDate([buildClasses], ["$build/jar/${antProp('jarname')}"])) {
+    ant.echo(message: "UP-TO-DATE: JAR")
+    return
+  } else {
+    ant.echo(message: "JAR")
+  }
   ant.mkdir(dir: "$build/jar")
   ant.jar(destfile: "$build/jar/${antProp('jarname')}", basedir: "$buildClasses") {
     manifest {
-      attribute(name:"Main-Class", value:"com.almworks.sqlite4java.SQLite")
-      attribute(name:"Specification-Title", value:"sqlite4java")
-      attribute(name:"Specification-Version", value:"${version}")
-      attribute(name:"Specification-Vendor", value:"ALM Works")
-      attribute(name:"Implementation-Title", value:"sqlite4java")
-      attribute(name:"Implementation-URL", value:"http://code.google.com/p/sqlite4java")
-      attribute(name:"Implementation-Vendor", value:"ALM Works")
-      attribute(name:"Implementation-Version", value:"${version}")
+      attribute(name: "Main-Class", value: "com.almworks.sqlite4java.SQLite")
+      attribute(name: "Specification-Title", value: "sqlite4java")
+      attribute(name: "Specification-Version", value: "${version}")
+      attribute(name: "Specification-Vendor", value: "ALM Works")
+      attribute(name: "Implementation-Title", value: "sqlite4java")
+      attribute(name: "Implementation-URL", value: "http://code.google.com/p/sqlite4java")
+      attribute(name: "Implementation-Vendor", value: "ALM Works")
+      attribute(name: "Implementation-Version", value: "${version}")
     }
   }
 }
 
 target('dist': 'create distributable artifacts') {
   depends(['lib', 'java.jar'])
+  ant.echo(message: "[dist]")
   ant.mkdir(dir: "$build/dist")
   ant.copy(todir: "$build/dist", file: "$build/jar/${antProp('jarname')}")
   buildtypes.each { String buildtype ->
@@ -268,6 +280,7 @@ target('dist': 'create distributable artifacts') {
 
 target('test': 'run all tests') {
   depends(['dist'])
+  ant.echo(message: "[test]")
   ant.mkdir(dir: "$build/testClasses")
   ant.javac(srcdir: "$mod/test", destdir: "$build/testClasses", debug: "on") {
     classpath {
@@ -279,22 +292,24 @@ target('test': 'run all tests') {
   platforms.each { String platform ->
     buildtypes.each { String buildtype ->
       def jvm = antProp("jre.$platform")
+      if (!jvm) ant.fail(message: "cannot run tests - jre.$platform is not defined")
       if (jvm) jvm = "$jvm/bin/java";
-      ant.delete(dir: "$build/testRun")
-      ant.mkdir(dir: "$build/testRun")
+      ant.echo(message: "TEST $platform / $buildtype")
+      ant.delete(dir: "$build/testRun.$buildtype.$platform")
+      ant.mkdir(dir: "$build/testRun.$buildtype.$platform")
       def resultsDir = "$build/testResults.$buildtype.$platform"
       ant.mkdir(dir: resultsDir)
-      ant.copy(file: "$build/dist/${antProp('jarname')}", todir: "$build/testRun")
-      ant.copy(file: "$build/dist/${libname(platform, buildtype)}", todir: "$build/testRun")
+      ant.copy(file: "$build/dist/${antProp('jarname')}", todir: "$build/testRun.$buildtype.$platform")
+      ant.copy(file: "$build/dist/${libname(platform, buildtype)}", todir: "$build/testRun.$buildtype.$platform")
       ant.junit(jvm: jvm, fork: "yes", printsummary: "true", haltonfailure: "true", showoutput: "true") {
         formatter(type: "plain")
         //<!--<jvmarg value="-verbose:jni"/>-->
         jvmarg(value: "-Djava.awt.headless=true")
         jvmarg(value: "-ea")
-        jvmarg(value: "-Djava.library.path=${build}/testRun")
+        jvmarg(value: "-Djava.library.path=${build}/testRun.$buildtype.$platform")
         classpath {
           pathelement(location: "$build/testClasses")
-          pathelement(location: "$build/testRun/${antProp('jarname')}")
+          pathelement(location: "$build/testRun.$buildtype.$platform/${antProp('jarname')}")
           pathelement(location: javolution)
           pathelement(location: junit)
         }
@@ -309,12 +324,14 @@ target('test': 'run all tests') {
 
 target('srczip': 'pack java sources for distribution') {
   depends(['lib.swig', 'java.compile'])
+  ant.echo(message: "[srczip]")
   ant.delete(file: "$build/dist/${antProp('srczipname')}")
   ant.zip(destfile: "$build/dist/${antProp('srczipname')}", basedir: "$build/java")
 }
 
 target('javadoc': 'create documentation zip') {
   depends(['lib.swig', 'java.compile'])
+  ant.echo(message: "[javadoc]")
   if (antProp('lame.env')) {
     ant.echo(message: "skipping javadoc, lame env")
     return
@@ -324,23 +341,21 @@ target('javadoc': 'create documentation zip') {
   ant.zip(destfile: "$build/dist/sqlite4java-${version}-docs.zip", basedir: "$build/javadoc")
 }
 
-target('finalzip': 'build deliverable zip'){
+target('finalzip': 'build deliverable zip') {
   depends(['dist'])
-  mkdir(dir:"$build/sqlite4java-${version}-$os")
-  copy(todir:"$build/sqlite4java-${version}-$os") {
-    fileset(dir:"$build/dist") {
-//      include(name:antProp("jarname"))
-//      include(name:"*.zip")
-//      include(name:"*.so")
-//      include(name:"*.dll")
-//      include(name:"*.jnilib")
-    }
+  ant.echo(message: "[finalzip]")
+  ant.mkdir(dir: "$build/sqlite4java-$os-$version")
+  ant.mkdir(dir: "$build/distzip")
+  ant.copy(todir: "$build/sqlite4java-$os-$version") {
+    fileset(dir: "$build/dist")
   }
-  zip(destfile:"$build/dist/sqlite4java-${version}-$os.zip",basedir:"$build", includes="sqlite4java-${version}-$os");
+  ant.delete(file: "$build/distzip/sqlite4java-$os-${version}.zip")
+  ant.zip(destfile: "$build/distzip/sqlite4java-$os-${version}.zip", basedir: "$build", includes: "sqlite4java-$os-$version/*")
 }
 
 target(name: 'clean') {
   depends(['init'])
+  ant.echo(message: "[clean]")
   ant.delete(dir: build)
 }
 
