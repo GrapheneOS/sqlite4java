@@ -172,9 +172,9 @@ target(name: 'lib.compile') {
         wsdk("${antProp('cl')} $clargs -Fo$out/sqlite_wrap.o $build/swig/sqlite_wrap.c", "$out/sqlite_wrap.o", arch, buildtype)
         wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3_wrap_manual.o native/sqlite3_wrap_manual.c", "$out/sqlite3_wrap_manual.o", arch, buildtype)
       } else {
-        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite");
+        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite") + " " + antProp("cc.args.${platform}");
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
-        clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid");
+        clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid") + " " + " " + antProp("cc.args.${platform}");
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c $build/swig/sqlite_wrap.c -o $out/sqlite_wrap.o")
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c native/sqlite3_wrap_manual.c -o $out/sqlite3_wrap_manual.o")
       }
@@ -214,8 +214,9 @@ target(name: 'lib.link') {
         wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o",
           "$out/${libname(platform, buildtype)}", arch, buildtype)
       } else {
-        def clargs = antProp("${buildtype}.cc.args");
-        ant.exec(dir: mod, command: "${antProp('cc')} $clargs ${antProp('cc.link')} -o $out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o")
+        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.args.${platform}");
+        def soname = (os == "linux") ? "-Wl,-soname=${libname(platform, buildtype)}" : ""
+        ant.exec(dir: mod, command: "${antProp('cc')} $clargs ${antProp('cc.link')} $soname -o $out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o")
       }
     }
   }
