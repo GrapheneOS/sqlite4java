@@ -84,10 +84,6 @@ target(name: 'init') {
     if (status =~ /(?m)^[^\?]/) {
       ant.echo(message: "WARNING: dirty build")
       version += "+";
-    } else {
-      def mmm = status =~ /^(.*)$/;
-      System.err.println("d: " + mmm[0][1])
-
     }
   }
   ant.echo(message: "version=" + version)
