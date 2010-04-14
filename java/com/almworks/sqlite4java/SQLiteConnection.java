@@ -17,7 +17,6 @@
 package com.almworks.sqlite4java;
 
 import javolution.util.FastMap;
-import javolution.util.FastTable;
 
 import java.io.File;
 import java.io.IOException;
@@ -82,18 +81,18 @@ public final class SQLiteConnection {
   /**
    * Statement registry. All statements that are not disposed are listed here.
    */
-  private final FastTable<SQLiteStatement> myStatements = new FastTable<SQLiteStatement>(100);
+  private final ArrayList<SQLiteStatement> myStatements = new ArrayList<SQLiteStatement>(100);
 
   /**
    * Statement registry. All statements that are not disposed are listed here.
    */
-  private final FastTable<SQLiteBlob> myBlobs = new FastTable<SQLiteBlob>(10);
+  private final ArrayList<SQLiteBlob> myBlobs = new ArrayList<SQLiteBlob>(10);
 
   /**
    * Allocated buffers pool. Sorted by pool size.
    * todo pool size control
    */
-  private final FastTable<DirectBuffer> myBuffers = new FastTable<DirectBuffer>(10);
+  private final ArrayList<DirectBuffer> myBuffers = new ArrayList<DirectBuffer>(10);
 
   /**
    * Sum of myBuffer sizes

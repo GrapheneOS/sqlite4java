@@ -444,17 +444,6 @@
       <JAVADOC />
       <SOURCES />
     </library>
-    <library name="javolution">
-      <CLASSES>
-        <root url="jar://$PROJECT_DIR$/../lib/javolution.jar!/" />
-      </CLASSES>
-      <JAVADOC>
-        <root url="file://C:/Dev/javolution-5.2/api" />
-      </JAVADOC>
-      <SOURCES>
-        <root url="file://C:/Dev/javolution-5.2/src" />
-      </SOURCES>
-    </library>
   </component>
 </project>
 

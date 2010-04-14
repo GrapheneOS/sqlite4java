@@ -16,13 +16,13 @@
 
 package com.almworks.sqlite4java;
 
-import javolution.util.FastTable;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.almworks.sqlite4java.SQLiteConstants.*;
 
@@ -87,8 +87,8 @@ public final class SQLiteStatement {
   /**
    * All currently active bind streams.
    */
-  private FastTable<BindStream> myBindStreams;
-  private FastTable<ColumnStream> myColumnStreams;
+  private List<BindStream> myBindStreams;
+  private List<ColumnStream> myColumnStreams;
 
   /**
    * Contains progress handler instance - only when step() is in progress. Used to cancel the execution.
@@ -498,9 +498,9 @@ public final class SQLiteStatement {
     try {
       DirectBuffer buffer = myController.allocateBuffer(minimumSize);
       BindStream out = new BindStream(index, buffer);
-      FastTable<BindStream> list = myBindStreams;
+      List<BindStream> list = myBindStreams;
       if (list == null) {
-        myBindStreams = list = new FastTable<BindStream>(1);
+        myBindStreams = list = new ArrayList<BindStream>(1);
       }
       myBindStreams.add(out);
       myHasBindings = true;
@@ -605,9 +605,9 @@ public final class SQLiteStatement {
     if (buffer == null)
       return null;
     ColumnStream in = new ColumnStream(buffer);
-    FastTable<ColumnStream> table = myColumnStreams;
+    List<ColumnStream> table = myColumnStreams;
     if (table == null)
-      myColumnStreams = table = new FastTable<ColumnStream>(1);
+      myColumnStreams = table = new ArrayList<ColumnStream>(1);
     table.add(in);
     return in;
   }
@@ -715,7 +715,7 @@ public final class SQLiteStatement {
   }
 
   private void clearColumnStreams() {
-    FastTable<ColumnStream> table = myColumnStreams;
+    List<ColumnStream> table = myColumnStreams;
     if (table != null) {
       myColumnStreams = null;
       for (int i = 0; i < table.size(); i++) {
@@ -729,7 +729,7 @@ public final class SQLiteStatement {
   }
 
   private void clearBindStreams(boolean bind) {
-    FastTable<BindStream> table = myBindStreams;
+    List<BindStream> table = myBindStreams;
     if (table != null) {
       myBindStreams = null;
       for (int i = 0; i < table.size(); i++) {
@@ -896,7 +896,7 @@ public final class SQLiteStatement {
         myBuffer = null;
         myController.freeBuffer(buffer);
       }
-      FastTable<BindStream> list = myBindStreams;
+      List<BindStream> list = myBindStreams;
       if (list != null) {
         list.remove(this);
       }
@@ -943,7 +943,7 @@ public final class SQLiteStatement {
 
     public void close() throws IOException {
       myBuffer = null;
-      FastTable<ColumnStream> table = myColumnStreams;
+      List<ColumnStream> table = myColumnStreams;
       if (table != null)
         table.remove(this);
     }

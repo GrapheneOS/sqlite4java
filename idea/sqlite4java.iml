@@ -6,11 +6,11 @@
       <sourceFolder url="file://$MODULE_DIR$/../java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../swig/stub" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../test" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/../build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="junit" level="project" />
-    <orderEntry type="library" name="javolution" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="groovy-1.6.0" level="application" />
     <orderEntry type="library" scope="RUNTIME" name="gant" level="application" />
   </component>

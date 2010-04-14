@@ -21,7 +21,11 @@ java/com/almworks/sqlite4java/SQLiteException.java -text
 java/com/almworks/sqlite4java/SQLiteStatement.java -text
 java/com/almworks/sqlite4java/SQLiteUserException.java -text
 java/com/almworks/sqlite4java/SWIGTYPE_p_direct_buffer.java -text
-lib/javolution.jar -text
+java/javolution/util/FastCollection.java -text
+java/javolution/util/FastComparator.java -text
+java/javolution/util/FastIterator.java -text
+java/javolution/util/FastMap.java -text
+java/javolution/util/README.txt -text
 lib/junit.jar -text
 native/sqlite3_manual.h -text
 native/sqlite3_wrap_manual.c -text
