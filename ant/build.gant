@@ -67,7 +67,8 @@ final upToDate = { List sources, List targets ->
   def t = collectFiles(targets)
   def maxSource = s.inject(0) { prev, File f -> def m = f.exists() ? f.lastModified() : 0; return m > prev ? m : prev }
   def minTarget = t.isEmpty() ? 0 : t.inject(Long.MAX_VALUE) { prev, File f -> def m = f.exists() ? f.lastModified() : 0; return m < prev ? m : prev }
-  return minTarget >= maxSource;
+  // 10sec - for unix, somehow target date gets rolled back several seconds
+  return minTarget >= maxSource - 10000;
 }
 
 String version = "0"
