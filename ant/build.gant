@@ -1,21 +1,3 @@
-import java.nio.channels.FileChannel
-
-/*
-* Copyright 2010 ALM Works Ltd
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-
 final String baseDir = {
   String v = ant.project.baseDir.getCanonicalPath().replace('\\', '/');
   if (v.endsWith("/")) v = v.substring(0, v.length() - 1)
@@ -346,13 +328,14 @@ target('javadoc': 'create documentation zip') {
 target('finalzip': 'build deliverable zip') {
   depends(['dist'])
   ant.echo(message: "[finalzip]")
-  ant.mkdir(dir: "$build/sqlite4java-$os-$version")
+  def d = "$build/sqlite4java-$os-$version"
+  ant.mkdir(dir: d)
   ant.mkdir(dir: "$build/distzip")
-  ant.copy(todir: "$build/sqlite4java-$os-$version") {
+  ant.copy(todir: d) {
     fileset(dir: "$build/dist")
   }
   ant.delete(file: "$build/distzip/sqlite4java-$os-${version}.zip")
-  ant.zip(destfile: "$build/distzip/sqlite4java-$os-${version}.zip", basedir: "$build", includes: "sqlite4java-$os-$version/*")
+  ant.zip(destfile: "$build/distzip/sqlite4java-$os-${version}.zip", basedir: d)
 }
 
 target(name: 'clean') {
@@ -367,4 +350,26 @@ target('all': 'build all artifacts') {
 
 target(name: 'integrate') {
   depends(['clean', 'all'])
+}
+
+target(name: 'collect') {
+  depends(['init'])
+  version="155"
+  if (version == "0") { ant.fail(message: "cannot collect artifacts without version"); return; }
+  def target = "$build/sqlite4java-${version}"
+  ant.delete(dir: target)
+  ant.mkdir(dir: target)
+  final unpack = { String name ->
+    def f = new File(name)
+    if (!f.isFile()) { ant.fail(message: "cannot find ${f.getCanonicalPath()}"); return; }
+    ant.unzip(src: name, dest: target, overwrite: "true")
+  }
+
+  unpack("$mod/sqlite4java-windows-${version}.zip")
+  unpack("$mod/sqlite4java-mac-${version}.zip")
+  unpack("$mod/sqlite4java-linux-${version}.zip")
+
+  ant.mkdir(dir: "$build/deliver")
+  ant.delete(file: "$build/deliver/sqlite4java-${version}.zip")
+  ant.zip(destfile: "$build/deliver/sqlite4java-${version}.zip", basedir: "$build", includes: "sqlite4java-${version}/*")
 }
