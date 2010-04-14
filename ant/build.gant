@@ -354,7 +354,6 @@ target(name: 'integrate') {
 
 target(name: 'collect') {
   depends(['init'])
-  version="155"
   if (version == "0") { ant.fail(message: "cannot collect artifacts without version"); return; }
   def target = "$build/sqlite4java-${version}"
   ant.delete(dir: target)

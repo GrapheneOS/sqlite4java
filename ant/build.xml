@@ -27,7 +27,6 @@
     <gant file="build.gant" target="dist"/>
   </target>
 
-  
   <target name="collect">
     <gant file="build.gant" target="collect"/>
   </target>
