@@ -27,6 +27,20 @@
 ** 1. Declarations for SWIG
 ** ******************************************************************
 */
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
 typedef struct sqlite3 sqlite3;
 typedef struct sqlite3_stmt sqlite3_stmt;
 typedef struct sqlite3_blob sqlite3_blob;
