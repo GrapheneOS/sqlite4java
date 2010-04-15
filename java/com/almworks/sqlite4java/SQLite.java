@@ -63,6 +63,19 @@ public final class SQLite {
     return _SQLiteSwigged.sqlite3_libversion();
   }
 
+  public static String getSQLiteCompileOptions() throws SQLiteException {
+    loadLibrary();
+    StringBuilder b = new StringBuilder();
+    int i = 0;
+    while (true) {
+      String option = _SQLiteSwigged.sqlite3_compileoption_get(i++);
+      if (option == null || option.length() == 0) break;
+      if (b.length() > 0) b.append(' ');
+      b.append(option);
+    }
+    return b.toString();
+  }
+
   public static int getSQLiteVersionNumber() throws SQLiteException {
     loadLibrary();
     return _SQLiteSwigged.sqlite3_libversion_number();
@@ -166,6 +179,7 @@ public final class SQLite {
     } else {
       try {
         System.out.println("SQLite " + getSQLiteVersion());
+        System.out.println("Compile-time options: " + getSQLiteCompileOptions());
       } catch (SQLiteException e) {
         e.printStackTrace();
       }

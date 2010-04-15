@@ -9,12 +9,36 @@
 package com.almworks.sqlite4java;
 
 class _SQLiteSwigged {
+  public static int sqlite3_initialize() {
+    return _SQLiteSwiggedJNI.sqlite3_initialize();
+  }
+
+  public static int sqlite3_shutdown() {
+    return _SQLiteSwiggedJNI.sqlite3_shutdown();
+  }
+
+  public static int sqlite3_extended_errcode(SWIGTYPE_p_sqlite3 db) {
+    return _SQLiteSwiggedJNI.sqlite3_extended_errcode(SWIGTYPE_p_sqlite3.getCPtr(db));
+  }
+
   public static String sqlite3_libversion() {
     return _SQLiteSwiggedJNI.sqlite3_libversion();
   }
 
+  public static String sqlite3_sourceid() {
+    return _SQLiteSwiggedJNI.sqlite3_sourceid();
+  }
+
   public static int sqlite3_libversion_number() {
     return _SQLiteSwiggedJNI.sqlite3_libversion_number();
+  }
+
+  public static int sqlite3_compileoption_used(String zOptName) {
+    return _SQLiteSwiggedJNI.sqlite3_compileoption_used(zOptName);
+  }
+
+  public static String sqlite3_compileoption_get(int N) {
+    return _SQLiteSwiggedJNI.sqlite3_compileoption_get(N);
   }
 
   public static int sqlite3_threadsafe() {

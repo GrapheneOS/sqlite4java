@@ -9,8 +9,14 @@
 package com.almworks.sqlite4java;
 
 class _SQLiteSwiggedJNI {
+  public final static native int sqlite3_initialize();
+  public final static native int sqlite3_shutdown();
+  public final static native int sqlite3_extended_errcode(long jarg1);
   public final static native String sqlite3_libversion();
+  public final static native String sqlite3_sourceid();
   public final static native int sqlite3_libversion_number();
+  public final static native int sqlite3_compileoption_used(String jarg1);
+  public final static native String sqlite3_compileoption_get(int jarg1);
   public final static native int sqlite3_threadsafe();
   public final static native int sqlite3_close(long jarg1);
   public final static native int sqlite3_extended_result_codes(long jarg1, int jarg2);
