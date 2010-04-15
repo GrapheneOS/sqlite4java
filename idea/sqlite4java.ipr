@@ -182,6 +182,11 @@
   </component>
   <component name="CompilerConfiguration">
     <option name="DEFAULT_COMPILER" value="Javac" />
+    <excludeFromCompile>
+      <directory url="file://$PROJECT_DIR$/../native" includeSubdirectories="true" />
+      <directory url="file://$PROJECT_DIR$/../swig" includeSubdirectories="false" />
+      <directory url="file://$PROJECT_DIR$/../sqlite" includeSubdirectories="true" />
+    </excludeFromCompile>
     <resourceExtensions>
       <entry name=".+\.(properties|xml|html|dtd|tld)" />
       <entry name=".+\.(gif|png|jpeg|jpg)" />
@@ -210,6 +215,9 @@
     <module2copyright>
       <element module="Production" copyright="Apache 2.0 - ALM Works" />
     </module2copyright>
+  </component>
+  <component name="CppTools.Loader" reportImplicitCastToBool="false" reportNameReferencedOnce="false" warnedAboutFileOutOfSourceRoot="true" version="3" additionalPreprocessorDefs="" compilerSelect="MSVC">
+    <system-include-dir path="$PROJECT_DIR$/../sqlite" />
   </component>
   <component name="DependenciesAnalyzeManager">
     <option name="myForwardDirection" value="false" />

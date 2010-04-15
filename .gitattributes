@@ -27,9 +27,9 @@ java/javolution/util/FastIterator.java -text
 java/javolution/util/FastMap.java -text
 java/javolution/util/README.txt -text
 lib/junit.jar -text
-native/sqlite3_manual.h -text
 native/sqlite3_wrap_manual.c -text
 sqlite/sqlite3.c -text
+sqlite/sqlite3.def -text
 sqlite/sqlite3.h -text
 sqlite/sqlite3ext.h -text
 swig/sqlite.i -text

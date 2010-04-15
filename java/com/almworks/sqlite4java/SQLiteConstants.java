@@ -23,6 +23,7 @@ public interface SQLiteConstants {
     public static final int SQLITE_OPEN_CREATE = 0x00000004;
     public static final int SQLITE_OPEN_DELETEONCLOSE = 0x00000008;
     public static final int SQLITE_OPEN_EXCLUSIVE = 0x00000010;
+    public static final int SQLITE_OPEN_AUTOPROXY = 0x00000020;
     public static final int SQLITE_OPEN_MAIN_DB = 0x00000100;
     public static final int SQLITE_OPEN_TEMP_DB = 0x00000200;
     public static final int SQLITE_OPEN_TRANSIENT_DB = 0x00000400;
@@ -30,8 +31,10 @@ public interface SQLiteConstants {
     public static final int SQLITE_OPEN_TEMP_JOURNAL = 0x00001000;
     public static final int SQLITE_OPEN_SUBJOURNAL = 0x00002000;
     public static final int SQLITE_OPEN_MASTER_JOURNAL = 0x00004000;
-    public static final int SQLITE_OPEN_NOMUTEX          = 0x00008000;
-    public static final int SQLITE_OPEN_FULLMUTEX        = 0x00010000;
+    public static final int SQLITE_OPEN_NOMUTEX = 0x00008000;
+    public static final int SQLITE_OPEN_FULLMUTEX = 0x00010000;
+    public static final int SQLITE_OPEN_SHAREDCACHE = 0x00020000;
+    public static final int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
   }
 
   interface Result {
@@ -65,21 +68,24 @@ public interface SQLiteConstants {
     public static final int SQLITE_ROW = 100;  /* sqlite=3;_step() has another row ready */
     public static final int SQLITE_DONE = 101;  /* sqlite=3;_step() has finished executing */
 
-    public static final int SQLITE_IOERR_READ =       (SQLITE_IOERR | (1 << 8));
+    public static final int SQLITE_IOERR_READ = (SQLITE_IOERR | (1 << 8));
     public static final int SQLITE_IOERR_SHORT_READ = (SQLITE_IOERR | (2 << 8));
-    public static final int SQLITE_IOERR_WRITE =      (SQLITE_IOERR | (3 << 8));
-    public static final int SQLITE_IOERR_FSYNC =      (SQLITE_IOERR | (4 << 8));
-    public static final int SQLITE_IOERR_DIR_FSYNC =  (SQLITE_IOERR | (5 << 8));
-    public static final int SQLITE_IOERR_TRUNCATE =   (SQLITE_IOERR | (6 << 8));
-    public static final int SQLITE_IOERR_FSTAT =      (SQLITE_IOERR | (7 << 8));
-    public static final int SQLITE_IOERR_UNLOCK =     (SQLITE_IOERR | (8 << 8));
-    public static final int SQLITE_IOERR_RDLOCK =     (SQLITE_IOERR | (9 << 8));
-    public static final int SQLITE_IOERR_DELETE =     (SQLITE_IOERR | (10 << 8));
-    public static final int SQLITE_IOERR_BLOCKED =    (SQLITE_IOERR | (11 << 8));
-    public static final int SQLITE_IOERR_NOMEM =      (SQLITE_IOERR | (12 << 8));
-    public static final int SQLITE_IOERR_ACCESS            = (SQLITE_IOERR | (13<<8));
-    public static final int SQLITE_IOERR_CHECKRESERVEDLOCK = (SQLITE_IOERR | (14<<8));
-    public static final int SQLITE_IOERR_LOCK              = (SQLITE_IOERR | (15<<8));
+    public static final int SQLITE_IOERR_WRITE = (SQLITE_IOERR | (3 << 8));
+    public static final int SQLITE_IOERR_FSYNC = (SQLITE_IOERR | (4 << 8));
+    public static final int SQLITE_IOERR_DIR_FSYNC = (SQLITE_IOERR | (5 << 8));
+    public static final int SQLITE_IOERR_TRUNCATE = (SQLITE_IOERR | (6 << 8));
+    public static final int SQLITE_IOERR_FSTAT = (SQLITE_IOERR | (7 << 8));
+    public static final int SQLITE_IOERR_UNLOCK = (SQLITE_IOERR | (8 << 8));
+    public static final int SQLITE_IOERR_RDLOCK = (SQLITE_IOERR | (9 << 8));
+    public static final int SQLITE_IOERR_DELETE = (SQLITE_IOERR | (10 << 8));
+    public static final int SQLITE_IOERR_BLOCKED = (SQLITE_IOERR | (11 << 8));
+    public static final int SQLITE_IOERR_NOMEM = (SQLITE_IOERR | (12 << 8));
+    public static final int SQLITE_IOERR_ACCESS = (SQLITE_IOERR | (13 << 8));
+    public static final int SQLITE_IOERR_CHECKRESERVEDLOCK = (SQLITE_IOERR | (14 << 8));
+    public static final int SQLITE_IOERR_LOCK = (SQLITE_IOERR | (15 << 8));
+    public static final int SQLITE_IOERR_CLOSE = (SQLITE_IOERR | (16 << 8));
+    public static final int SQLITE_IOERR_DIR_CLOSE = (SQLITE_IOERR | (17 << 8));
+    public static final int SQLITE_LOCKED_SHAREDCACHE = (SQLITE_LOCKED | (1 << 8));
   }
 
   interface Wrapper {
