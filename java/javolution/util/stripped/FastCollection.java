@@ -6,7 +6,7 @@
  * Permission to use, copy, modify, and distribute this software is
  * freely granted, provided that this notice is preserved.
  */
-package javolution.util;
+package javolution.util.stripped;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;

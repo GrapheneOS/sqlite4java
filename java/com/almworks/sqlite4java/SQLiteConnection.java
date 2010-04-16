@@ -16,7 +16,7 @@
 
 package com.almworks.sqlite4java;
 
-import javolution.util.FastMap;
+import javolution.util.stripped.FastMap;
 
 import java.io.File;
 import java.io.IOException;
