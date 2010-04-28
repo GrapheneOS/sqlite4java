@@ -58,7 +58,7 @@ import java.util.logging.Logger;
  * <p/>
  * <p> Custom key comparators are extremely useful for value retrieval when
  * map's keys and argument keys are not of the same class (such as
- * {@link String} and {@link javolution.text.Text Text}
+ * {@link String} and Text
  * ({@link FastComparator#LEXICAL LEXICAL})), to substitute more efficient
  * hash code calculations ({@link FastComparator#STRING STRING})
  * or for identity maps ({@link FastComparator#IDENTITY IDENTITY}):[code]
@@ -77,7 +77,7 @@ import java.util.logging.Logger;
  * in order to return their own  {@link Entry} implementation (with
  * additional fields for example).</p>
  * <p/>
- * <p> {@link FastMap} are {@link Reusable reusable}; they maintain an
+ * <p> {@link FastMap} are reusable; they maintain an
  * internal pool of <code>Map.Entry</code> objects. When an entry is removed
  * from a map, it is automatically restored to its pool (unless the map
  * is shared in which case the removed entry is candidate for garbage
@@ -245,7 +245,7 @@ public class FastMap<K, V> implements Map<K, V> {
   }
 
   /**
-   * Returns a potentially {@link #recycle recycled} map instance.
+   * Returns a potentially recycled map instance.
    *
    * @return a new, preallocated or recycled map instance.
    */

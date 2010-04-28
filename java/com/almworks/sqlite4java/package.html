@@ -1,0 +1,23 @@
+<html>
+<body>
+<p>
+  <strong>sqlite4java</strong> is a minimalistic high-performance Java wrapper for SQLite database.
+</p>
+<p>
+  Main classes are {@link SQLiteConnection}, {@link SQLiteStatement} and {@link SQLite}.
+  Here's the typical use:
+  <code>
+    SQLiteConnection db = new SQLiteConnection(new File("/tmp/database"));
+    db.open(true);
+    SQLiteStatement st = db.prepare("INSERT INTO table VALUES (?, ?, ?)");
+    st.bind(1, "value").bind(2, 123L).bind(3, 3.141);
+    st.step();
+    st.dispose();
+    db.close();
+  </code>
+</p>
+<p>
+  See <a href="http://code.google.com/p/sqlite4java/">http://code.google.com/p/sqlite4java</a> for more information.
+</p>
+</body>
+</html>

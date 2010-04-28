@@ -14,13 +14,12 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * <p> This class represents an iterator over a {@link Fastcollection).
+ * <p> This class represents an iterator over a FastCollection
  *     Iterations are thread-safe if the collections records are not removed 
  *     or inserted at arbitrary position (appending/prepending is fine).</p>
  *     
  * <p> Iterators are allocated on the stack when executing in a 
- *     {@link StackContext javolution.context.StackContext}.</p>
- *          
+ *
  * @author <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
  * @version 3.7, March 17, 2005
  */

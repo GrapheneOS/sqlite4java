@@ -149,7 +149,6 @@ public abstract class FastCollection <E>  implements
     /**
      * Returns an iterator over the elements in this collection 
      * (allocated on the stack when executed in a 
-     * {@link javolution.context.StackContext StackContext}).
      *
      * @return an iterator over this collection's elements.
      */

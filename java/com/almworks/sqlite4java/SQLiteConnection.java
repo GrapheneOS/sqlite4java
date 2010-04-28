@@ -29,19 +29,27 @@ import java.util.logging.Level;
 import static com.almworks.sqlite4java.SQLiteConstants.*;
 
 /**
- * SQLiteConnection is a single connection to sqlite database. Most methods are thread-confined,
- * and will throw errors if called from alien thread. Confinement thread is defined at the
- * time connection is open.
- * <p/>
+ * SQLiteConnection is a single connection to sqlite database. It wraps the <strong><code>sqlite3*</code></strong>
+ * database handle from SQLite C Interface.
+ * <p>
+ * See details here: <a href="http://www.sqlite.org/c3ref/sqlite3.html">http://www.sqlite.org/c3ref/sqlite3.html</a>.
+ * <p>
+ * Unless otherwise specified, methods are confined to the thread that was used to open the connection.
+ * This means that an exception will be thrown if you try to access the method from a different thread.
+ * <p>
  * SQLiteConnection should be expicitly closed before the object is disposed. Failing to do so
- * may result in unpredictable behavior from sqlite.
- * <p/>
+ * may result in unpredictable behavior from SQLite.
+ * <p>
  * Once closed with {@link #dispose()}, the connection cannot be reused and the instance
  * should be forgotten.
- * <p/>
- * SQLiteConnection tracks all statements it has prepared. When connection is disposed,
- * it first tries to dispose statements. If there's an active transaction, it is rolled
+ * <p>
+ * Several connections to the same database can be opened by creating several instances of SQLiteConnection.
+ * <p>
+ * SQLiteConnection tracks all statements it had prepared. When connection is disposed,
+ * it first tries to dispose all prepared statements. If there's an active transaction, it is rolled
  * back.
+ *
+ * @see SQLiteStatement
  */
 public final class SQLiteConnection {
   private static final int MAX_POOLED_DIRECT_BUFFER_SIZE = 1 << 20;
@@ -132,13 +140,13 @@ public final class SQLiteConnection {
   /**
    * May be set only before first exec() or step().
    */
-  private int myStepsPerCallback = DEFAULT_STEPS_PER_CALLBACK;
+  private volatile int myStepsPerCallback = DEFAULT_STEPS_PER_CALLBACK;
 
   /**
-   * Create connection to database located in the specified file.
-   * Database is not opened by this method.
+   * Creates a connection to the database located in the specified file.
+   * Database is not opened by the constructor, and the calling thread is insignificant.
    *
-   * @param dbfile database file, or null for memory database
+   * @param dbfile database file, or null to create an in-memory database
    */
   public SQLiteConnection(File dbfile) {
     myFile = dbfile;
@@ -146,8 +154,9 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Create connection to in-memory temporary database.
-   *
+   * Creates a connection to an in-memory temporary database.
+   * Database is not opened by the constructor, and the calling thread is insignificant.
+   * 
    * @see #SQLiteConnection(java.io.File)
    */
   public SQLiteConnection() {
@@ -155,40 +164,62 @@ public final class SQLiteConnection {
   }
 
   /**
-   * @return the file hosting the database, or null if database is in memory
+   * Returns the database file. This method is <strong>thread-safe</strong>.
+   * @return the file that hosts the database, or null if database is in memory
    */
   public File getDatabaseFile() {
     return myFile;
   }
 
   /**
-   * @return true if connection is to the memory database
+   * Checks whether this connection is to an in-memory database. This method is <strong>thread-safe</strong>.
+   *
+   * @return true if the connection is to the memory database
    */
   public boolean isMemoryDatabase() {
     return myFile == null;
   }
 
+  /**
+   * Sets the frequency of database callbacks during long-running SQL statements. Database callbacks
+   * are currently used to check if the statement has been cancelled.
+   * <p>
+   * This method is <strong>partially thread-safe</strong>: it may be called from a non-confining thread
+   * before connection is opened. After connection is opened, is should be called from the confining thread and
+   * before any statement has been executed.
+   * <p>
+   * @see <a href="http://www.sqlite.org/c3ref/progress_handler.html">sqlite3_progress_callback</a>
+   *
+   * @param stepsPerCallback the number of internal SQLite cycles in between calls to the progress callback (default 1)
+   */
   public void setStepsPerCallback(int stepsPerCallback) {
-    if (stepsPerCallback > 0) {
-      myStepsPerCallback = stepsPerCallback;
+    try {
+      checkThread();
+      if (stepsPerCallback > 0) {
+        myStepsPerCallback = stepsPerCallback;
+      }
+    } catch (SQLiteException e) {
+      Internal.logWarn(this, "call to setStepsPerCallback is ignored");
     }
   }
 
   /**
-   * Opens connection, creating database if needed.
+   * Opens the connection, optionally creating the database.
+   * <p>
+   * If connection is already open, fails gracefully, allowing connection can be used further.
+   * <p>
+   * This method "confines" the connection to the thread in which it has been called. Most of the following
+   * method calls to this connection and to its statements should be made only from that thread, otherwise
+   * an exception is thrown.
+   * <p>
+   * If allowCreate parameter is false, and database file does not exist, method fails with an exception.
+   * <p>
+   * @see <a href="http://www.sqlite.org/c3ref/open.html">sqlite3_open_v2</a>
    *
-   * @see #open(boolean)
-   */
-  public SQLiteConnection open() throws SQLiteException {
-    return open(true);
-  }
-
-  /**
-   * Opens connection. If connection is already open, fails gracefully, allowing process
-   * to continue in production mode.
-   *
-   * @param allowCreate if true, database file may be created. For in-memory database, must
-   *                    be true
+   * @param allowCreate if true, database file may be created. For an in-memory database, this parameter must
+   *                    be true.
+   * @return this connection
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    */
   public SQLiteConnection open(boolean allowCreate) throws SQLiteException {
     int flags = Open.SQLITE_OPEN_READWRITE;
@@ -199,23 +230,39 @@ public final class SQLiteConnection {
     } else {
       flags |= Open.SQLITE_OPEN_CREATE;
     }
-    openX(flags);
+    open0(flags);
     return this;
   }
 
   /**
-   * Opens connection is read-only mode. Not applicable for in-memory database.
+   * Opens the connection, creating database if needed. See {@link #open(boolean)} for a full description.
+   *
+   * @return this connection
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteConnection open() throws SQLiteException {
+    return open(true);
+  }
+
+  /**
+   * Opens the connection is read-only mode. Not applicable for an in-memory database.
+   * See {@link #open(boolean)} for a full description.
+   *
+   * @return this connection
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    */
   public SQLiteConnection openReadonly() throws SQLiteException {
     if (isMemoryDatabase()) {
       throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "cannot open memory database in read-only mode");
     }
-    openX(Open.SQLITE_OPEN_READONLY);
+    open0(Open.SQLITE_OPEN_READONLY);
     return this;
   }
 
   /**
-   * Tells whether connection is open. May be called from another thread.
+   * Tells whether connection is open. This method is <strong>thread-safe</strong>.
+   *
+   * @return true if this connection was successfully opened and has not been disposed
    */
   public boolean isOpen() {
     synchronized (myLock) {
@@ -224,9 +271,9 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Tells whether the connection has been disposed. If it is disposed, nothing can be done with it.
+   * Checks if the connection has been disposed. This method is <strong>thread-safe</strong>.
    *
-   * @return
+   * @return true if this connection has been disposed. Disposed connections can't be used for anything.
    */
   public boolean isDisposed() {
     synchronized (myLock) {
@@ -235,10 +282,20 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Close connection and dispose all resources. May be called several times.
-   * <p/>
-   * This method may be called from another thread, but in that case prepared statements will not be
-   * automatically disposed and will be lost by the wrapper.
+   * Closes this connection and disposes all related resources. After dispose() is called, the connection
+   * cannot be used and the instance should be forgotten.
+   * <p>
+   * Calling this method on an already disposed connection does nothing.
+   * <p>
+   * This method is <strong>partially thread-safe</strong>: it may be called from another thread,
+   * but in that case prepared statements will not be disposed and will be "lost" by the wrapper.
+   * This will probably be ok, but SQLite may return an error and not close the connection.
+   * <p>
+   * It is better to call dispose() from a different thread, than not to call it at all.
+   * <p>
+   * This method does not throw exception even if SQLite returns an error.
+   * <p>
+   * @see <a href="http://www.sqlite.org/c3ref/close.html">sqlite3_close</a>
    */
   public void dispose() {
     SWIGTYPE_p_sqlite3 handle;
@@ -271,36 +328,19 @@ public final class SQLiteConnection {
     myConfinement = null;
   }
 
-  private void finalizeProgressHandler(SWIGTYPE_p_sqlite3 handle) {
-    if (Thread.currentThread() == myConfinement) {
-      ProgressHandler handler = myProgressHandler;
-      if (handler != null) {
-        _SQLiteManual.uninstall_progress_handler(handle, handler);
-      }
-    }
-  }
-
-  private void finalizeBuffers() {
-    DirectBuffer[] buffers;
-    synchronized (myLock) {
-      if (myBuffers.isEmpty()) {
-        return;
-      }
-      buffers = myBuffers.toArray(new DirectBuffer[myBuffers.size()]);
-      myBuffers.clear();
-      myBuffersTotalSize = 0;
-    }
-    if (Thread.currentThread() == myConfinement) {
-      for (DirectBuffer buffer : buffers) {
-        _SQLiteManual.wrapper_free(buffer);
-      }
-    } else {
-      Internal.logWarn(this, "cannot free " + buffers.length + " buffers from alien thread (" + Thread.currentThread() + ")");
-    }
-  }
-
   /**
-   * Execute SQL.
+   * Executes SQL. This method is normally used for DDL, transaction control and similar SQL statements.
+   * For querying database and for DML statements with parameters, use {@link #prepare}.
+   * <p>
+   * Several statements, delimited by a semicolon, can be executed with a single call.
+   * <p>
+   * Do not use this method if your SQL contains non-ASCII characters!
+   * <p>
+   * @see <a href="http://www.sqlite.org/c3ref/exec.html">sqlite3_exec</a>
+   *
+   * @param sql an SQL statement
+   * @return this connection
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    */
   public SQLiteConnection exec(String sql) throws SQLiteException {
     checkThread();
@@ -321,48 +361,32 @@ public final class SQLiteConnection {
     return this;
   }
 
-  private ProgressHandler getProgressHandler() throws SQLiteException {
-    ProgressHandler handler = myProgressHandler;
-    if (handler == null) {
-      handler = mySQLiteManual.install_progress_handler(handle(), myStepsPerCallback);
-      if (handler == null) {
-        Internal.logWarn(this, "cannot install progress handler [" + mySQLiteManual.getLastReturnCode() + "]");
-        handler = ProgressHandler.DISPOSED;
-      }
-      myProgressHandler = handler;
-    }
-    return handler;
-  }
-
   /**
-   * Prepares cached SQL statement.
-   */
-  public SQLiteStatement prepare(String sql) throws SQLiteException {
-    return prepare(sql, true);
-  }
-
-  /**
-   * @see #prepare(SQLParts, boolean)
-   */
-  public SQLiteStatement prepare(String sql, boolean cached) throws SQLiteException {
-    return prepare(new SQLParts(sql), cached);
-  }
-
-  public SQLiteStatement prepare(SQLParts parts) throws SQLiteException {
-    return prepare(parts, true);
-  }
-
-  /**
-   * Prepares SQL statement
+   * Prepares an SQL statement. Prepared SQL statement can be used further for putting data into
+   * the database and for querying data.
+   * <p>
+   * Prepared statements are normally cached by the connection, unless you set <code>cached</code> parameter
+   * to false. Because parsing SQL is costly, caching should be used in cases where a single SQL can be
+   * executed more than once.
+   * <p>
+   * Cached statements are cleared of state before or after they are used.
+   * <p>
+   * SQLParts is used to contains the SQL query, yet there are convenience methods that accept String.
+   * <p>
+   * Returned statement must be disposed when the calling code is done with it, whether it was cached or not.
+   * <p>
+   * @see <a href="http://www.sqlite.org/c3ref/prepare.html">sqlite3_prepare_v2</a>
    *
-   * @param cached if true, the statement handle will be cached by the connection, so after the SQLiteStatement
-   *               is disposed, the handle may be reused by another prepare() call.
+   * @param sql the SQL statement, not null
+   * @param cached if true, the statement handle will be cached by the connection
+   * @return an instance of {@link SQLiteStatement}
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    */
-  public SQLiteStatement prepare(SQLParts parts, boolean cached) throws SQLiteException {
+  public SQLiteStatement prepare(SQLParts sql, boolean cached) throws SQLiteException {
     checkThread();
     if (Internal.isFineLogging())
-      Internal.logFine(this, "prepare [" + parts + "]");
-    if (parts == null)
+      Internal.logFine(this, "prepare [" + sql + "]");
+    if (sql == null)
       throw new IllegalArgumentException();
     SWIGTYPE_p_sqlite3 handle;
     SWIGTYPE_p_sqlite3_stmt stmt = null;
@@ -371,11 +395,11 @@ public final class SQLiteConnection {
     synchronized (myLock) {
       if (cached) {
         // while the statement is in work, it is removed from cache. it is put back in cache by SQLiteStatement.dispose().
-        FastMap.Entry<SQLParts, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.getEntry(parts);
+        FastMap.Entry<SQLParts, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.getEntry(sql);
         if (e != null) {
           fixedKey = e.getKey();
           assert fixedKey != null;
-          assert fixedKey.isFixed() : parts;
+          assert fixedKey.isFixed() : sql;
           stmt = e.getValue();
           if (stmt != null) {
             e.setValue(null);
@@ -386,14 +410,14 @@ public final class SQLiteConnection {
     }
     if (stmt == null) {
       if (Internal.isFineLogging())
-        Internal.logFine(this, "calling sqlite3_prepare_v2 for [" + parts + "]");
-      stmt = mySQLiteManual.sqlite3_prepare_v2(handle, parts.toString());
-      throwResult(mySQLiteManual.getLastReturnCode(), "prepare()", parts);
+        Internal.logFine(this, "calling sqlite3_prepare_v2 for [" + sql + "]");
+      stmt = mySQLiteManual.sqlite3_prepare_v2(handle, sql.toString());
+      throwResult(mySQLiteManual.getLastReturnCode(), "prepare()", sql);
       if (stmt == null)
         throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
     } else {
       if (Internal.isFineLogging())
-        Internal.logFine(this, "using cached stmt for [" + parts + "]");
+        Internal.logFine(this, "using cached stmt for [" + sql + "]");
     }
     SQLiteStatement statement = null;
     synchronized (myLock) {
@@ -402,11 +426,11 @@ public final class SQLiteConnection {
       if (myHandle != null) {
         SQLiteController controller = cached ? myCachedController : myUncachedController;
         if (fixedKey == null)
-          fixedKey = parts.getFixedParts();
+          fixedKey = sql.getFixedParts();
         statement = new SQLiteStatement(controller, stmt, fixedKey);
         myStatements.add(statement);
       } else {
-        Internal.logWarn(this, "connection disposed while preparing statement for [" + parts + "]");
+        Internal.logWarn(this, "connection disposed while preparing statement for [" + sql + "]");
       }
     }
     if (statement == null) {
@@ -421,10 +445,60 @@ public final class SQLiteConnection {
     return statement;
   }
 
-  public SQLiteBlob blob(String table, String column, long rowid, boolean writeAccess) throws SQLiteException {
-    return blob(null, table, column, rowid, writeAccess);
+  /**
+   * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean)}
+   * for details.
+   *
+   * @param sql an SQL statement, not null
+   * @return an instance of {@link SQLiteStatement}
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteStatement prepare(String sql) throws SQLiteException {
+    return prepare(sql, true);
   }
 
+  /**
+   * Convenience method that prepares a statement for the given String-based SQL. See {@link #prepare(SQLParts, boolean)}
+   * for details.
+   *
+   * @param sql the SQL statement, not null
+   * @param cached if true, the statement handle will be cached by the connection
+   * @return an instance of {@link SQLiteStatement}
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteStatement prepare(String sql, boolean cached) throws SQLiteException {
+    return prepare(new SQLParts(sql), cached);
+  }
+
+  /**
+   * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean)}
+   * for details.
+   *
+   * @param sql the SQL statement, not null
+   * @return an instance of {@link SQLiteStatement}
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteStatement prepare(SQLParts sql) throws SQLiteException {
+    return prepare(sql, true);
+  }
+
+  /**
+   * Opens a BLOB for reading or writing. This method returns an instance of {@link SQLiteBlob}, which can
+   * be used to read or write a single table cell with a BLOB value. After operations are done, the blob should
+   * be disposed.
+   * <p>
+   * See SQLite documentation about transactional behavior of the corresponding methods.
+   * <p>
+   * @see <a href="http://www.sqlite.org/c3ref/blob_open.html">sqlite3_blob_open</a>
+   *
+   * @param dbname database name, or null for the current database
+   * @param table table name, not null
+   * @param column column name, not null
+   * @param rowid row id
+   * @param writeAccess if true, write access is requested
+   * @return an instance of SQLiteBlob for incremental reading or writing
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
   public SQLiteBlob blob(String dbname, String table, String column, long rowid, boolean writeAccess) throws SQLiteException {
     checkThread();
     if (Internal.isFineLogging())
@@ -458,6 +532,30 @@ public final class SQLiteConnection {
   }
 
   /**
+   * Convenience method for calling blob() on the currently selected database.
+   * See {@link #blob(String, String, String, long, boolean)} for detailed description.
+   *
+   * @param table table name, not null
+   * @param column column name, not null
+   * @param rowid row id
+   * @param writeAccess if true, write access is requested
+   * @return an instance of SQLiteBlob for incremental reading or writing
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteBlob blob(String table, String column, long rowid, boolean writeAccess) throws SQLiteException {
+    return blob(null, table, column, rowid, writeAccess);
+  }
+
+  /**
+   * Sets "busy timeout" for this connection. If timeout is defined, then SQLite will not wait to lock
+   * the database for more than the specified number of milliseconds.
+   * <p>
+   * By default, the timeout is not set.
+   *
+   * @param millis number of milliseconds for the busy timeout, or 0 to disable the timeout
+   * @return this connection
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   *
    * @see <a href="http://www.sqlite.org/c3ref/busy_timeout.html">sqlite3_busy_timeout</a>
    */
   public SQLiteConnection setBusyTimeout(long millis) throws SQLiteException {
@@ -467,42 +565,146 @@ public final class SQLiteConnection {
     return this;
   }
 
+  /**
+   * Checks if the database is in the auto-commit mode. In auto-commit mode, transaction is ended after execution of
+   * every statement.
+   * <p>
+   * 
+   * @return true if the connection is in auto-commit mode
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   *
+   * @see <a href="http://www.sqlite.org/c3ref/get_autocommit.html">sqlite3_get_autocommit</a>
+   */
   public boolean getAutoCommit() throws SQLiteException {
     checkThread();
     int r = _SQLiteSwigged.sqlite3_get_autocommit(handle());
     return r != 0;
   }
 
+  /**
+   * Returns the ROWID of the row, last inserted in this connection (regardless of which statement was used).
+   * If the table has a column of type INTEGER PRIMARY KEY, then that column contains the ROWID. See SQLite docs. 
+   * <p>
+   * You can also use "last_insert_rowid()" function in SQL statements following the insert.
+   *  
+   * @return the rowid of the last successful insert, or 0 if nothing has been inserted in this connection
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/last_insert_rowid.html">sqlite3_last_insert_rowid</a>
+   */
   public long getLastInsertId() throws SQLiteException {
     checkThread();
     long id = _SQLiteSwigged.sqlite3_last_insert_rowid(handle());
     return id;
   }
 
+  /**
+   * This method returns the number of database rows that were changed or inserted or deleted by the most
+   * recently completed SQL statement in this connection. See SQLite documentation for details.
+   * 
+   * @return the number of affected rows, or 0
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/changes.html">sqlite3_changes</a>
+   */
   public int getChanges() throws SQLiteException {
     checkThread();
     int result = _SQLiteSwigged.sqlite3_changes(handle());
     return result;
   }
 
+  /**
+   * This method returns the total number of database rows that were changed or inserted or deleted since
+   * this connection was opened. See SQLite documentation for details.
+   *
+   * @return the total number of affected rows, or 0
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/total_changes.html">sqlite3_total_changes</a>
+   */
   public int getTotalChanges() throws SQLiteException {
     checkThread();
     int result = _SQLiteSwigged.sqlite3_total_changes(handle());
     return result;
   }
 
+  /**
+   * This method can be called to interrupt a currently long-running SQL statement, causing it to fail
+   * with an exception.
+   * <p>
+   * This method is <strong>thread-safe</strong>.
+   * <p>
+   * There are some important implications from using this method, see SQLite docs.
+   *
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/interrupt.html">sqlite3_interrupt</a>
+   */
   public void interrupt() throws SQLiteException {
     _SQLiteSwigged.sqlite3_interrupt(handle());
   }
 
+  /**
+   * This method returns the error code of the most recently failed operation. However, this method is
+   * rarely needed, as the error code can usually be received from {@link SQLiteException#getErrorCode}.
+   *
+   * @return error code, or 0
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/errcode.html">sqlite3_errcode</a>
+   * @see <a href="http://www.sqlite.org/c3ref/errcode.html">sqlite3_extended_errcode</a>
+   */
   public int getErrorCode() throws SQLiteException {
     checkThread();
     return _SQLiteSwigged.sqlite3_errcode(handle());
   }
 
+  /**
+   * This method returns the English error message that describes the error returned by {@link #getErrorCode}.
+   *
+   * @return error message, or null
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/errcode.html">sqlite3_errmsg</a>
+   */
   public String getErrorMessage() throws SQLiteException {
     checkThread();
     return _SQLiteSwigged.sqlite3_errmsg(handle());
+  }
+
+  private void finalizeProgressHandler(SWIGTYPE_p_sqlite3 handle) {
+    if (Thread.currentThread() == myConfinement) {
+      ProgressHandler handler = myProgressHandler;
+      if (handler != null) {
+        _SQLiteManual.uninstall_progress_handler(handle, handler);
+      }
+    }
+  }
+
+  private void finalizeBuffers() {
+    DirectBuffer[] buffers;
+    synchronized (myLock) {
+      if (myBuffers.isEmpty()) {
+        return;
+      }
+      buffers = myBuffers.toArray(new DirectBuffer[myBuffers.size()]);
+      myBuffers.clear();
+      myBuffersTotalSize = 0;
+    }
+    if (Thread.currentThread() == myConfinement) {
+      for (DirectBuffer buffer : buffers) {
+        _SQLiteManual.wrapper_free(buffer);
+      }
+    } else {
+      Internal.logWarn(this, "cannot free " + buffers.length + " buffers from alien thread (" + Thread.currentThread() + ")");
+    }
+  }
+
+  private ProgressHandler getProgressHandler() throws SQLiteException {
+    ProgressHandler handler = myProgressHandler;
+    if (handler == null) {
+      handler = mySQLiteManual.install_progress_handler(handle(), myStepsPerCallback);
+      if (handler == null) {
+        Internal.logWarn(this, "cannot install progress handler [" + mySQLiteManual.getLastReturnCode() + "]");
+        handler = ProgressHandler.DISPOSED;
+      }
+      myProgressHandler = handler;
+    }
+    return handler;
   }
 
   private void finalizeStatements() {
@@ -735,7 +937,7 @@ public final class SQLiteConnection {
     }
   }
 
-  private void openX(int flags) throws SQLiteException {
+  private void open0(int flags) throws SQLiteException {
     SQLite.loadLibrary();
     if (Internal.isFineLogging())
       Internal.logFine(this, "opening (0x" + Integer.toHexString(flags).toUpperCase(Locale.US) + ")");
