@@ -32,8 +32,6 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
  * SQLiteConnection is a single connection to sqlite database. It wraps the <strong><code>sqlite3*</code></strong>
  * database handle from SQLite C Interface.
  * <p>
- * See details here: <a href="http://www.sqlite.org/c3ref/sqlite3.html">http://www.sqlite.org/c3ref/sqlite3.html</a>.
- * <p>
  * Unless otherwise specified, methods are confined to the thread that was used to open the connection.
  * This means that an exception will be thrown if you try to access the method from a different thread.
  * <p>
@@ -50,6 +48,7 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
  * back.
  *
  * @see SQLiteStatement
+ * @see <a href="http://www.sqlite.org/c3ref/sqlite3.html">sqlite3*</a>
  */
 public final class SQLiteConnection {
   private static final int MAX_POOLED_DIRECT_BUFFER_SIZE = 1 << 20;

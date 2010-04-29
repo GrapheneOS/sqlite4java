@@ -6,7 +6,7 @@
 <p>
   Main classes are {@link SQLiteConnection}, {@link SQLiteStatement} and {@link SQLite}.
   Here's the typical use:
-  <code>
+  <pre>
     SQLiteConnection db = new SQLiteConnection(new File("/tmp/database"));
     db.open(true);
     SQLiteStatement st = db.prepare("INSERT INTO table VALUES (?, ?, ?)");
@@ -14,8 +14,7 @@
     st.step();
     st.dispose();
     db.close();
-  </code>
-</p>
+  </pre>
 <p>
   See <a href="http://code.google.com/p/sqlite4java/">http://code.google.com/p/sqlite4java</a> for more information.
 </p>

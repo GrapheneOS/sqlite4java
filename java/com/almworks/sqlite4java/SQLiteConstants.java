@@ -47,7 +47,7 @@ public interface SQLiteConstants {
     public static final int SQLITE_LOCKED = 6;   /* A table in the database is locked */
     public static final int SQLITE_NOMEM = 7;   /* A malloc() failed */
     public static final int SQLITE_READONLY = 8;   /* Attempt to write a readonly database */
-    public static final int SQLITE_INTERRUPT = 9;   /* Operation terminated by sqlite=3;_interrupt()*/
+    public static final int SQLITE_INTERRUPT = 9;   /* Operation terminated by sqlite3_interrupt()*/
     public static final int SQLITE_IOERR = 10;   /* Some kind of disk I/O error occurred */
     public static final int SQLITE_CORRUPT = 11;   /* The database disk image is malformed */
     public static final int SQLITE_NOTFOUND = 12;   /* NOT USED. Table or record not found */
@@ -63,7 +63,7 @@ public interface SQLiteConstants {
     public static final int SQLITE_NOLFS = 22;   /* Uses OS features not supported on host */
     public static final int SQLITE_AUTH = 23;   /* Authorization denied */
     public static final int SQLITE_FORMAT = 24;   /* Auxiliary database format error */
-    public static final int SQLITE_RANGE = 25;   /* =2;nd parameter to sqlite=3;_bind out of range */
+    public static final int SQLITE_RANGE = 25;   /* 2'nd parameter to sqlite3_bind out of range */
     public static final int SQLITE_NOTADB = 26;   /* File opened that is not a database file */
     public static final int SQLITE_ROW = 100;  /* sqlite=3;_step() has another row ready */
     public static final int SQLITE_DONE = 101;  /* sqlite=3;_step() has finished executing */
