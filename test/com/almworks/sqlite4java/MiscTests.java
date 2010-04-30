@@ -3,6 +3,7 @@ package com.almworks.sqlite4java;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Locale;
 
 public class MiscTests extends SQLiteTestFixture {
   public MiscTests() {
@@ -25,5 +26,17 @@ public class MiscTests extends SQLiteTestFixture {
     assertNull(Internal.getDefaultLibPath("xxx" + File.pathSeparatorChar + File.pathSeparatorChar + dir, url));
     assertEquals(dir, Internal.getDefaultLibPath(dir + "x", url));
     assertNull(Internal.getDefaultLibPath(dir, url));
+  }
+
+  public void testCreatingDatabaseInNonExistingDirectory() {
+    String dir = tempName("newDir");
+    File db = new File(dir, "db");
+    SQLiteConnection c = new SQLiteConnection(db);
+    try {
+      c.open(true);
+      fail("created a connection to db in a non-existing directory");
+    } catch (SQLiteException e) {
+      assertTrue(e.getMessage().toLowerCase(Locale.US).contains("file"));
+    }
   }
 }

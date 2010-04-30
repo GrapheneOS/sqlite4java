@@ -28,12 +28,14 @@ JNIEXPORT jstring JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrappe
 }
 
 JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1open_1v2(JNIEnv *jenv, jclass jcls,
-  jstring jfilename, jlongArray jresult, jint jflags)
+  jstring jfilename, jlongArray jresult, jint jflags, jobjectArray joutError)
 {
   const char *filename = 0;
   sqlite3* db = 0;
   int rc = 0;
   jlong r = 0;
+  const char *errmsg = 0;
+  jstring error = 0;
 
   if (!jfilename) return WRAPPER_INVALID_ARG_1;
   if (!jresult) return WRAPPER_INVALID_ARG_2;
@@ -43,10 +45,19 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   // todo(maybe) call jresult's getBytes("UTF-8") method to get filename in correct UTF-8
   rc = sqlite3_open_v2(filename, &db, (int)jflags, 0);
 
-  if (db && rc != SQLITE_OK) {
-    // on error, open returns db anyway
-    sqlite3_close(db);
-    db = 0;
+  if (rc != SQLITE_OK) {
+    errmsg = sqlite3_errmsg(db);
+    if (errmsg) {
+      error = (*jenv)->NewStringUTF(jenv, errmsg);
+      if (error) {
+        (*jenv)->SetObjectArrayElement(jenv, joutError, 0, error);
+      }
+    }
+    if (db) {
+      // on error, open returns db anyway
+      sqlite3_close(db);
+      db = 0;
+    }
   }
 
   if (db) {

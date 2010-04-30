@@ -65,9 +65,32 @@ public abstract class SQLiteTestFixture extends TestCase {
     File dir = myTempDir;
     if (dir != null) {
       myTempDir = null;
-      boolean success = dir.delete();
-//      assert success : dir;
+      if (dir.isDirectory()) {
+        deleteRecursively(dir, 100);
+      }
     }
+  }
+
+  private int deleteRecursively(File dir, int safe) {
+    File[] files = dir.listFiles();
+    if (files != null) {
+      for (File file : files) {
+        String name = file.getName();
+        if (".".equals(name) || "..".equals(name)) continue;
+        if (safe-- < 0) throw new RuntimeException("safe deletion threshold exceeded");
+        if (file.isDirectory()) {
+          safe = deleteRecursively(file, safe);
+        } else {
+          if (!file.delete()) {
+            file.deleteOnExit();
+          }
+        }
+      }
+    }
+    if (!dir.delete()) {
+      dir.deleteOnExit();
+    }
+    return safe;
   }
 
   protected File tempDir() {

@@ -973,7 +973,9 @@ public final class SQLiteConnection {
           Internal.log(Level.FINE, this, "error on closing after failed open", e);
         }
       }
-      String errorMessage = _SQLiteSwigged.sqlite3_errmsg(null);
+      String errorMessage = mySQLiteManual.drainLastOpenError();
+      if (errorMessage == null)
+        errorMessage = "open database error code " + rc;
       throw new SQLiteException(rc, errorMessage);
     }
     if (handle == null) {

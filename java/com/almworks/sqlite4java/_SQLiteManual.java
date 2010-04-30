@@ -33,6 +33,7 @@ final class _SQLiteManual {
    * Last return code received for non-static methods.
    */
   private int myLastReturnCode = 0;
+  private String myLastOpenError = null;
 
   public static String wrapper_version() {
     return _SQLiteManualJNI.wrapper_version();
@@ -63,12 +64,21 @@ final class _SQLiteManual {
     return myLastReturnCode;
   }
 
+  public String drainLastOpenError() {
+    String r = myLastOpenError;
+    myLastOpenError = null;
+    return r;
+  }
+
   public SWIGTYPE_p_sqlite3 sqlite3_open_v2(String filename, int flags) {
     myLastReturnCode = 0;
     myLong[0] = 0;
-    myLastReturnCode = _SQLiteManualJNI.sqlite3_open_v2(filename, myLong, flags);
+    myString[0] = null;
+    myLastReturnCode = _SQLiteManualJNI.sqlite3_open_v2(filename, myLong, flags, myString);
     long ptr = myLong[0];
     myLong[0] = 0;
+    myLastOpenError = myString[0];
+    myString[0] = null;
     return ptr == 0 ? null : new SWIGTYPE_p_sqlite3(ptr, true);
   }
 

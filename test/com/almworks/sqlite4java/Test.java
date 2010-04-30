@@ -4,10 +4,6 @@ import static com.almworks.sqlite4java.SQLiteConstants.Open;
 
 public class Test {
   public static void main(String[] args) {
-
-
-
-
     System.loadLibrary("sqlite");
 
     System.out.println("_SQLiteSwigged.sqlite3_libversion()=" + _SQLiteSwigged.sqlite3_libversion());

@@ -25,7 +25,7 @@ final class _SQLiteManualJNI {
    * @param flags see SQLITE_OPEN_* constants
    * @return return code SQLITE_OK or other
    */
-  public final static native int sqlite3_open_v2(String filename, long[] ppDb, int flags);
+  public final static native int sqlite3_open_v2(String filename, long[] ppDb, int flags, String[] ppOpenError);
 
   /**
    * @param db handle
