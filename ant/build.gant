@@ -275,6 +275,7 @@ target('test': 'run all tests') {
   }
   platforms.each { String platform ->
     buildtypes.each { String buildtype ->
+      if (antProp("skip.test.$platform")) return;
       def jvm = antProp("jre.$platform")
       if (!jvm) ant.fail(message: "cannot run tests - jre.$platform is not defined")
       if (jvm) jvm = "$jvm/bin/java";
