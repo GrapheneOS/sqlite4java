@@ -29,11 +29,11 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
 /**
  * SQLiteStatement wraps an instance of compiled SQL statement, represented as <strong><code>sqlite3_stmt*</code></strong>
  * handle in SQLite C Interface.
- * <p>
+ * <p/>
  * You get instances of SQLiteStatement via {@link SQLiteConnection#prepare} methods. After you've done using
  * the statement, you have to free it using {@link #dispose} method. Statements are usually cached, so until
  * you release the statement, <code>prepare</code> calls for the same SQL will result in needless compilation.
- * <p>
+ * <p/>
  * Typical use includes binding parameters, then executing steps and reading columns. Most methods directly
  * correspond to the sqlite3 C interface methods.
  * <pre>
@@ -47,7 +47,7 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
  *   statement.dispose();
  * }
  * </pre>
- * <p>
+ * <p/>
  * Unless a method is marked as thread-safe, it is confined to the thread that has opened the connection. Calling
  * a confined method from a different thread will result in exception.
  *
@@ -65,6 +65,11 @@ public final class SQLiteStatement {
    * The SQL of this statement.
    */
   private final SQLParts mySqlParts;
+
+  /**
+   * The profiler for this statement, may be null.
+   */
+  private SQLiteProfiler myProfiler;
 
   /**
    * The controller that handles connection-level operations. Initially it is set
@@ -118,26 +123,29 @@ public final class SQLiteStatement {
    * Instances are constructed only by SQLiteConnection.
    *
    * @param controller controller, provided by the connection
-   * @param handle native handle wrapper
-   * @param sqlParts SQL
+   * @param handle     native handle wrapper
+   * @param sqlParts   SQL
+   * @param profiler   an instance of profiler for the statement, or null
    * @see SQLiteConnection#prepare(String, boolean)
    */
-  SQLiteStatement(SQLiteController controller, SWIGTYPE_p_sqlite3_stmt handle, SQLParts sqlParts) {
+  SQLiteStatement(SQLiteController controller, SWIGTYPE_p_sqlite3_stmt handle, SQLParts sqlParts, SQLiteProfiler profiler) {
     assert handle != null;
     assert sqlParts.isFixed() : sqlParts;
     myController = controller;
     myHandle = handle;
     mySqlParts = sqlParts;
+    myProfiler = profiler;
     Internal.logFine(this, "instantiated");
   }
 
   /**
-   * Constructs DISPOSED singleton 
+   * Constructs DISPOSED singleton
    */
   private SQLiteStatement() {
     myController = SQLiteController.getDisposed(null);
     myHandle = null;
     mySqlParts = new SQLParts().fix();
+    myProfiler = null;
   }
 
   /**
@@ -149,7 +157,7 @@ public final class SQLiteStatement {
 
   /**
    * Returns the immutable SQLParts object that was used to create this instance.
-   * <p>
+   * <p/>
    * This method is <strong>thread-safe</strong>.
    *
    * @return SQL used for this statement
@@ -161,9 +169,9 @@ public final class SQLiteStatement {
   /**
    * Disposes this statement and frees allocated resources. If the statement's handle is cached,
    * it is returned to the connection's cache and can be reused by later calls to <code>prepare</code>
-   * <p>
+   * <p/>
    * Calling this method on an already disposed instance has no effect.
-   * <p> 
+   * <p/>
    * After SQLiteStatement instance is disposed, it is no longer usable and holds no references to its originating
    * connection or SQLite database.
    */
@@ -184,14 +192,13 @@ public final class SQLiteStatement {
 
   /**
    * Resets the statement if it has been stepped, allowing SQL to be run again. Optionally, clears bindings all binding.
-   * <p>
+   * <p/>
    * If <code>clearBinding</code> parameter is false, then all preceding bindings remain in place. You can change
    * some or none of them and run statement again.
    *
    * @param clearBindings if true, all parameters will be set to NULL
    * @return this statement
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
-   *
    * @see <a href="http://www.sqlite.org/c3ref/reset.html">sqlite3_reset</a>
    * @see <a href="http://www.sqlite.org/c3ref/clear_bindings.html">sqlite3_clear_bindings</a>
    */
@@ -258,10 +265,10 @@ public final class SQLiteStatement {
 
   /**
    * Evaluates SQL statement until either there's data to be read, an error occurs, or the statement completes.
-   * <p>
+   * <p/>
    * An SQL statement is represented as a VM program in SQLite, and a call to <code>step</code> runs that program
    * until there's a "break point".
-   * <p>
+   * <p/>
    * This method can produce one of the three results:
    * <ul>
    * <li>If the return value is <strong>true</strong>, there's data to be read using <code>columnXYZ</code> methods;
@@ -276,6 +283,7 @@ public final class SQLiteStatement {
    */
   public boolean step() throws SQLiteException {
     myController.validate();
+    SQLiteProfiler profiler = myProfiler;
     if (Internal.isFineLogging())
       Internal.logFine(this, "step");
     SWIGTYPE_p_sqlite3_stmt handle = handle();
@@ -290,7 +298,9 @@ public final class SQLiteStatement {
       myProgressHandler = ph;
     }
     try {
+      long from = profiler == null ? 0 : System.nanoTime();
       rc = _SQLiteSwigged.sqlite3_step(handle);
+      if (profiler != null) profiler.reportStep(myStepped, mySqlParts.toString(), from, System.nanoTime(), rc);
     } finally {
       synchronized (this) {
         myProgressHandler = null;
@@ -320,7 +330,7 @@ public final class SQLiteStatement {
   /**
    * Convenience method that ignores the available data and steps through the SQL statement until evaluation is
    * completed. See {@link #step} for details.
-   * <p>
+   * <p/>
    * Most often it's used to chain calls.
    *
    * @return this statement
@@ -334,14 +344,15 @@ public final class SQLiteStatement {
   /**
    * Cancels the currently running statement. This method has effect only during execution of the step() method,
    * and so it is run from a different thread.
-   * <p>
+   * <p/>
    * This method works by setting a cancel flag, which is checked by the progress callback. Hence, if the progress
    * callback is disabled, this method will not have effect. Likewise, if <code>stepsPerCallback</code> parameter
    * is set to large values, the reaction to this call may be far from immediate.
-   * <p>
+   * <p/>
    * If executing is cancelled, the step() method will throw an exception with code {@link SQLiteConstants.Result#SQLITE_INTERRUPT}
    * This method is <strong>thread-safe</strong>.
-   * <p>
+   * <p/>
+   *
    * @see SQLiteConnection#setStepsPerCallback
    * @see <a href="http://www.sqlite.org/c3ref/progress_handler.html">sqlite3_progress_callback</a>
    */
@@ -383,6 +394,7 @@ public final class SQLiteStatement {
 
   public int loadInts(int column, int[] buffer, int offset, int count) throws SQLiteException {
     myController.validate();
+    SQLiteProfiler profiler = myProfiler;
     if (buffer == null || count <= 0 || offset < 0 || offset + count > buffer.length) {
       assert false;
       return 0;
@@ -405,8 +417,10 @@ public final class SQLiteStatement {
     }
     try {
       _SQLiteManual manual = myController.getSQLiteManual();
+      long from = profiler == null ? 0 : System.nanoTime();
       r = manual.wrapper_load_ints(handle, column, buffer, offset, count);
       rc = manual.getLastReturnCode();
+      if (profiler != null) profiler.reportLoadInts(myStepped, mySqlParts.toString(), from, System.nanoTime(), rc, r);
     } finally {
       synchronized (this) {
         myProgressHandler = null;
@@ -781,6 +795,7 @@ public final class SQLiteStatement {
     myHasBindings = false;
     myStepped = false;
     myController = SQLiteController.getDisposed(myController);
+    myProfiler = null;
     Internal.logFine(this, "cleared");
   }
 

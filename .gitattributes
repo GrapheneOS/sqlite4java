@@ -18,6 +18,7 @@ java/com/almworks/sqlite4java/SQLiteCancelledException.java -text
 java/com/almworks/sqlite4java/SQLiteConnection.java -text
 java/com/almworks/sqlite4java/SQLiteController.java -text
 java/com/almworks/sqlite4java/SQLiteException.java -text
+java/com/almworks/sqlite4java/SQLiteProfiler.java -text
 java/com/almworks/sqlite4java/SQLiteStatement.java -text
 java/com/almworks/sqlite4java/SQLiteUserException.java -text
 java/com/almworks/sqlite4java/SWIGTYPE_p_direct_buffer.java -text
@@ -46,6 +47,7 @@ test/com/almworks/sqlite4java/DirectBufferTests.java -text
 test/com/almworks/sqlite4java/IncrementalBlobIOAnalysis.java -text
 test/com/almworks/sqlite4java/IncrementalIODemo.java -text
 test/com/almworks/sqlite4java/MiscTests.java -text
+test/com/almworks/sqlite4java/ProfilerTests.java -text
 test/com/almworks/sqlite4java/ProgressHandlerTests.java -text
 test/com/almworks/sqlite4java/SQLPartsTests.java -text
 test/com/almworks/sqlite4java/SQLiteBasicTests.java -text

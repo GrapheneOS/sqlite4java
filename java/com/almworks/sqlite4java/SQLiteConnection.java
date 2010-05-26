@@ -142,6 +142,12 @@ public final class SQLiteConnection {
   private volatile int myStepsPerCallback = DEFAULT_STEPS_PER_CALLBACK;
 
   /**
+   * If initialized, all subsequent statements are analyzed for speed and stats are
+   * collected in the profiler.
+   */
+  private volatile SQLiteProfiler myProfiler;
+
+  /**
    * Creates a connection to the database located in the specified file.
    * Database is not opened by the constructor, and the calling thread is insignificant.
    *
@@ -343,6 +349,7 @@ public final class SQLiteConnection {
    */
   public SQLiteConnection exec(String sql) throws SQLiteException {
     checkThread();
+    SQLiteProfiler profiler = myProfiler;
     if (Internal.isFineLogging())
       Internal.logFine(this, "exec [" + sql + "]");
     SWIGTYPE_p_sqlite3 handle = handle();
@@ -350,7 +357,9 @@ public final class SQLiteConnection {
     ph.reset();
     try {
       String[] error = {null};
+      long from = profiler == null ? 0 : System.nanoTime();
       int rc = _SQLiteManual.sqlite3_exec(handle, sql, error);
+      if (profiler != null) profiler.reportExec(sql, from, System.nanoTime(), rc);
       throwResult(rc, "exec()", error[0]);
     } finally {
       if (Internal.isFineLogging())
@@ -383,6 +392,7 @@ public final class SQLiteConnection {
    */
   public SQLiteStatement prepare(SQLParts sql, boolean cached) throws SQLiteException {
     checkThread();
+    SQLiteProfiler profiler = myProfiler;
     if (Internal.isFineLogging())
       Internal.logFine(this, "prepare [" + sql + "]");
     if (sql == null)
@@ -410,8 +420,12 @@ public final class SQLiteConnection {
     if (stmt == null) {
       if (Internal.isFineLogging())
         Internal.logFine(this, "calling sqlite3_prepare_v2 for [" + sql + "]");
-      stmt = mySQLiteManual.sqlite3_prepare_v2(handle, sql.toString());
-      throwResult(mySQLiteManual.getLastReturnCode(), "prepare()", sql);
+      long from = profiler == null ? 0 : System.nanoTime();
+      String sqlString = sql.toString();
+      stmt = mySQLiteManual.sqlite3_prepare_v2(handle, sqlString);
+      int rc = mySQLiteManual.getLastReturnCode();
+      if (profiler != null) profiler.reportPrepare(sqlString, from, System.nanoTime(), rc);
+      throwResult(rc, "prepare()", sql);
       if (stmt == null)
         throw new SQLiteException(Wrapper.WRAPPER_WEIRD, "sqlite did not return stmt");
     } else {
@@ -426,7 +440,7 @@ public final class SQLiteConnection {
         SQLiteController controller = cached ? myCachedController : myUncachedController;
         if (fixedKey == null)
           fixedKey = sql.getFixedParts();
-        statement = new SQLiteStatement(controller, stmt, fixedKey);
+        statement = new SQLiteStatement(controller, stmt, fixedKey, myProfiler);
         myStatements.add(statement);
       } else {
         Internal.logWarn(this, "connection disposed while preparing statement for [" + sql + "]");
@@ -663,6 +677,41 @@ public final class SQLiteConnection {
   public String getErrorMessage() throws SQLiteException {
     checkThread();
     return _SQLiteSwigged.sqlite3_errmsg(handle());
+  }
+
+  /**
+   * Starts SQL profiling and returns the profiler class. If profiling is already started, returns the
+   * profiler.
+   * <p>
+   * This method is thread-safe, in a sense that it can be called from non-session threads. It's not
+   * strongly synchronized, so calling it concurrently may result in duplicate profilers.
+   * <p>
+   * Only instances of SQLiteStatement created after this method is called will be profiled (whether
+   * SQLite statement is cached or not).
+   *
+   * @return the profiler, which will collect stats for all subsequent operations until {@link #stopProfiling}
+   * is called.
+   */
+  public SQLiteProfiler profile() {
+    SQLiteProfiler profiler = myProfiler;
+    if (profiler == null)
+      myProfiler = profiler = new SQLiteProfiler();
+    return profiler;
+  }
+
+  /**
+   * Stops the profiling and returns the profiler instance with data. If the profiling was not running,
+   * returns null.
+   * <p>
+   * This method is thread-safe, in a sense that it can be called from non-session threads. It's not
+   * strongly synchronized, so calling it concurrently may result in race conditions.
+   *
+   * @return the profiler with collected data, or null 
+   */
+  public SQLiteProfiler stopProfiling() {
+    SQLiteProfiler profiler = myProfiler;
+    myProfiler = null;
+    return profiler;
   }
 
   private void finalizeProgressHandler(SWIGTYPE_p_sqlite3 handle) {
