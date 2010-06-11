@@ -16,11 +16,27 @@
 
 package com.almworks.sqlite4java;
 
-import static com.almworks.sqlite4java.SQLiteConstants.Result;
+import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_BUSY;
+import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_IOERR_BLOCKED;
 
+/**
+ * SQLiteBusyException is a special exception that is thrown whenever SQLite returns SQLITE_BUSY or
+ * SQLITE_IOERR_BLOCKED error code. These codes mean that the current operation cannot proceed because the
+ * required resources are locked.
+ * <p>
+ * When a timeout is set via {@link SQLiteConnection#setBusyTimeout}, SQLite will attempt to get the lock during
+ * the specified timeout before returning this error.
+ * <p>
+ * It is recommended to rollback the transaction when this exception is received. However, SQLite tries
+ * to make sure that only the last statement failed and it's possible to retry that statement within the current
+ * transaction.
+ *
+ * @see <a href="http://www.sqlite.org/c3ref/busy_handler.html">sqlite3_busy_handler</a>
+ * @see <a href="http://www.sqlite.org/lang_transaction.html">Response To Errors Within A Transaction</a>
+ */
 public class SQLiteBusyException extends SQLiteException {
   public SQLiteBusyException(int errorCode, String errorMessage) {
     super(errorCode, errorMessage);
-    assert errorCode == Result.SQLITE_BUSY || errorCode == Result.SQLITE_IOERR_BLOCKED : errorCode;
+    assert errorCode == SQLITE_BUSY || errorCode == SQLITE_IOERR_BLOCKED : errorCode;
   }
 }

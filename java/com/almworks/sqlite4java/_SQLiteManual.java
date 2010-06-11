@@ -145,7 +145,7 @@ final class _SQLiteManual {
   public static int wrapper_bind_buffer(SWIGTYPE_p_sqlite3_stmt stmt, int index, DirectBuffer buffer) {
     SWIGTYPE_p_direct_buffer handle = buffer.getHandle();
     if (handle == null)
-      return SQLiteConstants.Wrapper.WRAPPER_WEIRD;
+      return SQLiteConstants.WRAPPER_WEIRD;
     int size = buffer.getPosition();
     return _SQLiteManualJNI.wrapper_bind_buffer(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), index, SWIGTYPE_p_direct_buffer.getCPtr(handle), size);
   }

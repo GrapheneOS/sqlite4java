@@ -11,7 +11,7 @@ public class ProgressHandlerTests extends SQLiteConnectionFixture {
     try {
       st.step();
       fail("stepped");
-    } catch (SQLiteCancelledException e) {
+    } catch (SQLiteInterruptedException e) {
       // normal
       time = System.currentTimeMillis() - start;
       assertTrue("[" + time + "]", time < 1000);
@@ -25,7 +25,7 @@ public class ProgressHandlerTests extends SQLiteConnectionFixture {
     try {
       st.step();
       fail("stepped");
-    } catch (SQLiteCancelledException e) {
+    } catch (SQLiteInterruptedException e) {
       // normal
       time = System.currentTimeMillis() - start;
       assertTrue("[" + time + "]", 500 < time && time < 2000);
@@ -69,7 +69,7 @@ public class ProgressHandlerTests extends SQLiteConnectionFixture {
     interruptLater(st, 1000);
     try {
       st.step();
-    } catch (SQLiteCancelledException e) {
+    } catch (SQLiteInterruptedException e) {
       // normal
     }
     SQLiteStatement chk = db.prepare("select 1 from t where t = 1000");

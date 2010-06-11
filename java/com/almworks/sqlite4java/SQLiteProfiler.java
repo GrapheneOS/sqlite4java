@@ -19,10 +19,30 @@ package com.almworks.sqlite4java;
 import java.io.*;
 import java.util.*;
 
+import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_DONE;
+import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_ROW;
+
+/**
+ * SQLiteProfiler measures and accumulates statistics for various SQLite methods. The statistics is then available
+ * in a report form.
+ * <p>
+ * To start profiling, call {@link SQLiteConnection#profile} and get the profiler. After profiling is done, call
+ * {@link SQLiteConnection#stopProfiling} and inspect the profiler's results.
+ * <p>
+ * This is pure Java-based profiling, not related to <code>sqlite3_profile</code> method.
+ *
+ * @see SQLiteConnection#profile
+ * @see SQLiteConnection#stopProfiling
+ */
 public class SQLiteProfiler {
   private static final String HEADER = "-----------------------------------------------------------------------------";
   private final Map<String, SQLStat> myStats = new HashMap<String, SQLStat>();
 
+  /**
+   * Outputs current report into PrintWriter.
+   *
+   * @param out report writer
+   */
   public void printReport(PrintWriter out) {
     ArrayList<SQLStat> stats = new ArrayList<SQLStat>(myStats.values());
     Collections.sort(stats, new Comparator<SQLStat>() {
@@ -35,12 +55,22 @@ public class SQLiteProfiler {
     }
   }
 
+  /**
+   * Returns current report as a String.
+   *
+   * @return current report
+   */
   public String printReport() {
     StringWriter sw = new StringWriter();
     printReport(new PrintWriter(sw));
     return sw.toString();
   }
 
+  /**
+   * Prints report to a file. If IOException occurs, write warning log message, but does not throw it on the caller.
+   *
+   * @param file target file
+   */
   public void printReport(String file) {
     FileOutputStream fos = null;
     try {
@@ -71,24 +101,24 @@ public class SQLiteProfiler {
 
   void reportStep(boolean alreadyStepped, String sql, long nfrom, long nto, int rc) {
     SQLStat stat = getStat(sql);
-    if (rc != SQLiteConstants.Result.SQLITE_ROW && rc != SQLiteConstants.Result.SQLITE_DONE) {
+    if (rc != SQLITE_ROW && rc != SQLITE_DONE) {
       stat.report("step:error(" + rc + ")", nfrom, nto);
       return;
     }
     stat.report("step", nfrom, nto);
-    if (alreadyStepped || rc == SQLiteConstants.Result.SQLITE_ROW) {
+    if (alreadyStepped || rc == SQLITE_ROW) {
       stat.report(alreadyStepped ? "step:next" : "step:first", nfrom, nto);
     }
   }
 
   void reportLoadInts(boolean alreadyStepped, String sql, long nfrom, long nto, int rc, int count) {
     SQLStat stat = getStat(sql);
-    if (rc != SQLiteConstants.Result.SQLITE_ROW && rc != SQLiteConstants.Result.SQLITE_DONE) {
+    if (rc != SQLITE_ROW && rc != SQLITE_DONE) {
       stat.report("loadInts:error(" + rc + ")", nfrom, nto);
       return;
     }
     stat.report("loadInts", nfrom, nto);
-    if (alreadyStepped || rc == SQLiteConstants.Result.SQLITE_ROW) {
+    if (alreadyStepped || rc == SQLITE_ROW) {
       stat.report(alreadyStepped ? "loadInts:next" : "loadInts:first", nfrom, nto);
     }
     // todo count

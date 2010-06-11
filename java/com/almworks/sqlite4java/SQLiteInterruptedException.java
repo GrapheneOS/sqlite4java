@@ -16,16 +16,20 @@
 
 package com.almworks.sqlite4java;
 
-public class SQLiteUserException extends SQLiteException {
-  public SQLiteUserException() {
-    super(SQLiteConstants.Wrapper.WRAPPER_USER_ERROR, "");
+/**
+ * SQLiteInterruptedException is a special exception that is thrown whenever SQLite returns SQLITE_INTERRUPT
+ * following a call to {@link SQLiteConnection#interrupt}.
+ * <p/>
+ * The transaction is rolled back when interrupted.
+ *
+ * @see <a href="http://www.sqlite.org/c3ref/interrupt.html">sqlite3_interrupt</a>
+ */
+public class SQLiteInterruptedException extends SQLiteException {
+  public SQLiteInterruptedException() {
+    this(SQLiteConstants.SQLITE_INTERRUPT, "");
   }
 
-  public SQLiteUserException(String errorMessage) {
-    super(SQLiteConstants.Wrapper.WRAPPER_USER_ERROR, errorMessage);
-  }
-
-  public SQLiteUserException(String errorMessage, Throwable cause) {
-    super(SQLiteConstants.Wrapper.WRAPPER_USER_ERROR, errorMessage, cause);
+  public SQLiteInterruptedException(int resultCode, String message) {
+    super(resultCode, message);
   }
 }

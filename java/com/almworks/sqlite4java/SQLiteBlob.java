@@ -17,7 +17,19 @@
 package com.almworks.sqlite4java;
 
 /**
- * This class encapsulates blob handle which is open for direct reading / writing
+ * SQLiteBlob encapsulates <strong><code>sqlite3_blob*</code></strong> handle, which represents an open BLOB
+ * (binary large object), stored in a single cell of a table.
+ * <p>
+ * SQLiteBlob is created by {@link SQLiteConnection#blob} method. After application is done using the instance
+ * of SQLiteBlob, it should be disposed with {@link #dispose} method.
+ * <p>
+ * You can read or write portions of the stored blob using {@link #read} and {@link #write} methods. Note that
+ * you cannot change the size of the blob using this interface.
+ * <p>
+ * Methods of this class are not thread-safe and confined to the thread that opened the SQLite connection. 
+ *
+ * @see SQLiteConnection#blob
+ * @see <a href="http://www.sqlite.org/c3ref/blob_open.html">sqlite3_blob_open</a>
  */
 public final class SQLiteBlob {
   /**
@@ -57,10 +69,9 @@ public final class SQLiteBlob {
   }
 
   /**
-   * Disposes this statement and frees allocated resources. If statement handle is cached,
-   * it is returned to connection's cache.
-   * <p/>
-   * After statement is disposed, it is no longer usable and holds no references to connection
+   * Disposes this blob and frees allocated resources.
+   * <p>
+   * After blob is disposed, it is no longer usable and holds no references to connection
    * or sqlite db.
    */
   public void dispose() {
@@ -79,13 +90,21 @@ public final class SQLiteBlob {
   }
 
   /**
-   * @return true if the statement is disposed and cannot be used.
+   * Checks if this instance has been disposed
+   *
+   * @return true if the blob is disposed and cannot be used
    */
   public boolean isDisposed() {
     return myHandle == null;
   }
 
-  public int getLength() throws SQLiteException {
+  /**
+   * Returns the size of the open blob. The size cannot be changed via this interface.
+   *
+   * @return size of the blobs in bytes
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public int getSize() throws SQLiteException {
     myController.validate();
     if (myLength < 0) {
       myLength = _SQLiteSwigged.sqlite3_blob_bytes(handle());
@@ -93,7 +112,24 @@ public final class SQLiteBlob {
     return myLength;
   }
 
+  /**
+   * Read bytes from the blob into a buffer.
+   * <p>
+   * <code>blobOffset</code> and <code>length</code> should define a sub-range within blob's content. If attempt is
+   * made to read blob beyond its size, an exception is thrown and no data is read.
+   *
+   * @param blobOffset the position in the blob where to start reading
+   * @param buffer target buffer
+   * @param offset starting offset in the buffer
+   * @param length number of bytes to read
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/blob_read.html">sqlite3_blob_read</a>
+   */
   public void read(int blobOffset, byte[] buffer, int offset, int length) throws SQLiteException {
+    if (buffer == null)
+      throw new NullPointerException();
+    if (offset < 0 || offset + length > buffer.length)
+      throw new ArrayIndexOutOfBoundsException(buffer.length + " " + offset + " " + length); 
     myController.validate();
     if (Internal.isFineLogging())
       Internal.logFine(this, "read[" + blobOffset + "," + length + "]");
@@ -101,7 +137,29 @@ public final class SQLiteBlob {
     myController.throwResult(rc, "read", this);
   }
 
+  /**
+   * Writes bytes into the blob. Bytes are taken from the specified range in the input byte buffer.
+   * <p>
+   * Note that you cannot write beyond the current blob's size. The size of the blob
+   * cannot be changed via incremental I/O API. To change the size, you need to use {@link SQLiteStatement#bindZeroBlob}
+   * method.
+   * <p>
+   * Bytes are written within the current transaction.
+   * <p>
+   * If blob was not open for writing, an error is thrown.
+   *
+   * @param blobOffset the position in the blob where to start writing
+   * @param buffer source bytes buffer
+   * @param offset starting offset in the buffer
+   * @param length number of bytes to write
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/blob_write.html">sqlite3_blob_write</a>
+   */
   public void write(int blobOffset, byte[] buffer, int offset, int length) throws SQLiteException {
+    if (buffer == null)
+      throw new NullPointerException();
+    if (offset < 0 || offset + length > buffer.length)
+      throw new ArrayIndexOutOfBoundsException(buffer.length + " " + offset + " " + length);
     myController.validate();
     if (Internal.isFineLogging())
       Internal.logFine(this, "write[" + blobOffset + "," + length + "]");
@@ -109,10 +167,19 @@ public final class SQLiteBlob {
     myController.throwResult(rc, "write", this);
   }
 
+  /**
+   * Returns true if this blob instance was opened for writing.
+   *
+   * @return true if {@link #write} is allowed
+   */
+  public boolean isWriteAllowed() {
+    return myWriteAccess;
+  }
+
   private SWIGTYPE_p_sqlite3_blob handle() throws SQLiteException {
     SWIGTYPE_p_sqlite3_blob handle = myHandle;
     if (handle == null) {
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_BLOB_DISPOSED, null);
+      throw new SQLiteException(SQLiteConstants.WRAPPER_BLOB_DISPOSED, null);
     }
     return handle;
   }
@@ -132,9 +199,5 @@ public final class SQLiteBlob {
 
   public String toString() {
     return "[" + myName + "]" + myController;
-  }
-
-  public boolean canWrite() {
-    return myWriteAccess;
   }
 }

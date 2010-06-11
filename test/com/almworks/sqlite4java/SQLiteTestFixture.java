@@ -143,7 +143,7 @@ public abstract class SQLiteTestFixture extends TestCase {
   }
 
   protected void assertOk() {
-    assertResult(SQLiteConstants.Result.SQLITE_OK);
+    assertResult(SQLiteConstants.SQLITE_OK);
   }
 
   protected SWIGTYPE_p_sqlite3_stmt prepare(String sql) {

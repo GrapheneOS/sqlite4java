@@ -8,14 +8,14 @@ public class BlobTests extends SQLiteConnectionFixture {
 
     SQLiteBlob blob = db.blob(null, "T", "value", 1, true);
     assertFalse(blob.isDisposed());
-    assertTrue(blob.canWrite());
+    assertTrue(blob.isWriteAllowed());
     blob.dispose();
     assertTrue(blob.isDisposed());
 
     blob = db.blob(null, "T", "value", 1, false);
     assertFalse(blob.isDisposed());
-    assertFalse(blob.canWrite());
-    assertEquals(SIZE, blob.getLength());
+    assertFalse(blob.isWriteAllowed());
+    assertEquals(SIZE, blob.getSize());
     blob.dispose();
     assertTrue(blob.isDisposed());
 

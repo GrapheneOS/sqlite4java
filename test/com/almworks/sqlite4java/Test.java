@@ -1,6 +1,7 @@
 package com.almworks.sqlite4java;
 
-import static com.almworks.sqlite4java.SQLiteConstants.Open;
+import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_OPEN_CREATE;
+import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_OPEN_READWRITE;
 
 public class Test {
   public static void main(String[] args) {
@@ -12,7 +13,7 @@ public class Test {
     System.out.println("_SQLiteSwigged.sqlite3_memory_used()=" + _SQLiteSwigged.sqlite3_memory_used());
 
     _SQLiteManual sqLiteManual = new _SQLiteManual();
-    SWIGTYPE_p_sqlite3 db = sqLiteManual.sqlite3_open_v2("test.db", Open.SQLITE_OPEN_CREATE | Open.SQLITE_OPEN_READWRITE);
+    SWIGTYPE_p_sqlite3 db = sqLiteManual.sqlite3_open_v2("test.db", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
     System.out.println("_SQLiteManual.sqlite3_open_v2()=" + sqLiteManual.getLastReturnCode() + "," + db);
 
     int rc = _SQLiteManual.sqlite3_exec(db, "create table if not exists xxx (xxx)", null);

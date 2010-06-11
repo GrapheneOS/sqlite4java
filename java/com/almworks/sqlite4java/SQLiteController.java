@@ -85,7 +85,7 @@ abstract class SQLiteController {
     }
 
     public void validate() throws SQLiteException {
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_MISUSE, "statement is disposed");
+      throw new SQLiteException(SQLiteConstants.WRAPPER_MISUSE, "statement is disposed");
     }
 
     public void throwResult(int resultCode, String message, Object additionalMessage) throws SQLiteException {

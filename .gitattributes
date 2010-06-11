@@ -14,13 +14,12 @@ java/com/almworks/sqlite4java/ProgressHandler.java -text
 java/com/almworks/sqlite4java/SQLParts.java -text
 java/com/almworks/sqlite4java/SQLiteBlob.java -text
 java/com/almworks/sqlite4java/SQLiteBusyException.java -text
-java/com/almworks/sqlite4java/SQLiteCancelledException.java -text
 java/com/almworks/sqlite4java/SQLiteConnection.java -text
 java/com/almworks/sqlite4java/SQLiteController.java -text
 java/com/almworks/sqlite4java/SQLiteException.java -text
+java/com/almworks/sqlite4java/SQLiteInterruptedException.java -text
 java/com/almworks/sqlite4java/SQLiteProfiler.java -text
 java/com/almworks/sqlite4java/SQLiteStatement.java -text
-java/com/almworks/sqlite4java/SQLiteUserException.java -text
 java/com/almworks/sqlite4java/SWIGTYPE_p_direct_buffer.java -text
 java/com/almworks/sqlite4java/package.html -text
 java/javolution/util/stripped/FastCollection.java -text

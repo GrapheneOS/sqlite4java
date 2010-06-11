@@ -2,11 +2,10 @@ package com.almworks.sqlite4java;
 
 import java.io.*;
 
-import static com.almworks.sqlite4java.SQLiteConstants.Open;
-import static com.almworks.sqlite4java.SQLiteConstants.Result;
+import static com.almworks.sqlite4java.SQLiteConstants.*;
 
 public class SQLiteBasicTests extends SQLiteTestFixture {
-  private static final int RW = Open.SQLITE_OPEN_READWRITE | Open.SQLITE_OPEN_CREATE;
+  private static final int RW = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 
   public SQLiteBasicTests() {
     super(true);
@@ -14,13 +13,13 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
 
   public void testOpen() {
     String name = tempName("db");
-    open(name, Open.SQLITE_OPEN_READONLY);
+    open(name, SQLITE_OPEN_READONLY);
     assertNull(lastDb());
-    assertResult(Result.SQLITE_CANTOPEN);
+    assertResult(SQLITE_CANTOPEN);
 
-    open(name, Open.SQLITE_OPEN_READWRITE);
+    open(name, SQLITE_OPEN_READWRITE);
     assertNull(lastDb());
-    assertResult(Result.SQLITE_CANTOPEN);
+    assertResult(SQLITE_CANTOPEN);
 
     open(name, RW);
     assertDb();
@@ -31,7 +30,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
   }
 
   public void testOpenMemory() {
-    open(":memory:", Open.SQLITE_OPEN_READWRITE);
+    open(":memory:", SQLITE_OPEN_READWRITE);
     assertDb();
     assertOk();
 
@@ -47,18 +46,18 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     assertOk();
     close();
     assertOk();
-    open(name, Open.SQLITE_OPEN_READONLY);
+    open(name, SQLITE_OPEN_READONLY);
     exec("select * from x");
     assertOk();
 
     exec("insert into x values (1)");
-    assertResult(Result.SQLITE_READONLY);
+    assertResult(SQLITE_READONLY);
 
     exec("drop table x");
-    assertResult(Result.SQLITE_READONLY);
+    assertResult(SQLITE_READONLY);
 
     exec("begin immediate");
-    assertResult(Result.SQLITE_READONLY);
+    assertResult(SQLITE_READONLY);
   }
 
   public void testPrepareBindStepResetFinalize() {
@@ -81,7 +80,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
       assertOk();
 
       step(stmt);
-      assertResult(Result.SQLITE_DONE);
+      assertResult(SQLITE_DONE);
 
       reset(stmt);
       assertOk();
@@ -97,10 +96,10 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
   }
 
   public void testUnparseableSql() {
-    open(":memory:", Open.SQLITE_OPEN_READWRITE);
+    open(":memory:", SQLITE_OPEN_READWRITE);
     SWIGTYPE_p_sqlite3_stmt stmt = prepare("habahaba");
     assertNull(stmt);
-    assertResult(Result.SQLITE_ERROR);
+    assertResult(SQLITE_ERROR);
   }
 
   public void testStatementSurvivesSchemaChange() {
@@ -113,7 +112,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     bindLong(stmt, 1, 100L);
     assertOk();
     step(stmt);
-    assertResult(Result.SQLITE_DONE);
+    assertResult(SQLITE_DONE);
     finalize(stmt);
     assertOk();
   }
@@ -142,15 +141,15 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     finalize(stmt);
     close();
 
-    open(name, Open.SQLITE_OPEN_READONLY);
+    open(name, SQLITE_OPEN_READONLY);
     stmt = prepare("select x from x");
     assertOk();
     step(stmt);
-    assertResult(Result.SQLITE_ROW);
+    assertResult(SQLITE_ROW);
     String v2 = columnText(stmt, 0);
     assertOk();
     step(stmt);
-    assertResult(Result.SQLITE_DONE);
+    assertResult(SQLITE_DONE);
 
     if (!v.equals(v2)) {
       // detect bad code points
@@ -189,7 +188,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     bindText(stmt, 1, value);
     assertOk();
     step(stmt);
-    assertResult(Result.SQLITE_DONE);
+    assertResult(SQLITE_DONE);
     reset(stmt);
     assertOk();
   }

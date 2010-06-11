@@ -25,7 +25,7 @@ public class BlobComparisonPerformance extends SQLiteConnectionFixture {
   private SelectionMethod[] selectionMethods = {BYTEARRAY, BUFFER_READ_BY_BYTE, BUFFER_READ_INTO_ARRAY};
 
   protected void setUp() throws Exception {
-    SQLite.setPreferDebugLibrary(false);
+    SQLite.setDebugBinaryPreferred(false);
     super.setUp();
   }
 

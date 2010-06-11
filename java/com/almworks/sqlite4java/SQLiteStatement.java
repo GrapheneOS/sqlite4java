@@ -55,7 +55,7 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
  */
 public final class SQLiteStatement {
   /**
-   * Public instance of initially disposed, dummy statement. To be used for any reason.
+   * Public instance of initially disposed, dummy statement. To be used as a guardian object.
    */
   public static final SQLiteStatement DISPOSED = new SQLiteStatement();
 
@@ -294,7 +294,7 @@ public final class SQLiteStatement {
     ph.reset();
     synchronized (this) {
       if (myCancelled)
-        throw new SQLiteCancelledException();
+        throw new SQLiteInterruptedException();
       myProgressHandler = ph;
     }
     try {
@@ -310,14 +310,14 @@ public final class SQLiteStatement {
       ph.reset();
     }
     myStepped = true;
-    if (rc == Result.SQLITE_ROW) {
+    if (rc == SQLITE_ROW) {
       Internal.logFine(this, "step ROW");
       if (!myHasRow) {
         // at first row, set column count to COLUMN_COUNT_UNKNOWN so it will be requested at first need
         myColumnCount = COLUMN_COUNT_UNKNOWN;
       }
       myHasRow = true;
-    } else if (rc == Result.SQLITE_DONE) {
+    } else if (rc == SQLITE_DONE) {
       Internal.logFine(this, "step DONE");
       myColumnCount = 0;
       myHasRow = false;
@@ -349,7 +349,9 @@ public final class SQLiteStatement {
    * callback is disabled, this method will not have effect. Likewise, if <code>stepsPerCallback</code> parameter
    * is set to large values, the reaction to this call may be far from immediate.
    * <p/>
-   * If executing is cancelled, the step() method will throw an exception with code {@link SQLiteConstants.Result#SQLITE_INTERRUPT}
+   * If execution is cancelled, the step() method will throw {@link SQLiteInterruptedException}, and transaction
+   * will be rolled back.
+   * <p/>
    * This method is <strong>thread-safe</strong>.
    * <p/>
    *
@@ -377,6 +379,8 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Checks if some parameters were bound
+   *
    * @return true if at least one of the statement parameters has been bound to a value
    */
   public boolean hasBindings() {
@@ -392,15 +396,47 @@ public final class SQLiteStatement {
     return myStepped;
   }
 
-  public int loadInts(int column, int[] buffer, int offset, int count) throws SQLiteException {
+  /**
+   * Loads int values returned from a query into a buffer.
+   * <p/>
+   * The purpose of this method is to run a query and load a single-column result in bulk. This could save a lot of time
+   * by making a single JNI call instead of 2*N calls to <code>step()</code> and <code>columnInt()</code>.
+   * <p/>
+   * If result set contains NULL value, it's replaced with 0.
+   * <p/>
+   * This method may be called iteratively with a fixed-size buffer. For example:
+   * <pre>
+   *   SQLiteStatement st = connection.prepare("SELECT id FROM articles WHERE text LIKE '%whatever%'");
+   *   try {
+   *     int[] buffer = new int[1000];
+   *     while (!st.hasStepped() || st.hasRow()) {
+   *       int loaded = st.loadInts(0, buffer, 0, buffer.length);
+   *       processResult(buffer, 0, loaded);
+   *     }
+   *   } finally {
+   *     st.dispose();
+   *   }
+   * </pre>
+   * <p/>
+   * After method finishes, the number of rows loaded is returned and statement's {@link #hasRow} method indicates
+   * whether more rows are available.
+   *
+   * @param column column index, as used in {@link #columnInt}
+   * @param buffer buffer for accepting loaded integers
+   * @param offset offset in the buffer to start writing
+   * @param length maximum number of integers to load from the database
+   * @return actual number of integers loaded
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public int loadInts(int column, int[] buffer, int offset, int length) throws SQLiteException {
     myController.validate();
     SQLiteProfiler profiler = myProfiler;
-    if (buffer == null || count <= 0 || offset < 0 || offset + count > buffer.length) {
+    if (buffer == null || length <= 0 || offset < 0 || offset + length > buffer.length) {
       assert false;
       return 0;
     }
     if (Internal.isFineLogging())
-      Internal.logFine(this, "loadInts(" + column + "," + offset + "," + count + ")");
+      Internal.logFine(this, "loadInts(" + column + "," + offset + "," + length + ")");
     if (myStepped && !myHasRow)
       return 0;
     SWIGTYPE_p_sqlite3_stmt handle = handle();
@@ -412,13 +448,13 @@ public final class SQLiteStatement {
     ph.reset();
     synchronized (this) {
       if (myCancelled)
-        throw new SQLiteCancelledException();
+        throw new SQLiteInterruptedException();
       myProgressHandler = ph;
     }
     try {
       _SQLiteManual manual = myController.getSQLiteManual();
       long from = profiler == null ? 0 : System.nanoTime();
-      r = manual.wrapper_load_ints(handle, column, buffer, offset, count);
+      r = manual.wrapper_load_ints(handle, column, buffer, offset, length);
       rc = manual.getLastReturnCode();
       if (profiler != null) profiler.reportLoadInts(myStepped, mySqlParts.toString(), from, System.nanoTime(), rc, r);
     } finally {
@@ -428,12 +464,12 @@ public final class SQLiteStatement {
       ph.reset();
     }
     myStepped = true;
-    if (rc == Result.SQLITE_ROW) {
+    if (rc == SQLITE_ROW) {
       if (!myHasRow) {
         myColumnCount = COLUMN_COUNT_UNKNOWN;
       }
       myHasRow = true;
-    } else if (rc == Result.SQLITE_DONE) {
+    } else if (rc == SQLITE_DONE) {
       myColumnCount = 0;
       myHasRow = false;
     } else {
@@ -442,22 +478,51 @@ public final class SQLiteStatement {
     return r;
   }
 
+  /**
+   * Returns the number of parameters that can be bound.
+   *
+   * @return the number of SQL parameters
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_parameter_count.html">sqlite3_bind_parameter_count</a>
+   */
   public int getBindParameterCount() throws SQLiteException {
     myController.validate();
     return _SQLiteSwigged.sqlite3_bind_parameter_count(handle());
   }
 
+  /**
+   * Returns the name of a given bind parameter, as defined in the SQL.
+   *
+   * @param index the index of a bindable parameter, starting with 1
+   * @return the name of the parameter, e.g. "?PARAM1", or null if parameter is anonymous (just "?")
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_parameter_name.html">sqlite3_bind_parameter_name</a>
+   */
   public String getBindParameterName(int index) throws SQLiteException {
     myController.validate();
     return _SQLiteSwigged.sqlite3_bind_parameter_name(handle(), index);
   }
 
+  /**
+   * Returns the index of a bind parameter with a given name, as defined in the SQL.
+   *
+   * @param name the name of a named bindable parameter, e.g. "?PARAM1"
+   * @return the index of the parameter in the SQL, or 0 if no such parameter found
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_parameter_index.html">sqlite3_bind_parameter_index</a>
+   */
   public int getBindParameterIndex(String name) throws SQLiteException {
     myController.validate();
     return _SQLiteSwigged.sqlite3_bind_parameter_index(handle(), name);
   }
 
   /**
+   * Binds SQL parameter to a value of type double.
+   *
+   * @param index the index of the boundable parameter, starting with 1
+   * @param value non-null double value
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_double</a>
    */
   public SQLiteStatement bind(int index, double value) throws SQLiteException {
@@ -471,6 +536,12 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Binds SQL parameter to a value of type int.
+   *
+   * @param index the index of the boundable parameter, starting with 1
+   * @param value non-null int value
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_int</a>
    */
   public SQLiteStatement bind(int index, int value) throws SQLiteException {
@@ -484,6 +555,12 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Binds SQL parameter to a value of type long.
+   *
+   * @param index the index of the boundable parameter, starting with 1
+   * @param value non-null long value
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_int64</a>
    */
   public SQLiteStatement bind(int index, long value) throws SQLiteException {
@@ -497,15 +574,13 @@ public final class SQLiteStatement {
   }
 
   /**
-   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
-   */
-
-  public SQLiteStatement bind(int index, byte[] value) throws SQLiteException {
-    return value == null ? bindNull(index) : bind(index, value, 0, value.length);
-  }
-
-  /**
-   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_text16</a>
+   * Binds SQL parameter to a value of type String.
+   *
+   * @param index the index of the boundable parameter, starting with 1
+   * @param value String value, if null then {@link #bindNull} will be called
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_text</a>
    */
   public SQLiteStatement bind(int index, String value) throws SQLiteException {
     if (value == null) {
@@ -525,11 +600,37 @@ public final class SQLiteStatement {
     return this;
   }
 
+  /**
+   * Binds SQL parameter to a BLOB value, represented by a byte array.
+   *
+   * @param index the index of the boundable parameter, starting with 1
+   * @param value an array of bytes to be used as the blob value; if null, {@link #bindNull} is called
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
+  public SQLiteStatement bind(int index, byte[] value) throws SQLiteException {
+    return value == null ? bindNull(index) : bind(index, value, 0, value.length);
+  }
+
+  /**
+   * Binds SQL parameter to a BLOB value, represented by a range within byte array.
+   *
+   * @param index  the index of the boundable parameter, starting with 1
+   * @param value  an array of bytes; if null, {@link #bindNull} is called
+   * @param offset position in the byte array to start reading value from
+   * @param length number of bytes to read from value
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
   public SQLiteStatement bind(int index, byte[] value, int offset, int length) throws SQLiteException {
     if (value == null) {
       Internal.logFine(this, "bind(null blob)");
       return bindNull(index);
     }
+    if (offset < 0 || offset + length > value.length)
+      throw new ArrayIndexOutOfBoundsException(value.length + " " + offset + " " + length);
     myController.validate();
     if (Internal.isFineLogging()) {
       Internal.logFine(this, "bind(" + index + ",[" + length + "])");
@@ -541,7 +642,13 @@ public final class SQLiteStatement {
   }
 
   /**
-   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   * Binds SQL parameter to a BLOB value, consiting of a given number of zero bytes. 
+   *
+   * @param index  the index of the boundable parameter, starting with 1
+   * @param length number of zero bytes to use as a parameter
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_zeroblob</a>
    */
   public SQLiteStatement bindZeroBlob(int index, int length) throws SQLiteException {
     if (length < 0) {
@@ -559,6 +666,11 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Binds SQL parameter to a NULL value.
+   *
+   * @param index the index of the boundable parameter, starting with 1
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_null</a>
    */
   public SQLiteStatement bindNull(int index) throws SQLiteException {
@@ -571,30 +683,64 @@ public final class SQLiteStatement {
     return this;
   }
 
+  /**
+   * Binds SQL parameter to a BLOB value, represented by a stream. The stream can further be used to write into,
+   * before the first call to {@link #step}.
+   * <p>
+   * After the application is done writing to the parameter stream, it should be closed.
+   * <p>
+   * If statement is executed before the stream is closed, the value will not be set for the parameter.
+   *
+   * @param index the index of the boundable parameter, starting with 1
+   * @return stream to receive data for the BLOB parameter
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
   public OutputStream bindStream(int index) throws SQLiteException {
     return bindStream(index, 0);
   }
 
-  public OutputStream bindStream(int index, int minimumSize) throws SQLiteException {
+  /**
+   * Binds SQL parameter to a BLOB value, represented by a stream. The stream can further be used to write into,
+   * before the first call to {@link #step}.
+   * <p>
+   * After the application is done writing to the parameter stream, it should be closed.
+   * <p>
+   * If statement is executed before the stream is closed, the value will not be set for the parameter.
+   *
+   * @param index the index of the boundable parameter, starting with 1
+   * @param bufferSize  the number of bytes to be allocated for the buffer (the buffer will grow as needed)
+   * @return stream to receive data for the BLOB parameter
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
+  public OutputStream bindStream(int index, int bufferSize) throws SQLiteException {
     myController.validate();
     if (Internal.isFineLogging())
-      Internal.logFine(this, "bindStream(" + index + "," + minimumSize + ")");
+      Internal.logFine(this, "bindStream(" + index + "," + bufferSize + ")");
     try {
-      DirectBuffer buffer = myController.allocateBuffer(minimumSize);
+      DirectBuffer buffer = myController.allocateBuffer(bufferSize);
       BindStream out = new BindStream(index, buffer);
       List<BindStream> list = myBindStreams;
       if (list == null) {
         myBindStreams = list = new ArrayList<BindStream>(1);
       }
-      myBindStreams.add(out);
+      list.add(out);
       myHasBindings = true;
       return out;
     } catch (IOException e) {
-      throw new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "cannot allocate buffer", e);
+      throw new SQLiteException(WRAPPER_WEIRD, "cannot allocate buffer", e);
     }
   }
 
   /**
+   * Gets a column value after step has returned a row of the result set.
+   * <p>
+   * Call this method to retrieve data of type String after {@link #step()} has returned true.
+   *
+   * @param column the index of the column, starting with 0
+   * @return a String value or null if database value is NULL
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_text16</a>
    */
   public String columnString(int column) throws SQLiteException {
@@ -619,6 +765,13 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Gets a column value after step has returned a row of the result set.
+   * <p>
+   * Call this method to retrieve data of type int after {@link #step()} has returned true.
+   *
+   * @param column the index of the column, starting with 0
+   * @return an int value, or value converted to int, or 0 if value is NULL
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_int</a>
    */
   public int columnInt(int column) throws SQLiteException {
@@ -634,6 +787,13 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Gets a column value after step has returned a row of the result set.
+   * <p>
+   * Call this method to retrieve data of type double after {@link #step()} has returned true.
+   *
+   * @param column the index of the column, starting with 0
+   * @return a double value, or value converted to double, or 0.0 if value is NULL
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_double</a>
    */
   public double columnDouble(int column) throws SQLiteException {
@@ -649,6 +809,13 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Gets a column value after step has returned a row of the result set.
+   * <p>
+   * Call this method to retrieve data of type long after {@link #step()} has returned true.
+   *
+   * @param column the index of the column, starting with 0
+   * @return a long value, or value converted to long, or 0L if the value is NULL
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_int64</a>
    */
   public long columnLong(int column) throws SQLiteException {
@@ -663,6 +830,16 @@ public final class SQLiteStatement {
     return r;
   }
 
+  /**
+   * Gets a column value after step has returned a row of the result set.
+   * <p>
+   * Call this method to retrieve data of type BLOB after {@link #step()} has returned true.
+   *
+   * @param column the index of the column, starting with 0
+   * @return a byte array with the value, or null if the value is NULL
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_blob</a>
+   */
   public byte[] columnBlob(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
@@ -677,6 +854,19 @@ public final class SQLiteStatement {
     return r;
   }
 
+  /**
+   * Gets an InputStream for reading a BLOB column value after step has returned a row of the result set.
+   * <p>
+   * Call this method to retrieve data of type BLOB after {@link #step()} has returned true.
+   * <p>
+   * The stream should be read and closed before next call to step or reset. Otherwise, the stream is automatically
+   * closed and disposed, and the following attempts to read from it result in IOException.
+   *
+   * @param column the index of the column, starting with 0
+   * @return a stream to read value from, or null if the value is NULL
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_blob</a>
+   */
   public InputStream columnStream(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
@@ -697,15 +887,28 @@ public final class SQLiteStatement {
   }
 
   /**
-   * @return if the result for column was null
+   * Checks if the value returned in the given column is null.
+   *
+   * @param column the index of the column, starting with 0
+   * @return true if the result for the column was NULL
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_type</a>
    */
   public boolean columnNull(int column) throws SQLiteException {
     myController.validate();
     int valueType = getColumnType(column, handle());
-    return valueType == ValueType.SQLITE_NULL;
+    return valueType == SQLITE_NULL;
   }
 
+  /**
+   * Gets the number of columns in the result set.
+   * <p>
+   * This method may be called both before or after statement has executed.
+   *
+   * @return the number of columns
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/data_count.html">sqlite3_data_count</a>
+   */
   public int columnCount() throws SQLiteException {
     myController.validate();
     ensureCorrectColumnCount(handle());
@@ -713,20 +916,39 @@ public final class SQLiteStatement {
   }
 
 
+  /**
+   * Gets a column value after step has returned a row of the result set.
+   * <p>
+   * Call this method to retrieve data of any type after {@link #step()} has returned true.
+   * <p>
+   * The class of the object returned depends on the value and the type of value reported by SQLite. It can be:
+   * <ul>
+   * <li><code>null</code> if the value is NULL
+   * <li><code>String</code> if the value has type SQLITE_TEXT
+   * <li><code>Integer</code> or <code>Long</code> if the value has type SQLITE_INTEGER (depending on the value)
+   * <li><code>Double</code> if the value has type SQLITE_FLOAT
+   * <li><code>byte[]</code> if the value has type SQLITE_BLOB
+   * </ul>
+   *
+   * @param column the index of the column, starting with 0
+   * @return an object containing the value
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_blob</a>
+   */
   public Object columnValue(int column) throws SQLiteException {
     myController.validate();
     int valueType = getColumnType(column, handle());
     switch (valueType) {
-      case ValueType.SQLITE_NULL:
+      case SQLITE_NULL:
         return null;
-      case ValueType.SQLITE_FLOAT:
+      case SQLITE_FLOAT:
         return columnDouble(column);
-      case ValueType.SQLITE_INTEGER:
+      case SQLITE_INTEGER:
         long value = columnLong(column);
         return value == ((long) ((int) value)) ? Integer.valueOf((int) value) : Long.valueOf(value);
-      case ValueType.SQLITE_TEXT:
+      case SQLITE_TEXT:
         return columnString(column);
-      case ValueType.SQLITE_BLOB:
+      case SQLITE_BLOB:
         return columnBlob(column);
       default:
         Internal.recoverableError(this, "value type " + valueType + " not yet supported", true);
@@ -734,8 +956,15 @@ public final class SQLiteStatement {
     }
   }
 
-
-  public String columnName(int column) throws SQLiteException {
+  /**
+   * Gets a name of the column in the result set.
+   *
+   * @param column the index of the column, starting with 0
+   * @return column name
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/column_name.html">sqlite3_column_name</a>
+   */
+  public String getColumnName(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
@@ -747,7 +976,15 @@ public final class SQLiteStatement {
     return r;
   }
 
-  public String columnTableName(int column) throws SQLiteException {
+  /**
+   * Gets a name of the column's table in the result set.
+   *
+   * @param column the index of the column, starting with 0
+   * @return name of the table that the column belongs to
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/column_database_name.html">sqlite3_column_table_name</a>
+   */
+  public String getColumnTableName(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
@@ -759,7 +996,15 @@ public final class SQLiteStatement {
     return r;
   }
 
-  public String columnDatabaseName(int column) throws SQLiteException {
+  /**
+   * Gets a name of the column's table's database in the result set.
+   *
+   * @param column the index of the column, starting with 0
+   * @return name of the database that contains the table that the column belongs to
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/column_database_name.html">sqlite3_column_database_name</a>
+   */
+  public String getColumnDatabaseName(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
@@ -771,7 +1016,16 @@ public final class SQLiteStatement {
     return r;
   }
 
-  public String columnOriginName(int column) throws SQLiteException {
+  /**
+   * Gets the original name of the column that is behind the given column in the result set. The name
+   * is not aliased (not defined in the SQL).
+   *
+   * @param column the index of the column, starting with 0
+   * @return name of the table column
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/column_database_name.html">sqlite3_column_database_name</a>
+   */
+  public String getColumnOriginName(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
     checkColumn(column, handle);
@@ -836,7 +1090,7 @@ public final class SQLiteStatement {
   private SWIGTYPE_p_sqlite3_stmt handle() throws SQLiteException {
     SWIGTYPE_p_sqlite3_stmt handle = myHandle;
     if (handle == null) {
-      throw new SQLiteException(Wrapper.WRAPPER_STATEMENT_DISPOSED, null);
+      throw new SQLiteException(WRAPPER_STATEMENT_DISPOSED, null);
     }
     return handle;
   }
@@ -854,12 +1108,12 @@ public final class SQLiteStatement {
   private void checkColumn(int column, SWIGTYPE_p_sqlite3_stmt handle) throws SQLiteException {
     // assert right thread
     if (!myHasRow)
-      throw new SQLiteException(Wrapper.WRAPPER_NO_ROW, null);
+      throw new SQLiteException(WRAPPER_NO_ROW, null);
     if (column < 0)
-      throw new SQLiteException(Wrapper.WRAPPER_COLUMN_OUT_OF_RANGE, String.valueOf(column));
+      throw new SQLiteException(WRAPPER_COLUMN_OUT_OF_RANGE, String.valueOf(column));
     ensureCorrectColumnCount(handle);
     if (column >= myColumnCount)
-      throw new SQLiteException(Wrapper.WRAPPER_COLUMN_OUT_OF_RANGE, column + "(" + myColumnCount + ")");
+      throw new SQLiteException(WRAPPER_COLUMN_OUT_OF_RANGE, column + "(" + myColumnCount + ")");
   }
 
   private void ensureCorrectColumnCount(SWIGTYPE_p_sqlite3_stmt handle) {

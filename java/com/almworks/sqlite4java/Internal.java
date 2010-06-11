@@ -90,12 +90,12 @@ final class Internal {
     RuntimeException loadedSignal = new RuntimeException("loaded");
     Throwable bestReason = null;
     try {
-      String[] suffixes = SQLite.isPreferDebugLibrary() ? DEBUG_SUFFIXES : RELEASE_SUFFIXES;
+      String[] suffixes = SQLite.isDebugBinaryPreferred() ? DEBUG_SUFFIXES : RELEASE_SUFFIXES;
       for (String suffix : suffixes) {
         bestReason = tryLoadWithSuffix(suffix, os, arch, bestReason, loadedSignal, defaultPath);
       }
       if (bestReason == null)
-        bestReason = new SQLiteException(SQLiteConstants.Wrapper.WRAPPER_WEIRD, "sqlite4java.Internal: lib loaded, check failed");
+        bestReason = new SQLiteException(SQLiteConstants.WRAPPER_WEIRD, "sqlite4java.Internal: lib loaded, check failed");
       return bestReason;
     } catch (RuntimeException e) {
       if (e == loadedSignal) {

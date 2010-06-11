@@ -17,8 +17,21 @@
 package com.almworks.sqlite4java;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+/**
+ * SQLParts is a means to avoid excessive garbage production during String concatenation when SQL
+ * is constructed.
+ * <p>
+ * Often, same SQL statements get constructed over and over again and passed to <code>SQLiteConnecton.prepare</code>.
+ * To avoid producing garbage and to facilitate quick look-up in the cache of prepared statements, better use SQLParts
+ * than String concatenation.
+ * <p>
+ * SQLParts object may be <strong>fixed</strong>, which means it cannot be changed anymore.
+ * <p>
+ * This class is <strong>not thread-safe</strong> and not intended to be used from different threads.
+ */
 public final class SQLParts {
   private static final String[] PARAMS_STRINGS = new String[101];
 
@@ -28,28 +41,52 @@ public final class SQLParts {
   private String mySql;
   private boolean myFixed;
 
+  /**
+   * Create empty SQLParts object.
+   */
   public SQLParts() {
     myParts = new ArrayList<String>(5);
   }
 
+  /**
+   * Create a copy of another SQLParts object. SQL pieces are copied, but the new object is not fixed even if the
+   * original object is fixed.
+   *
+   * @param copyFrom the original object
+   */
   public SQLParts(SQLParts copyFrom) {
-    myParts = new ArrayList<String>(copyFrom.myParts.size());
-    myParts.addAll(copyFrom.myParts);
+    myParts = new ArrayList<String>(copyFrom == null ? 5 : copyFrom.myParts.size());
+    if (copyFrom != null) {
+      myParts.addAll(copyFrom.myParts);
+    }
   }
 
+  /**
+   * Create an instance of SQLParts containing only single piece of SQL.
+   *
+   * @param sql SQL piece
+   */
   public SQLParts(String sql) {
     myParts = new ArrayList<String>(1);
     append(sql);
   }
 
   /**
-   * Makes instance immutable
+   * Makes instance immutable. Further calls to {@link #append} will throw an exception.
+   *
+   * @return this object, fixed
    */
   public SQLParts fix() {
     myFixed = true;
     return this;
   }
 
+  /**
+   * If this object is fixed, returns itself, otherwise
+   * returns a fixed copy of this object.
+   *
+   * @return fixed SQLParts, representing the same SQL
+   */
   public SQLParts getFixedParts() {
     return myFixed ? this : new SQLParts(this).fix();
   }
@@ -62,8 +99,8 @@ public final class SQLParts {
 
   private int calcHash() {
     int r = 0;
-    for (int i = 0; i < myParts.size(); i++)
-      r = 31 * r + myParts.get(i).hashCode();
+    for (String myPart : myParts)
+      r = 31 * r + myPart.hashCode();
     return r;
   }
 
@@ -79,6 +116,11 @@ public final class SQLParts {
     return true;
   }
 
+  /**
+   * Empties this SQLParts instance.
+   *
+   * @throws IllegalStateException if instance is fixed
+   */
   public void clear() {
     if (myFixed) {
       throw new IllegalStateException(String.valueOf(this));
@@ -87,6 +129,13 @@ public final class SQLParts {
     dropCachedValues();
   }
 
+  /**
+   * Adds a part to the SQL.
+   *
+   * @param part a piece of SQL added
+   * @return this instance
+   * @throws IllegalStateException if instance is fixed
+   */
   public SQLParts append(String part) {
     if (myFixed) {
       throw new IllegalStateException(String.valueOf(this));
@@ -98,6 +147,13 @@ public final class SQLParts {
     return this;
   }
 
+  /**
+   * Adds all parts from a different SQLParts to the SQL.
+   *
+   * @param parts source object to copy parts from, may be null 
+   * @return this instance
+   * @throws IllegalStateException if instance is fixed
+   */
   public SQLParts append(SQLParts parts) {
     if (myFixed) {
       throw new IllegalStateException(String.valueOf(this));
@@ -109,6 +165,16 @@ public final class SQLParts {
     return this;
   }
 
+  /**
+   * Appends an SQL part consisting of a list of bind parameters.
+   * <p>
+   * That is, <code>appendParams(1)</code> appends <code><strong>?</strong></code>, <code>appendParams(2)</code>
+   * appends <code><strong>?,?</strong></code> and so on.
+   *
+   * @param count the number of parameters ("?" symbols) to be added
+   * @return this instance
+   * @throws IllegalStateException if instance is fixed
+   */
   public SQLParts appendParams(int count) {
     return append(getParamsString(count));
   }
@@ -139,6 +205,11 @@ public final class SQLParts {
     mySql = null;
   }
 
+  /**
+   * Returns the SQL representation of this params
+   *
+   * @return SQL
+   */
   public String toString() {
     if (mySql == null) {
       StringBuilder builder = new StringBuilder();
@@ -150,7 +221,22 @@ public final class SQLParts {
     return mySql;
   }
 
-  boolean isFixed() {
+  /**
+   * Gets the list of SQL parts.
+   *
+   * @return unmodifiable list of SQL pieces.
+   */
+  public List<String> getParts() {
+    return Collections.unmodifiableList(myParts);
+  }
+
+  /**
+   * Checks if this instance is fixed.
+   *
+   * @return true if the instance is fixed, that is, read-only
+   * @see #fix
+   */
+  public boolean isFixed() {
     return myFixed;
   }
 }

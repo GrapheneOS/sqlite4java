@@ -16,13 +16,33 @@
 
 package com.almworks.sqlite4java;
 
+/**
+ * SQLiteException is thrown whenever SQLite cannot execute an operation and returns an error code.
+ * <p>
+ * Error codes can be compared against {@link SQLiteConstants}.
+ * <p>
+ * It's safe to rollback the transaction when SQLiteException is caught.
+ */
 public class SQLiteException extends Exception {
   private final int myErrorCode;
 
+  /**
+   * Creates an instance of SQLiteException.
+   *
+   * @param errorCode codes are defined in {@link SQLiteConstants}
+   * @param errorMessage optional error message
+   */
   public SQLiteException(int errorCode, String errorMessage) {
     this(errorCode, errorMessage, null);
   }
 
+  /**
+   * Creates an instance of SQLiteException.
+   *
+   * @param errorCode codes are defined in {@link SQLiteConstants}
+   * @param errorMessage optional error message
+   * @param cause error cause
+   */
   public SQLiteException(int errorCode, String errorMessage, Throwable cause) {
     super("[" + errorCode + "] " + (errorMessage == null ? "sqlite error" : errorMessage), cause);
     myErrorCode = errorCode;
@@ -31,7 +51,22 @@ public class SQLiteException extends Exception {
     }
   }
 
+  /**
+   * Gets the error code returned by SQLite.
+   *
+   * @return error code
+   */
   public int getErrorCode() {
     return myErrorCode;
+  }
+
+  /**
+   * Gets base error code returned by SQLite. Base error code is the lowest 8 bit from the extended error code,
+   * like SQLITE_IOERR_BLOCKED.
+   *
+   * @return error code
+   */
+  public int getBaseErrorCode() {
+    return myErrorCode >= 0 ? myErrorCode & 0xFF : myErrorCode;
   }
 }
