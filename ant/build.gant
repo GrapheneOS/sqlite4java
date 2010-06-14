@@ -222,7 +222,8 @@ target(name: 'java.compile') {
     fileset(dir: "$mod/java")
   }
   ant.mkdir(dir: buildClasses)
-  ant.javac(srcdir: "$build/java", destdir: buildClasses, debug: "on", classpath: javolution)
+  ant.javac(srcdir: "$build/java", destdir: buildClasses, debug: "on", classpath: javolution,
+    target: "1.5", source: "1.5")
 }
 
 target(name: 'java.jar') {
