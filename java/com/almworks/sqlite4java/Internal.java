@@ -17,7 +17,9 @@
 package com.almworks.sqlite4java;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -151,7 +153,13 @@ final class Internal {
       return null;
     String propKey = "java.library.path";
     String oldPath = System.getProperty(propKey);
-    return getDefaultLibPath(oldPath, url.toString());
+    String classUrl = url.toString();
+    try {
+      classUrl = URLDecoder.decode(classUrl, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      throw new Error(e);
+    }
+    return getDefaultLibPath(oldPath, classUrl);
   }
 
   static String getDefaultLibPath(String libraryPath, String classUrl) {
@@ -215,9 +223,9 @@ final class Internal {
 
   private static Throwable tryLoad(String libname, Throwable bestReason, RuntimeException loadedSignal, String defaultPath) {
     Throwable t = bestReason;
-    t = tryLoadFromSystemPath(libname, t, loadedSignal);
     if (defaultPath != null)
       t = tryLoadFromDefaultPath(libname, t, loadedSignal, defaultPath);
+    t = tryLoadFromSystemPath(libname, t, loadedSignal);
     return t;
   }
 
