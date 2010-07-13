@@ -92,4 +92,6 @@ final class _SQLiteManualJNI {
   public final static native int uninstall_progress_handler(long db, long ptr);
 
   public final static native int wrapper_load_ints(long stmt, int column, int[] buffer, int offset, int count, int[] ppCount);
+
+  public final static native int wrapper_load_longs(long stmt, int column, long[] buffer, int offset, int count, int[] ppCount);
 }

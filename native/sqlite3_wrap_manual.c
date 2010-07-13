@@ -613,6 +613,40 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1
   return rc;
 }
 
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1load_1longs(JNIEnv *jenv, jclass jcls,
+  jlong jstmt, jint column, jlongArray ppBuf, jint offset, jint count, jintArray ppCount)
+{
+  sqlite3_stmt* stmt = *(sqlite3_stmt**)&jstmt;
+  jint loaded = 0;
+  int p = offset;
+  int rc = 0;
+  jlong *buf = 0;
+  jint len = 0;
+
+  if (!stmt) return WRAPPER_INVALID_ARG_1;
+  if (!ppBuf) return WRAPPER_INVALID_ARG_2;
+  if (!ppCount) return WRAPPER_INVALID_ARG_3;
+  if (count <= 0) return WRAPPER_INVALID_ARG_4;
+
+  len = (*jenv)->GetArrayLength(jenv, ppBuf);
+  if (offset < 0 || offset + count > len) return WRAPPER_INVALID_ARG_4;
+
+  buf = (*jenv)->GetLongArrayElements(jenv, ppBuf, 0);
+  if (!buf) return WRAPPER_CANNOT_ALLOCATE_STRING;
+
+  while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+    buf[p++] = sqlite3_column_int64(stmt, column);
+    if (++loaded >= count) {
+      break;
+    }
+  }
+
+  (*jenv)->ReleaseLongArrayElements(jenv, ppBuf, buf, 0);
+  (*jenv)->SetIntArrayRegion(jenv, ppCount, 0, 1, &loaded);
+
+  return rc;
+}
+
 #ifdef __cplusplus
 }
 #endif

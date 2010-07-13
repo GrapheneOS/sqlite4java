@@ -479,6 +479,88 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Loads long values returned from a query into a buffer.
+   * <p/>
+   * The purpose of this method is to run a query and load a single-column result in bulk. This could save a lot of time
+   * by making a single JNI call instead of 2*N calls to <code>step()</code> and <code>columnLong()</code>.
+   * <p/>
+   * If result set contains NULL value, it's replaced with 0.
+   * <p/>
+   * This method may be called iteratively with a fixed-size buffer. For example:
+   * <pre>
+   *   SQLiteStatement st = connection.prepare("SELECT id FROM articles WHERE text LIKE '%whatever%'");
+   *   try {
+   *     long[] buffer = new long[1000];
+   *     while (!st.hasStepped() || st.hasRow()) {
+   *       int loaded = st.loadInts(0, buffer, 0, buffer.length);
+   *       processResult(buffer, 0, loaded);
+   *     }
+   *   } finally {
+   *     st.dispose();
+   *   }
+   * </pre>
+   * <p/>
+   * After method finishes, the number of rows loaded is returned and statement's {@link #hasRow} method indicates
+   * whether more rows are available.
+   *
+   * @param column column index, as used in {@link #columnInt}
+   * @param buffer buffer for accepting loaded longs
+   * @param offset offset in the buffer to start writing
+   * @param length maximum number of integers to load from the database
+   * @return actual number of integers loaded
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public int loadLongs(int column, long[] buffer, int offset, int length) throws SQLiteException {
+    myController.validate();
+    SQLiteProfiler profiler = myProfiler;
+    if (buffer == null || length <= 0 || offset < 0 || offset + length > buffer.length) {
+      assert false;
+      return 0;
+    }
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "loadLongs(" + column + "," + offset + "," + length + ")");
+    if (myStepped && !myHasRow)
+      return 0;
+    SWIGTYPE_p_sqlite3_stmt handle = handle();
+    clearBindStreams(true);
+    clearColumnStreams();
+    int r;
+    int rc;
+    ProgressHandler ph = myController.getProgressHandler();
+    ph.reset();
+    synchronized (this) {
+      if (myCancelled)
+        throw new SQLiteInterruptedException();
+      myProgressHandler = ph;
+    }
+    try {
+      _SQLiteManual manual = myController.getSQLiteManual();
+      long from = profiler == null ? 0 : System.nanoTime();
+      r = manual.wrapper_load_longs(handle, column, buffer, offset, length);
+      rc = manual.getLastReturnCode();
+      if (profiler != null) profiler.reportLoadLongs(myStepped, mySqlParts.toString(), from, System.nanoTime(), rc, r);
+    } finally {
+      synchronized (this) {
+        myProgressHandler = null;
+      }
+      ph.reset();
+    }
+    myStepped = true;
+    if (rc == SQLITE_ROW) {
+      if (!myHasRow) {
+        myColumnCount = COLUMN_COUNT_UNKNOWN;
+      }
+      myHasRow = true;
+    } else if (rc == SQLITE_DONE) {
+      myColumnCount = 0;
+      myHasRow = false;
+    } else {
+      myController.throwResult(rc, "loadLongs()", this);
+    }
+    return r;
+  }
+
+  /**
    * Returns the number of parameters that can be bound.
    *
    * @return the number of SQL parameters

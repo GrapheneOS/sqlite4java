@@ -124,6 +124,19 @@ public class SQLiteProfiler {
     // todo count
   }
 
+  void reportLoadLongs(boolean alreadyStepped, String sql, long nfrom, long nto, int rc, int count) {
+    SQLStat stat = getStat(sql);
+    if (rc != SQLITE_ROW && rc != SQLITE_DONE) {
+      stat.report("loadLongs:error(" + rc + ")", nfrom, nto);
+      return;
+    }
+    stat.report("loadLongs", nfrom, nto);
+    if (alreadyStepped || rc == SQLITE_ROW) {
+      stat.report(alreadyStepped ? "loadLongs:next" : "loadLongs:first", nfrom, nto);
+    }
+    // todo count
+  }
+
   private SQLStat getStat(String sql) {
     SQLStat stat = myStats.get(sql);
     if (stat == null) {

@@ -188,4 +188,13 @@ final class _SQLiteManual {
     myInt[0] = 0;
     return r;
   }
+
+  public int wrapper_load_longs(SWIGTYPE_p_sqlite3_stmt stmt, int column, long[] buffer, int offset, int count) {
+    myLastReturnCode = 0;
+    myInt[0] = 0;
+    myLastReturnCode = _SQLiteManualJNI.wrapper_load_longs(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), column, buffer, offset, count, myInt);
+    int r = myInt[0];
+    myInt[0] = 0;
+    return r;
+  }
 }
