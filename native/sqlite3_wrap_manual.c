@@ -16,6 +16,7 @@
 
 #include "jni_setup.h"
 #include "sqlite3_wrap_manual.h"
+#include "test_intarray.h"
 #include <sqlite3.h>
 
 #ifdef __cplusplus
@@ -644,6 +645,85 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_wrapper_1
   (*jenv)->ReleaseLongArrayElements(jenv, ppBuf, buf, 0);
   (*jenv)->SetIntArrayRegion(jenv, ppCount, 0, 1, &loaded);
 
+  return rc;
+}
+
+
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1intarray_1create(JNIEnv *jenv, jclass jcls,
+  jlong jdb, jstring jname, jlongArray ppBuf)
+{
+  sqlite3* db = *(sqlite3**)&jdb;
+  sqlite3_intarray *arr = 0;
+  jlong r = 0;
+  const char *name = 0;
+  int rc = 0;
+
+  if (!db) return WRAPPER_INVALID_ARG_1;
+  if (!ppBuf) return WRAPPER_INVALID_ARG_3;
+
+  name = (*jenv)->GetStringUTFChars(jenv, jname, 0);
+  if (!name) return WRAPPER_CANNOT_TRANSFORM_STRING;
+
+  rc = sqlite3_intarray_create(db, name, &arr);
+  if (arr) {
+    *((sqlite3_intarray**)&r) = arr;
+    (*jenv)->SetLongArrayRegion(jenv, ppBuf, 0, 1, &r);
+  }
+
+  (*jenv)->ReleaseStringUTFChars(jenv, jname, name);
+
+  return rc;
+}
+
+static sqlite3_int64 intarray_stub = 0;
+
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1intarray_1bind(JNIEnv *jenv, jclass jcls,
+  jlong jarray, jlongArray jbuffer, jint joffset, jint jlength)
+{
+  sqlite3_intarray* array = *(sqlite3_intarray**)&jarray;
+  jlong *buf = 0;
+  sqlite3_int64 *copy = 0;
+  int len = 0;
+  int rc = 0;
+
+  if (!array) return WRAPPER_INVALID_ARG_1;
+  if (!jbuffer) return WRAPPER_INVALID_ARG_2;
+
+  len = (*jenv)->GetArrayLength(jenv, jbuffer);
+  if (len < 0) return WRAPPER_INVALID_ARG_3;
+  if (joffset < 0 || joffset > len) return WRAPPER_INVALID_ARG_4;
+  if (jlength < 0 || joffset + jlength > len) return WRAPPER_INVALID_ARG_5;
+
+  if (jlength > 0) {
+    copy = (sqlite3_int64*) sqlite3_malloc(jlength * sizeof(sqlite3_int64));
+    if (!copy) return WRAPPER_CANNOT_ALLOCATE_STRING;
+    buf = (jlong*)(*jenv)->GetPrimitiveArrayCritical(jenv, jbuffer, 0);
+    if (!buf) return WRAPPER_CANNOT_ALLOCATE_STRING;
+    memcpy(copy, buf + joffset, jlength * sizeof(sqlite3_int64));
+    (*jenv)->ReleasePrimitiveArrayCritical(jenv, jbuffer, (void*)buf, JNI_ABORT);
+    rc = sqlite3_intarray_bind(array, jlength, copy, &sqlite3_free);
+  } else {
+    rc = sqlite3_intarray_bind(array, 0, &intarray_stub, 0);
+  }
+
+  if (rc != SQLITE_OK) {
+    // never happens
+  }
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1intarray_1unbind(JNIEnv *jenv, jclass jcls,
+  jlong jarray)
+{
+  sqlite3_intarray* array = *(sqlite3_intarray**)&jarray;
+  int rc = 0;
+
+  if (!array) return WRAPPER_INVALID_ARG_1;
+  rc = sqlite3_intarray_bind(array, 0, &intarray_stub, 0);
+  if (rc != SQLITE_OK) {
+    // never happens
+  }
   return rc;
 }
 

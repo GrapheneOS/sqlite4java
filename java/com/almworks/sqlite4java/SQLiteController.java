@@ -46,6 +46,8 @@ abstract class SQLiteController {
   
   public abstract void dispose(SQLiteBlob blob);
 
+  public abstract void dispose(SQLiteLongArray array);
+
   public abstract _SQLiteManual getSQLiteManual();
 
   public abstract DirectBuffer allocateBuffer(int sizeEstimate) throws IOException, SQLiteException;
@@ -95,6 +97,9 @@ abstract class SQLiteController {
     }
 
     public void dispose(SQLiteBlob blob) {
+    }
+
+    public void dispose(SQLiteLongArray array) {
     }
 
     public _SQLiteManual getSQLiteManual() {

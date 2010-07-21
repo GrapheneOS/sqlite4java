@@ -197,4 +197,19 @@ final class _SQLiteManual {
     myInt[0] = 0;
     return r;
   }
+
+  public SWIGTYPE_p_intarray sqlite3_intarray_create(SWIGTYPE_p_sqlite3 db, String name) {
+    myLastReturnCode = 0;
+    myLong[0] = 0;
+    myLastReturnCode = _SQLiteManualJNI.sqlite3_intarray_create(SWIGTYPE_p_sqlite3.getCPtr(db), name, myLong);
+    return myLong[0] == 0 ? null : new SWIGTYPE_p_intarray(myLong[0], true);
+  }
+
+  public static int sqlite3_intarray_bind(SWIGTYPE_p_intarray array, long[] values, int offset, int length) {
+    return _SQLiteManualJNI.sqlite3_intarray_bind(SWIGTYPE_p_intarray.getCPtr(array), values, offset, length);
+  }
+
+  public static int sqlite3_intarray_unbind(SWIGTYPE_p_intarray array) {
+    return _SQLiteManualJNI.sqlite3_intarray_unbind(SWIGTYPE_p_intarray.getCPtr(array));
+  }
 }

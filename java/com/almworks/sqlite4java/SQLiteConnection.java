@@ -31,18 +31,18 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
 /**
  * SQLiteConnection is a single connection to sqlite database. It wraps the <strong><code>sqlite3*</code></strong>
  * database handle from SQLite C Interface.
- * <p>
+ * <p/>
  * Unless otherwise specified, methods are confined to the thread that was used to open the connection.
  * This means that an exception will be thrown if you try to access the method from a different thread.
- * <p>
+ * <p/>
  * SQLiteConnection should be expicitly closed before the object is disposed. Failing to do so
  * may result in unpredictable behavior from SQLite.
- * <p>
+ * <p/>
  * Once closed with {@link #dispose()}, the connection cannot be reused and the instance
  * should be forgotten.
- * <p>
+ * <p/>
  * Several connections to the same database can be opened by creating several instances of SQLiteConnection.
- * <p>
+ * <p/>
  * SQLiteConnection tracks all statements it had prepared. When connection is disposed,
  * it first tries to dispose all prepared statements. If there's an active transaction, it is rolled
  * back.
@@ -148,6 +148,16 @@ public final class SQLiteConnection {
   private volatile SQLiteProfiler myProfiler;
 
   /**
+   * Contains inactive (initialized, but not in use) long arrays, mapped by the name.
+   */
+  private final FastMap<String, SWIGTYPE_p_intarray> myLongArrays = FastMap.newInstance();
+
+  /**
+   * Incremental number used in generation of long array names.
+   */
+  private int myLongArrayCounter;
+
+  /**
    * Creates a connection to the database located in the specified file.
    * Database is not opened by the constructor, and the calling thread is insignificant.
    *
@@ -161,7 +171,7 @@ public final class SQLiteConnection {
   /**
    * Creates a connection to an in-memory temporary database.
    * Database is not opened by the constructor, and the calling thread is insignificant.
-   * 
+   *
    * @see #SQLiteConnection(java.io.File)
    */
   public SQLiteConnection() {
@@ -170,6 +180,7 @@ public final class SQLiteConnection {
 
   /**
    * Returns the database file. This method is <strong>thread-safe</strong>.
+   *
    * @return the file that hosts the database, or null if database is in memory
    */
   public File getDatabaseFile() {
@@ -188,14 +199,14 @@ public final class SQLiteConnection {
   /**
    * Sets the frequency of database callbacks during long-running SQL statements. Database callbacks
    * are currently used to check if the statement has been cancelled.
-   * <p>
+   * <p/>
    * This method is <strong>partially thread-safe</strong>: it may be called from a non-confining thread
    * before connection is opened. After connection is opened, is should be called from the confining thread and
    * before any statement has been executed.
-   * <p>
-   * @see <a href="http://www.sqlite.org/c3ref/progress_handler.html">sqlite3_progress_callback</a>
+   * <p/>
    *
    * @param stepsPerCallback the number of internal SQLite cycles in between calls to the progress callback (default 1)
+   * @see <a href="http://www.sqlite.org/c3ref/progress_handler.html">sqlite3_progress_callback</a>
    */
   public void setStepsPerCallback(int stepsPerCallback) {
     try {
@@ -210,21 +221,21 @@ public final class SQLiteConnection {
 
   /**
    * Opens the connection, optionally creating the database.
-   * <p>
+   * <p/>
    * If connection is already open, fails gracefully, allowing connection can be used further.
-   * <p>
+   * <p/>
    * This method "confines" the connection to the thread in which it has been called. Most of the following
    * method calls to this connection and to its statements should be made only from that thread, otherwise
    * an exception is thrown.
-   * <p>
+   * <p/>
    * If allowCreate parameter is false, and database file does not exist, method fails with an exception.
-   * <p>
-   * @see <a href="http://www.sqlite.org/c3ref/open.html">sqlite3_open_v2</a>
+   * <p/>
    *
    * @param allowCreate if true, database file may be created. For an in-memory database, this parameter must
    *                    be true.
    * @return this connection
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/open.html">sqlite3_open_v2</a>
    */
   public SQLiteConnection open(boolean allowCreate) throws SQLiteException {
     int flags = SQLITE_OPEN_READWRITE;
@@ -289,17 +300,18 @@ public final class SQLiteConnection {
   /**
    * Closes this connection and disposes all related resources. After dispose() is called, the connection
    * cannot be used and the instance should be forgotten.
-   * <p>
+   * <p/>
    * Calling this method on an already disposed connection does nothing.
-   * <p>
+   * <p/>
    * This method is <strong>partially thread-safe</strong>: it may be called from another thread,
    * but in that case prepared statements will not be disposed and will be "lost" by the wrapper.
    * This will probably be ok, but SQLite may return an error and not close the connection.
-   * <p>
+   * <p/>
    * It is better to call dispose() from a different thread, than not to call it at all.
-   * <p>
+   * <p/>
    * This method does not throw exception even if SQLite returns an error.
-   * <p>
+   * <p/>
+   *
    * @see <a href="http://www.sqlite.org/c3ref/close.html">sqlite3_close</a>
    */
   public void dispose() {
@@ -336,16 +348,16 @@ public final class SQLiteConnection {
   /**
    * Executes SQL. This method is normally used for DDL, transaction control and similar SQL statements.
    * For querying database and for DML statements with parameters, use {@link #prepare}.
-   * <p>
+   * <p/>
    * Several statements, delimited by a semicolon, can be executed with a single call.
-   * <p>
+   * <p/>
    * Do not use this method if your SQL contains non-ASCII characters!
-   * <p>
-   * @see <a href="http://www.sqlite.org/c3ref/exec.html">sqlite3_exec</a>
+   * <p/>
    *
    * @param sql an SQL statement
    * @return this connection
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/exec.html">sqlite3_exec</a>
    */
   public SQLiteConnection exec(String sql) throws SQLiteException {
     checkThread();
@@ -372,23 +384,23 @@ public final class SQLiteConnection {
   /**
    * Prepares an SQL statement. Prepared SQL statement can be used further for putting data into
    * the database and for querying data.
-   * <p>
+   * <p/>
    * Prepared statements are normally cached by the connection, unless you set <code>cached</code> parameter
    * to false. Because parsing SQL is costly, caching should be used in cases where a single SQL can be
    * executed more than once.
-   * <p>
+   * <p/>
    * Cached statements are cleared of state before or after they are used.
-   * <p>
+   * <p/>
    * SQLParts is used to contains the SQL query, yet there are convenience methods that accept String.
-   * <p>
+   * <p/>
    * Returned statement must be disposed when the calling code is done with it, whether it was cached or not.
-   * <p>
-   * @see <a href="http://www.sqlite.org/c3ref/prepare.html">sqlite3_prepare_v2</a>
+   * <p/>
    *
-   * @param sql the SQL statement, not null
+   * @param sql    the SQL statement, not null
    * @param cached if true, the statement handle will be cached by the connection
    * @return an instance of {@link SQLiteStatement}
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/prepare.html">sqlite3_prepare_v2</a>
    */
   public SQLiteStatement prepare(SQLParts sql, boolean cached) throws SQLiteException {
     checkThread();
@@ -474,7 +486,7 @@ public final class SQLiteConnection {
    * Convenience method that prepares a statement for the given String-based SQL. See {@link #prepare(SQLParts, boolean)}
    * for details.
    *
-   * @param sql the SQL statement, not null
+   * @param sql    the SQL statement, not null
    * @param cached if true, the statement handle will be cached by the connection
    * @return an instance of {@link SQLiteStatement}
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
@@ -499,18 +511,18 @@ public final class SQLiteConnection {
    * Opens a BLOB for reading or writing. This method returns an instance of {@link SQLiteBlob}, which can
    * be used to read or write a single table cell with a BLOB value. After operations are done, the blob should
    * be disposed.
-   * <p>
+   * <p/>
    * See SQLite documentation about transactional behavior of the corresponding methods.
-   * <p>
-   * @see <a href="http://www.sqlite.org/c3ref/blob_open.html">sqlite3_blob_open</a>
+   * <p/>
    *
-   * @param dbname database name, or null for the current database
-   * @param table table name, not null
-   * @param column column name, not null
-   * @param rowid row id
+   * @param dbname      database name, or null for the current database
+   * @param table       table name, not null
+   * @param column      column name, not null
+   * @param rowid       row id
    * @param writeAccess if true, write access is requested
    * @return an instance of SQLiteBlob for incremental reading or writing
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/blob_open.html">sqlite3_blob_open</a>
    */
   public SQLiteBlob blob(String dbname, String table, String column, long rowid, boolean writeAccess) throws SQLiteException {
     checkThread();
@@ -548,9 +560,9 @@ public final class SQLiteConnection {
    * Convenience method for calling blob() on the currently selected database.
    * See {@link #blob(String, String, String, long, boolean)} for detailed description.
    *
-   * @param table table name, not null
-   * @param column column name, not null
-   * @param rowid row id
+   * @param table       table name, not null
+   * @param column      column name, not null
+   * @param rowid       row id
    * @param writeAccess if true, write access is requested
    * @return an instance of SQLiteBlob for incremental reading or writing
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
@@ -562,13 +574,12 @@ public final class SQLiteConnection {
   /**
    * Sets "busy timeout" for this connection. If timeout is defined, then SQLite will not wait to lock
    * the database for more than the specified number of milliseconds.
-   * <p>
+   * <p/>
    * By default, the timeout is not set.
    *
    * @param millis number of milliseconds for the busy timeout, or 0 to disable the timeout
    * @return this connection
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
-   *
    * @see <a href="http://www.sqlite.org/c3ref/busy_timeout.html">sqlite3_busy_timeout</a>
    */
   public SQLiteConnection setBusyTimeout(long millis) throws SQLiteException {
@@ -581,11 +592,10 @@ public final class SQLiteConnection {
   /**
    * Checks if the database is in the auto-commit mode. In auto-commit mode, transaction is ended after execution of
    * every statement.
-   * <p>
-   * 
+   * <p/>
+   *
    * @return true if the connection is in auto-commit mode
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
-   *
    * @see <a href="http://www.sqlite.org/c3ref/get_autocommit.html">sqlite3_get_autocommit</a>
    */
   public boolean getAutoCommit() throws SQLiteException {
@@ -596,10 +606,10 @@ public final class SQLiteConnection {
 
   /**
    * Returns the ROWID of the row, last inserted in this connection (regardless of which statement was used).
-   * If the table has a column of type INTEGER PRIMARY KEY, then that column contains the ROWID. See SQLite docs. 
-   * <p>
+   * If the table has a column of type INTEGER PRIMARY KEY, then that column contains the ROWID. See SQLite docs.
+   * <p/>
    * You can also use "last_insert_rowid()" function in SQL statements following the insert.
-   *  
+   *
    * @return the rowid of the last successful insert, or 0 if nothing has been inserted in this connection
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/last_insert_rowid.html">sqlite3_last_insert_rowid</a>
@@ -613,15 +623,14 @@ public final class SQLiteConnection {
   /**
    * This method returns the number of database rows that were changed or inserted or deleted by the most
    * recently completed SQL statement in this connection. See SQLite documentation for details.
-   * 
+   *
    * @return the number of affected rows, or 0
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/changes.html">sqlite3_changes</a>
    */
   public int getChanges() throws SQLiteException {
     checkThread();
-    int result = _SQLiteSwigged.sqlite3_changes(handle());
-    return result;
+    return _SQLiteSwigged.sqlite3_changes(handle());
   }
 
   /**
@@ -634,16 +643,15 @@ public final class SQLiteConnection {
    */
   public int getTotalChanges() throws SQLiteException {
     checkThread();
-    int result = _SQLiteSwigged.sqlite3_total_changes(handle());
-    return result;
+    return _SQLiteSwigged.sqlite3_total_changes(handle());
   }
 
   /**
    * This method can be called to interrupt a currently long-running SQL statement, causing it to fail
    * with an exception.
-   * <p>
+   * <p/>
    * This method is <strong>thread-safe</strong>.
-   * <p>
+   * <p/>
    * There are some important implications from using this method, see SQLite docs.
    *
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
@@ -682,15 +690,15 @@ public final class SQLiteConnection {
   /**
    * Starts SQL profiling and returns the profiler class. If profiling is already started, returns the
    * profiler.
-   * <p>
+   * <p/>
    * This method is thread-safe, in a sense that it can be called from non-session threads. It's not
    * strongly synchronized, so calling it concurrently may result in duplicate profilers.
-   * <p>
+   * <p/>
    * Only instances of SQLiteStatement created after this method is called will be profiled (whether
    * SQLite statement is cached or not).
    *
    * @return the profiler, which will collect stats for all subsequent operations until {@link #stopProfiling}
-   * is called.
+   *         is called.
    */
   public SQLiteProfiler profile() {
     SQLiteProfiler profiler = myProfiler;
@@ -702,16 +710,113 @@ public final class SQLiteConnection {
   /**
    * Stops the profiling and returns the profiler instance with data. If the profiling was not running,
    * returns null.
-   * <p>
+   * <p/>
    * This method is thread-safe, in a sense that it can be called from non-session threads. It's not
    * strongly synchronized, so calling it concurrently may result in race conditions.
    *
-   * @return the profiler with collected data, or null 
+   * @return the profiler with collected data, or null
    */
   public SQLiteProfiler stopProfiling() {
     SQLiteProfiler profiler = myProfiler;
     myProfiler = null;
     return profiler;
+  }
+
+  /**
+   * Creates a virtual table within the current session, to represent an array of long values (functionality provided
+   * by test_intarray module from SQLite sources). After SQLiteLongArray
+   * is created, it can be bound consequently several times to a long[], and the virtual table can be used in any SQL.
+   * This provides means to make queries with array parameters. For example:
+   * <pre>
+   * long[] itemIds = ...;
+   * SQLiteLongArray array = connection.createArray();
+   * SQLiteStatement st = connection.prepare("SELECT * FROM items WHERE itemId IN " + array.getName());
+   * array.bind(itemIds);
+   * while (st.step()) {
+   *   // read values
+   * }
+   * st.dispose();
+   * array.dispose();
+   * <p/>
+   * The array contents is bound using {@link SQLiteLongArray#bind} methods. Binding an array is not a transactional
+   * operation; it does not start or stop a transaction, and contents of the array is not affected by ROLLBACK.
+   * <p/>
+   * You can execute any SQL using array's name ({@link SQLiteLongArray#getName}) as the table name. The actual table
+   * is a VIRTUAL TABLE, residing in TEMP database. (Because of that, temp database may be created on disk - you can
+   * change that using PRAGMA TEMP_STORE.)
+   * <p/>
+   * It is possible to execute an SQL that contains several virtual array tables.
+   * <p/>
+   * Note that the virtual array table does not have a primary key (bound values may have duplicates and come
+   * in random order), so be careful about performance.
+   * <p/>
+   * SQLiteLongArray are cached by the SQLiteConnection, unless <code>cached</code> parameter is set to <code>false</code>.
+   * When cached SQLiteLongArray is disposed, it is kept by the connection for further reuse. When a non-cached
+   * SQLiteLongArray is disposed, its table is deleted from the TEMP database.
+   * <p/>
+   * <strong>Caution:</strong> It's possible to use DROP TABLE on the array virtual table; doing that will make
+   * SQL statements that use the table invalid.
+   *
+   * @param name   the name of the table, must be a correct SQL table name, and contains only ASCII characters. If null,
+   *               a temporary name will be provided automatically (can be later retrieved via {@link SQLiteLongArray#getName}.
+   * @param cached if true, then a cached array will be used, thus reducing the number of virtual tables and schema
+   *               changes. If cached is true and a name is given and there's no free array with that name, a new array will be created.
+   *               If cached is true and name is null, then any free array will be allocated.
+   * @return an instance of SQLiteLongArray, wrapping an empty (unbound) virtual array table
+   * @throws SQLiteException if name is already in use, or if other problem happens
+   * @see <a href="http://www.sqlite.org/src/artifact/489edb9068bb926583445cb02589344961054207">test_intarray.h</a>
+   */
+  public SQLiteLongArray createArray(String name, boolean cached) throws SQLiteException {
+    checkThread();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "createArray [" + name + "," + cached + "]");
+    if (!cached && name != null && myLongArrays.containsKey(name)) {
+      Internal.logWarn(this, "using cached array in lieu of passed parameter, because name already in use");
+      cached = true;
+    }
+    if (!cached) {
+      return createArray0(name, myUncachedController);
+    }
+    if (name == null && !myLongArrays.isEmpty()) {
+      name = myLongArrays.head().getNext().getKey();
+    }
+    SWIGTYPE_p_intarray array = name == null ? null : myLongArrays.remove(name);
+    if (array != null) {
+      return new SQLiteLongArray(myCachedController, array, name);
+    }
+    return createArray0(name, myCachedController);
+  }
+
+  /**
+   * Creates a virtual table within the current session, to represent an array of long values (functionality provided
+   * by test_intarray module from SQLite sources). After SQLiteLongArray
+   * is created, it can be bound consequently several times to a long[], and the virtual table can be used in any SQL.
+   * <p>
+   * This is a convenience method that creates an array with an arbitrary name and cached by the connection,
+   * equal to call to <code>createArray(null, true)</code>. See {@link #createArray(String, boolean)} for details.
+   *
+   * @return an instance of SQLiteLongArray, wrapping an empty (unbound) virtual array table
+   * @throws SQLiteException in case any problem is reported by SQLite, or general contract is broken
+   */
+  public SQLiteLongArray createArray() throws SQLiteException {
+    return createArray(null, true);
+  }
+
+  private SQLiteLongArray createArray0(String name, SQLiteController controller) throws SQLiteException {
+    SWIGTYPE_p_sqlite3 handle = handle();
+    if (name == null)
+      name = nextArrayName();
+    SWIGTYPE_p_intarray r = mySQLiteManual.sqlite3_intarray_create(handle, name);
+    int rc = mySQLiteManual.getLastReturnCode();
+    throwResult(rc, "createArray()", name);
+    if (r == null) {
+      throwResult(SQLiteConstants.WRAPPER_WEIRD, "createArray()", name);
+    }
+    return new SQLiteLongArray(controller, r, name);
+  }
+
+  private String nextArrayName() {
+    return String.format("__IA%02X", ++myLongArrayCounter);
   }
 
   private void finalizeProgressHandler(SWIGTYPE_p_sqlite3 handle) {
@@ -847,6 +952,16 @@ public final class SQLiteConnection {
     }
   }
 
+  private void finalizeArray(SQLiteLongArray array) {
+    Internal.logFine(array, "finalizing");
+    String tableName = array.getName();
+    try {
+      exec("DROP TABLE IF EXISTS " + tableName);
+    } catch (SQLiteException e) {
+      Internal.log(Level.WARNING, array, "cannot drop " + tableName, e);
+    }
+  }
+
   private void finalizeBlob(SQLiteBlob blob) {
     Internal.logFine(blob, "finalizing");
     SWIGTYPE_p_sqlite3_blob handle = blob.blobHandle();
@@ -868,6 +983,32 @@ public final class SQLiteConnection {
     int rc = _SQLiteSwigged.sqlite3_blob_close(handle);
     if (rc != SQLITE_OK) {
       Internal.logWarn(this, "error [" + rc + "] finishing " + source);
+    }
+  }
+
+  private void cacheArrayHandle(SQLiteLongArray array) {
+    if (Internal.isFineLogging())
+      Internal.logFine(array, "returning handle to cache");
+    boolean finalize = false;
+    SWIGTYPE_p_intarray handle = array.arrayHandle();
+    if (handle == null) {
+      Internal.logWarn(array, "no handle");
+      return;
+    }
+    try {
+      int rc = _SQLiteManual.sqlite3_intarray_unbind(handle);
+      throwResult(rc, "intarray_unbind");
+    } catch (SQLiteException e) {
+      Internal.log(Level.WARNING, array, "exception when clearing", e);
+      finalize = true;
+    }
+    if (finalize) {
+      finalizeArray(array);
+    } else {
+      SWIGTYPE_p_intarray expunged = myLongArrays.put(array.getName(), handle);
+      if (expunged != null) {
+        Internal.logWarn(array, handle + " expunged " + expunged);
+      }
     }
   }
 
@@ -1282,6 +1423,13 @@ public final class SQLiteConnection {
       }
     }
 
+    @Override
+    public void dispose(SQLiteLongArray array) {
+      if (checkDispose(array)) {
+        SQLiteConnection.this.cacheArrayHandle(array);
+      }
+    }
+
     public String toString() {
       return SQLiteConnection.this.toString() + "[C]";
     }
@@ -1291,6 +1439,13 @@ public final class SQLiteConnection {
     public void dispose(SQLiteStatement statement) {
       if (checkDispose(statement)) {
         SQLiteConnection.this.finalizeStatement(statement);
+      }
+    }
+
+    @Override
+    public void dispose(SQLiteLongArray array) {
+      if (checkDispose(array)) {
+        SQLiteConnection.this.finalizeArray(array);
       }
     }
 
