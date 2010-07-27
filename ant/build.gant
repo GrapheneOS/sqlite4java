@@ -354,7 +354,7 @@ target('all': 'build all artifacts') {
 }
 
 target(name: 'integrate') {
-  depends(['clean', 'all'])
+  depends(['clean', 'release', 'all'])
 }
 
 target(name: 'collect') {
