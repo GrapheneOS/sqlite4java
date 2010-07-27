@@ -282,4 +282,20 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     boolean row = connection.prepare("select * from x").step();
     assertFalse(row);
   }
+
+  public void testColumnType() throws SQLiteException {
+    SQLiteConnection conn = memDb().open().exec("create table x (a integer, b text, c real, d blob, e)");
+    SQLiteStatement st = conn.prepare("insert into x values (1, 'one', 1.0001, ?, null)");
+    st.bind(1, new byte[]{1, 2, 3});
+    st.step();
+    st.dispose();
+    st = conn.prepare("select * from x");
+    st.step();
+    assertEquals(SQLiteConstants.SQLITE_INTEGER, st.columnType(0));
+    assertEquals(SQLiteConstants.SQLITE_TEXT, st.columnType(1));
+    assertEquals(SQLiteConstants.SQLITE_FLOAT, st.columnType(2));
+    assertEquals(SQLiteConstants.SQLITE_BLOB, st.columnType(3));
+    assertEquals(SQLiteConstants.SQLITE_NULL, st.columnType(4));
+    st.dispose();
+  }
 }

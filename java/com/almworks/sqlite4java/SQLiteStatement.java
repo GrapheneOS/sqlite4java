@@ -1039,6 +1039,30 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Gets a type of a column after step() has returned a row.
+   * <p>
+   * Call this method to retrieve data of any type after {@link #step()} has returned true.
+   * <p>
+   * Note that SQLite has dynamic typing, so this method returns the affinity of the specified column.
+   * See <a href="http://sqlite.org/datatype3.html">dynamic typing</a> for details.
+   * <p>
+   * This method returns an integer constant, defined in {@link SQLiteConstants}: <code>SQLITE_NULL</code>,
+   * <code>SQLITE_INTEGER</code>, <code>SQLITE_TEXT</code>, <code>SQLITE_BLOB</code> or <code>SQLITE_FLOAT</code>.
+   * <p>
+   * The value returned by this method is only meaningful if
+   * no type conversions have occurred as the result of calling columnNNN() methods.
+   *
+   * @param column the index of the column, starting with 0
+   * @return an integer code, indicating the type affinity of the returned column
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/column_blob.html">sqlite3_column_type</a>
+   */
+  public int columnType(int column) throws SQLiteException {
+    myController.validate();
+    return getColumnType(column, handle());
+  }
+
+  /**
    * Gets a name of the column in the result set.
    *
    * @param column the index of the column, starting with 0
@@ -1139,9 +1163,9 @@ public final class SQLiteStatement {
     List<ColumnStream> table = myColumnStreams;
     if (table != null) {
       myColumnStreams = null;
-      for (int i = 0; i < table.size(); i++) {
+      for (ColumnStream stream : table) {
         try {
-          table.get(i).close();
+          stream.close();
         } catch (IOException e) {
           Internal.logFine(this, e.toString());
         }
@@ -1153,8 +1177,7 @@ public final class SQLiteStatement {
     List<BindStream> table = myBindStreams;
     if (table != null) {
       myBindStreams = null;
-      for (int i = 0; i < table.size(); i++) {
-        BindStream stream = table.get(i);
+      for (BindStream stream : table) {
         if (bind && !stream.isDisposed()) {
           try {
             stream.close();

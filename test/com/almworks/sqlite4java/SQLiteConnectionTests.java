@@ -130,4 +130,11 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     }
     assertFalse(connection.isOpen());
   }
+
+  public void testOpenV2() throws SQLiteException {
+    SQLiteConnection db = fileDb();
+    db.openV2(SQLiteConstants.SQLITE_OPEN_CREATE | SQLiteConstants.SQLITE_OPEN_READWRITE | SQLiteConstants.SQLITE_OPEN_NOMUTEX);
+    db.exec("create table x(x)");
+    db.dispose();
+  }
 }

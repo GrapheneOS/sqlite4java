@@ -276,6 +276,26 @@ public final class SQLiteConnection {
   }
 
   /**
+   * Opens the connection with the specified flags for the sqlite3_open_v2 method. The flags SQLITE_OPEN_xxx are defined
+   * in {@link SQLiteConstants} and can be ORed together.
+   * <p/>
+   * This method is provided for future versions compatibility and for open options not otherwise supported by
+   * sqlite4java. Use this method only if other open() methods are not sufficient.
+   * <p/>
+   * In all other respects, this method works exactly like {@link #open(boolean)}, consult documentation to that method
+   * for details.
+   *
+   * @param flags integer flags as defined by sqlite3_open_v2 function
+   * @return this connection
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/open.html">sqlite3_open_v2</a>
+   */
+  public SQLiteConnection openV2(int flags) throws SQLiteException {
+    open0(flags);
+    return this;
+  }
+
+  /**
    * Tells whether connection is open. This method is <strong>thread-safe</strong>.
    *
    * @return true if this connection was successfully opened and has not been disposed
@@ -434,6 +454,8 @@ public final class SQLiteConnection {
         Internal.logFine(this, "calling sqlite3_prepare_v2 for [" + sql + "]");
       long from = profiler == null ? 0 : System.nanoTime();
       String sqlString = sql.toString();
+      if (sqlString.trim().length() == 0)
+        throw new SQLiteException(WRAPPER_USER_ERROR, "empty SQL");
       stmt = mySQLiteManual.sqlite3_prepare_v2(handle, sqlString);
       int rc = mySQLiteManual.getLastReturnCode();
       if (profiler != null) profiler.reportPrepare(sqlString, from, System.nanoTime(), rc);
@@ -791,7 +813,7 @@ public final class SQLiteConnection {
    * Creates a virtual table within the current session, to represent an array of long values (functionality provided
    * by test_intarray module from SQLite sources). After SQLiteLongArray
    * is created, it can be bound consequently several times to a long[], and the virtual table can be used in any SQL.
-   * <p>
+   * <p/>
    * This is a convenience method that creates an array with an arbitrary name and cached by the connection,
    * equal to call to <code>createArray(null, true)</code>. See {@link #createArray(String, boolean)} for details.
    *
