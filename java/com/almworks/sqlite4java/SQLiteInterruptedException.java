@@ -22,6 +22,7 @@ package com.almworks.sqlite4java;
  * <p/>
  * The transaction is rolled back when interrupted.
  *
+ * @author Igor Sereda
  * @see <a href="http://www.sqlite.org/c3ref/interrupt.html">sqlite3_interrupt</a>
  */
 public class SQLiteInterruptedException extends SQLiteException {

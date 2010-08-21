@@ -31,6 +31,7 @@ import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_IOERR_BLOCKED;
  * to make sure that only the last statement failed and it's possible to retry that statement within the current
  * transaction.
  *
+ * @author Igor Sereda
  * @see <a href="http://www.sqlite.org/c3ref/busy_handler.html">sqlite3_busy_handler</a>
  * @see <a href="http://www.sqlite.org/lang_transaction.html">Response To Errors Within A Transaction</a>
  */

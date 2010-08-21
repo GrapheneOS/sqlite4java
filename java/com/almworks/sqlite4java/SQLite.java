@@ -31,27 +31,30 @@ import static com.almworks.sqlite4java.SQLiteConstants.WRAPPER_CANNOT_LOAD_LIBRA
 /**
  * SQLite class has several utility methods that are applicable to the whole instance of
  * SQLite library within the current process. It is not needed for basic operations.
- * <p>
+ * <p/>
  * All methods in this class are <strong>thread-safe</strong>.
+ *
+ * @author Igor Sereda
  */
 public final class SQLite {
   private static boolean debugBinaryPreferred = "true".equalsIgnoreCase(System.getProperty("sqlite4java.debug.binary.preferred"));
   private static boolean libraryLoaded = false;
   private static String jarVersion = null;
+  private static Boolean threadSafe = null;
 
   /**
    * Native sqlite4java code, including SQLite itself, is compiled in <code>DEBUG</code> and <code>RELEASE</code>
    * configurations. Binaries compiled with debug configurations have <code>-d</code> suffix, and can be placed in
    * the same directory with release binaries.
-   * <p>
+   * <p/>
    * sqlite4java will load any available binary that suits the platform, but in case both RELEASE and DEBUG
    * binaries are available, it will load RELEASE binary by default.
-   * <p>
+   * <p/>
    * You can use this method to change the preference and load DEBUG binary by default.
-   * <p>
+   * <p/>
    * This method must be called before the first call to {@link SQLiteConnection#open} or any other methods that
    * require library loading.
-   * <p>
+   * <p/>
    * You can also change the default by setting <strong>sqlite4java.debug.binary.preferred</strong> system property to
    * <strong>true</strong>.
    *
@@ -77,7 +80,7 @@ public final class SQLite {
 
   /**
    * Tries to load the native library. If unsuccessful, throws an exception, otherwise just exits.
-   * <p>
+   * <p/>
    * If native library is already loaded, just exits.
    *
    * @throws SQLiteException if library loading fails
@@ -100,7 +103,7 @@ public final class SQLite {
    *
    * @return SQLite version
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/libversion.html">sqlite3_libversion</a>
+   * @see <a href="http://www.sqlite.org/c3ref/libversion.html">sqlite3_libversion</a>
    */
   public static String getSQLiteVersion() throws SQLiteException {
     loadLibrary();
@@ -112,7 +115,7 @@ public final class SQLite {
    *
    * @return a string with all compile-time options delimited by a space
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/compileoption_get.html">sqlite3_compileoption_get</a>
+   * @see <a href="http://www.sqlite.org/c3ref/compileoption_get.html">sqlite3_compileoption_get</a>
    */
   public static String getSQLiteCompileOptions() throws SQLiteException {
     loadLibrary();
@@ -132,7 +135,7 @@ public final class SQLite {
    *
    * @return a number representing the version; example: version "3.6.23.1" is represented as 3006023.
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/version.html">sqlite3_version</a>
+   * @see <a href="http://www.sqlite.org/c3ref/version.html">sqlite3_version</a>
    */
   public static int getSQLiteVersionNumber() throws SQLiteException {
     loadLibrary();
@@ -141,19 +144,19 @@ public final class SQLite {
 
   /**
    * Checks if SQLite has been compiled with the THREADSAFE option.
-   * <p>
-   * <i>Currently, sqlite4java includes a thread-safe version of SQLite; however, given strong enforcement
-   * of single-threaded access from Java, we may consider recompiling without thread-safety for the sake
-   * of performance.
-   * </i>
-   * 
+   * <p/>
+   *
    * @return true if SQLite has been compiled with THREADSAFE option
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/threadsafe.html">sqlite3_threadsafe</a>
+   * @see <a href="http://www.sqlite.org/c3ref/threadsafe.html">sqlite3_threadsafe</a>
    */
   public static boolean isThreadSafe() throws SQLiteException {
+    Boolean cachedResult = threadSafe;
+    if (cachedResult != null) return cachedResult;
     loadLibrary();
-    return _SQLiteSwigged.sqlite3_threadsafe() != 0;
+    boolean r = _SQLiteSwigged.sqlite3_threadsafe() != 0;
+    threadSafe = r;
+    return r;
   }
 
   /**
@@ -162,7 +165,7 @@ public final class SQLite {
    * @param sql the SQL
    * @return true if sql is a complete statement
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/complete.html">sqlite3_complete</a>
+   * @see <a href="http://www.sqlite.org/c3ref/complete.html">sqlite3_complete</a>
    */
   public static boolean isComplete(String sql) throws SQLiteException {
     loadLibrary();
@@ -172,12 +175,12 @@ public final class SQLite {
   /**
    * Gets the amount of memory currently used by SQLite library. The returned value shows the amount of non-heap
    * "native" memory taken up by SQLite caches and anything else allocated with sqlite3_malloc.
-   * <p>
+   * <p/>
    * This value does not include any heap or other JVM-allocated memory taken up by sqlite4java objects and classes.
    *
    * @return the number of bytes used by SQLite library in this process (for all connections)
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/memory_highwater.html">sqlite3_memory_used</a>
+   * @see <a href="http://www.sqlite.org/c3ref/memory_highwater.html">sqlite3_memory_used</a>
    */
   public static long getMemoryUsed() throws SQLiteException {
     loadLibrary();
@@ -190,9 +193,9 @@ public final class SQLite {
    *
    * @param reset if true, the highwatermark is reset after this call
    * @return the maximum number of bytes ever used by SQLite library since the start of the application
-   * or the last reset of the highwatermark.
+   *         or the last reset of the highwatermark.
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/memory_highwater.html">sqlite3_memory_highwater</a>
+   * @see <a href="http://www.sqlite.org/c3ref/memory_highwater.html">sqlite3_memory_highwater</a>
    */
   public static long getMemoryHighwater(boolean reset) throws SQLiteException {
     loadLibrary();
@@ -205,7 +208,7 @@ public final class SQLite {
    * @param bytes the number of bytes requested to be released
    * @return the number of bytes actually released
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/release_memory.html">sqlite3_release_memory</a>
+   * @see <a href="http://www.sqlite.org/c3ref/release_memory.html">sqlite3_release_memory</a>
    */
   public static int releaseMemory(int bytes) throws SQLiteException {
     loadLibrary();
@@ -218,7 +221,7 @@ public final class SQLite {
    *
    * @param limit the number of bytes to set the soft memory limit to
    * @throws SQLiteException if native library cannot be loaded
-   * @see  <a href="http://www.sqlite.org/c3ref/soft_heap_limit.html">sqlite3_soft_heap_limit</a>
+   * @see <a href="http://www.sqlite.org/c3ref/soft_heap_limit.html">sqlite3_soft_heap_limit</a>
    */
   public static void setSoftHeapLimit(int limit) throws SQLiteException {
     loadLibrary();
@@ -228,13 +231,13 @@ public final class SQLite {
   /**
    * Sets whether <a href="http://www.sqlite.org/sharedcache.html">shared cache mode</a> will be used
    * for the connections that are opened after this call. All existing connections are not affected.
-   * <p>
+   * <p/>
    * <strong>sqlite4java</strong> explicitly disables shared cache on start. This is also the default declared by SQLite,
-   * but it may change in the future, so <strong>sqlite4java</strong> enforces consistency.   
+   * but it may change in the future, so <strong>sqlite4java</strong> enforces consistency.
    *
    * @param enabled if true, the following calls to {@link SQLiteConnection#open} will used shared-cache mode
    * @throws SQLiteException if native library cannot be loaded, or if call returns an error
-   * @see  <a href="http://www.sqlite.org/c3ref/enable_shared_cache.html">sqlite3_enable_shared_cache</a>
+   * @see <a href="http://www.sqlite.org/c3ref/enable_shared_cache.html">sqlite3_enable_shared_cache</a>
    */
   public static void setSharedCache(boolean enabled) throws SQLiteException {
     loadLibrary();
@@ -247,7 +250,7 @@ public final class SQLite {
    * Gets the version of sqlite4java library. The library version equals to the svn version of the sources
    * it's built from (trunk code only). If the version ends in '+', then the library has been built from
    * dirty (uncommitted) sources.
-   * <p>
+   * <p/>
    * The version string is read from the sqlite4java.jar's manifest.
    *
    * @return <strong>sqlite4java</strong> version, or null if version cannot be read

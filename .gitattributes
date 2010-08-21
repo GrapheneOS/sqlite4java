@@ -18,8 +18,10 @@ java/com/almworks/sqlite4java/SQLiteConnection.java -text
 java/com/almworks/sqlite4java/SQLiteController.java -text
 java/com/almworks/sqlite4java/SQLiteException.java -text
 java/com/almworks/sqlite4java/SQLiteInterruptedException.java -text
+java/com/almworks/sqlite4java/SQLiteJob.java -text
 java/com/almworks/sqlite4java/SQLiteLongArray.java -text
 java/com/almworks/sqlite4java/SQLiteProfiler.java -text
+java/com/almworks/sqlite4java/SQLiteQueue.java -text
 java/com/almworks/sqlite4java/SQLiteStatement.java -text
 java/com/almworks/sqlite4java/SWIGTYPE_p_direct_buffer.java -text
 java/com/almworks/sqlite4java/SWIGTYPE_p_intarray.java -text

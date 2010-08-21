@@ -22,6 +22,7 @@ package com.almworks.sqlite4java;
  * Some error messages are produced by SQLite wrapper, these have names WRAPPER_*. For
  * docmentation on SQLite constants, see SQLite docs.
  *
+ * @author Igor Sereda
  * @see <a href="http://sqlite.org/c3ref/constlist.html">list of constants in SQLite docs</a>
  */
 public interface SQLiteConstants {

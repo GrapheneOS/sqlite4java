@@ -51,6 +51,7 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
  * Unless a method is marked as thread-safe, it is confined to the thread that has opened the connection. Calling
  * a confined method from a different thread will result in exception.
  *
+ * @author Igor Sereda
  * @see <a href="http://sqlite.org/c3ref/stmt.html">sqlite3_stmt*</a>
  */
 public final class SQLiteStatement {

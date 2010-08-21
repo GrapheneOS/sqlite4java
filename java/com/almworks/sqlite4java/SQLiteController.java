@@ -21,6 +21,8 @@ import java.io.IOException;
 /**
  * This interface is used as a strategy for SQLiteStatement lifecycle. Initially it is set by {@link SQLiteConnection#prepare}
  * method, and when statement is disposed the strategy is reset to the dummy implementation.
+ *
+ * @author Igor Sereda
  */
 abstract class SQLiteController {
   /**

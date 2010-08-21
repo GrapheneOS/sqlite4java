@@ -28,6 +28,7 @@ package com.almworks.sqlite4java;
  * <p>
  * Methods of this class are not thread-safe and confined to the thread that opened the SQLite connection. 
  *
+ * @author Igor Sereda
  * @see SQLiteConnection#blob
  * @see <a href="http://www.sqlite.org/c3ref/blob_open.html">sqlite3_blob_open</a>
  */

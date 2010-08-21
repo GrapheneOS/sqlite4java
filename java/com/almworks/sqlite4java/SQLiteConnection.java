@@ -47,6 +47,7 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
  * it first tries to dispose all prepared statements. If there's an active transaction, it is rolled
  * back.
  *
+ * @author Igor Sereda
  * @see SQLiteStatement
  * @see <a href="http://www.sqlite.org/c3ref/sqlite3.html">sqlite3*</a>
  */
@@ -158,6 +159,12 @@ public final class SQLiteConnection {
   private int myLongArrayCounter;
 
   /**
+   * Flags used to open this connection
+   * Protected by myLock
+   */
+  private int myOpenFlags;
+
+  /**
    * Creates a connection to the database located in the specified file.
    * Database is not opened by the constructor, and the calling thread is insignificant.
    *
@@ -209,13 +216,8 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/progress_handler.html">sqlite3_progress_callback</a>
    */
   public void setStepsPerCallback(int stepsPerCallback) {
-    try {
-      checkThread();
-      if (stepsPerCallback > 0) {
-        myStepsPerCallback = stepsPerCallback;
-      }
-    } catch (SQLiteException e) {
-      Internal.logWarn(this, "call to setStepsPerCallback is ignored");
+    if (stepsPerCallback > 0) {
+      myStepsPerCallback = stepsPerCallback;
     }
   }
 
@@ -318,14 +320,24 @@ public final class SQLiteConnection {
   }
 
   /**
+   * Returns the flags that were used to open this connection.
+   *
+   * @return Flags that were used to open the connection.
+   */
+  public int getOpenFlags() {
+    synchronized (myLock) {
+      return myOpenFlags;
+    }
+  }
+
+  /**
    * Closes this connection and disposes all related resources. After dispose() is called, the connection
    * cannot be used and the instance should be forgotten.
    * <p/>
    * Calling this method on an already disposed connection does nothing.
    * <p/>
-   * This method is <strong>partially thread-safe</strong>: it may be called from another thread,
-   * but in that case prepared statements will not be disposed and will be "lost" by the wrapper.
-   * This will probably be ok, but SQLite may return an error and not close the connection.
+   * If called from a different thread rather from the thread where the connection was opened, this method
+   * does nothing. (It used to attempt connection disposal anyway, but that could lead to JVM crash.)
    * <p/>
    * It is better to call dispose() from a different thread, than not to call it at all.
    * <p/>
@@ -339,9 +351,15 @@ public final class SQLiteConnection {
     synchronized (myLock) {
       if (myDisposed)
         return;
+      Thread confinement = myConfinement;
+      if (confinement != null && confinement != Thread.currentThread()) {
+        Internal.recoverableError(this, "will not dispose from a non-confining thread", true);
+        return;
+      }
       myDisposed = true;
       handle = myHandle;
       myHandle = null;
+      myOpenFlags = 0;
     }
     if (handle == null)
       return;
@@ -1193,11 +1211,12 @@ public final class SQLiteConnection {
     if (handle == null) {
       throw new SQLiteException(WRAPPER_WEIRD, "sqlite didn't return db handle");
     }
+    configureConnection(handle);
     synchronized (myLock) {
       myHandle = handle;
+      myOpenFlags = flags;
     }
     Internal.logInfo(this, "opened");
-    configureConnection(handle);
   }
 
   private void configureConnection(SWIGTYPE_p_sqlite3 handle) {
@@ -1219,11 +1238,12 @@ public final class SQLiteConnection {
 
   void checkThread() throws SQLiteException {
     Thread confinement = myConfinement;
-    if (confinement == null)
-      return;
+    if (confinement == null) {
+      throw new SQLiteException(WRAPPER_CONFINEMENT_VIOLATED, this + " is not confined");
+    }
     Thread thread = Thread.currentThread();
     if (thread != confinement) {
-      String message = this + " confined(" + confinement + ") used(" + thread + ")";
+      String message = this + " confined(" + confinement + ") used (" + thread + ")";
       throw new SQLiteException(WRAPPER_CONFINEMENT_VIOLATED, message);
     }
   }
@@ -1232,17 +1252,15 @@ public final class SQLiteConnection {
     return "DB[" + myNumber + "]";
   }
 
+  /**
+   * The finalize() method is used to warn about a non-closed connection being forgotten.
+   */
   protected void finalize() throws Throwable {
     super.finalize();
     SWIGTYPE_p_sqlite3 handle = myHandle;
     boolean disposed = myDisposed;
     if (handle != null || !disposed) {
       Internal.recoverableError(this, "wasn't disposed before finalizing", true);
-      try {
-        dispose();
-      } catch (Throwable e) {
-        // ignore
-      }
     }
   }
 

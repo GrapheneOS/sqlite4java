@@ -22,6 +22,8 @@ package com.almworks.sqlite4java;
  * Error codes can be compared against {@link SQLiteConstants}.
  * <p>
  * It's safe to rollback the transaction when SQLiteException is caught.
+ *
+ * @author Igor Sereda
  */
 public class SQLiteException extends Exception {
   private final int myErrorCode;

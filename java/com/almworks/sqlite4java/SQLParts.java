@@ -31,6 +31,8 @@ import java.util.List;
  * SQLParts object may be <strong>fixed</strong>, which means it cannot be changed anymore.
  * <p>
  * This class is <strong>not thread-safe</strong> and not intended to be used from different threads.
+ *
+ * @author Igor Sereda
  */
 public final class SQLParts {
   private static final String[] PARAMS_STRINGS = new String[101];

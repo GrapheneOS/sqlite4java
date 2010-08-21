@@ -326,7 +326,7 @@ target('javadoc': 'create documentation zip') {
   }
   ant.mkdir(dir: "$build/javadoc")
   ant.javadoc(sourcepath: "$build/java", destdir: "$build/javadoc",
-    'public': "true", packagenames: 'com.almworks.sqlite4java')
+    'protected': "true", packagenames: 'com.almworks.sqlite4java')
   ant.zip(destfile: "$build/dist/sqlite4java-docs.zip", basedir: "$build/javadoc")
 }
 

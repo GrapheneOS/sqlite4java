@@ -28,7 +28,11 @@ import static com.almworks.sqlite4java.SQLiteConstants.WRAPPER_STATEMENT_DISPOSE
  * <p/>
  * The virtual array table has a single column named <code>value</code>.
  * <p/>
- * Values must not be unique or come in any order - they are
+ * Values must not be unique or come in any order - they are not a primary key, nor is there an index over them.
+ * That also means searching through the virtual array table is done with a full scan, so be careful with the
+ * performance.
+ * 
+ * @author Igor Sereda
  */
 public class SQLiteLongArray {
   /**

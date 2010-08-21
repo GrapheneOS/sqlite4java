@@ -31,6 +31,7 @@ import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_ROW;
  * <p>
  * This is pure Java-based profiling, not related to <code>sqlite3_profile</code> method.
  *
+ * @author Igor Sereda
  * @see SQLiteConnection#profile
  * @see SQLiteConnection#stopProfiling
  */
