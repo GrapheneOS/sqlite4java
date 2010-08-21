@@ -1,7 +1,5 @@
 package com.almworks.sqlite4java;
 
-import java.util.concurrent.Semaphore;
-
 public class SQLiteConnectionTests extends SQLiteConnectionFixture {
   public void testOpenFile() throws SQLiteException {
     SQLiteConnection connection = fileDb();
@@ -86,25 +84,6 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
       fail("execed bad sql");
     } catch (SQLiteException e) {
       // ok
-    }
-  }
-
-  public void testCloseFromAnotherThread() throws SQLiteException, InterruptedException {
-    for (int i = 0; i < 5; i++) {
-      final SQLiteConnection connection = fileDb();
-      connection.open();
-      assertTrue(connection.isOpen());
-      final Semaphore s = new Semaphore(1);
-      s.acquire();
-      new Thread() {
-        public void run() {
-          connection.dispose();
-          assertFalse(connection.isOpen());
-          s.release();
-        }
-      }.start();
-      s.acquire();
-      s.release();
     }
   }
 

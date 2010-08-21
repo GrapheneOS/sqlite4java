@@ -152,7 +152,7 @@ public class JobQueueTests extends SQLiteConnectionFixture {
     }).testNoResult(true, false, SQLiteException.class);
   }
 
-  public void testAbnormalStop() {
+  public void testAbnormalStop() throws InterruptedException {
     final Thread[] hijackThread = {null};
     myQueue.execute(new SQLiteJob<Object>() {
       @Override
@@ -167,6 +167,7 @@ public class JobQueueTests extends SQLiteConnectionFixture {
     job1.await();
     job2.await();
     job2.testNoResult(false, true, null);
+    myQueue.join();
     assertTrue(myQueue.isStopped());
   }
 

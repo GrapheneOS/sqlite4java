@@ -3,7 +3,7 @@ package com.almworks.sqlite4java;
 import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_OPEN_CREATE;
 import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_OPEN_READWRITE;
 
-public class Test {
+public class Experiment {
   public static void main(String[] args) {
     System.loadLibrary("sqlite");
 

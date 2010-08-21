@@ -6,7 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 // see http://code.google.com/p/sqlite4java/issues/detail?id=18
-public class Regression18Tests extends TestCase {
+public class RegressionIssue18Tests extends TestCase {
   private volatile boolean disposeCalled;
 
   public void testConcurrentDisposeCrash() throws SQLiteException {

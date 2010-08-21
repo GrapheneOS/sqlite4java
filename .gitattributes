@@ -49,6 +49,7 @@ swig/stub/com/almworks/sqlite4java/_SQLiteSwiggedJNI.java -text
 test/com/almworks/sqlite4java/BlobComparisonPerformance.java -text
 test/com/almworks/sqlite4java/BlobTests.java -text
 test/com/almworks/sqlite4java/DirectBufferTests.java -text
+test/com/almworks/sqlite4java/Experiment.java -text
 test/com/almworks/sqlite4java/IncrementalBlobIOAnalysis.java -text
 test/com/almworks/sqlite4java/IncrementalIODemo.java -text
 test/com/almworks/sqlite4java/LongArrayTests.java -text
@@ -60,4 +61,3 @@ test/com/almworks/sqlite4java/SQLiteBasicTests.java -text
 test/com/almworks/sqlite4java/SQLiteConnectionFixture.java -text
 test/com/almworks/sqlite4java/SQLiteConnectionTests.java -text
 test/com/almworks/sqlite4java/SQLiteTestFixture.java -text
-test/com/almworks/sqlite4java/Test.java -text

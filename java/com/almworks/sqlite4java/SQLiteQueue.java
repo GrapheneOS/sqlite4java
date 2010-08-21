@@ -687,6 +687,7 @@ public class SQLiteQueue {
       if (reincarnate && !isReincarnationPossible()) {
         Internal.log(Level.SEVERE, this, "stopped abnormally, reincarnation is not possible for in-memory database", null);
         reincarnate = false;
+        myStopRequested = true;
       }
       if (!reincarnate) {
         droppedJobs = removeJobsClearQueue();
@@ -698,7 +699,6 @@ public class SQLiteQueue {
       if (Internal.isFineLogging()) {
         Internal.logFine(this, "stopped");
       }
-      myStopRequested = true;
     } else {
       reincarnate(getReincarnationTimeout());
     }

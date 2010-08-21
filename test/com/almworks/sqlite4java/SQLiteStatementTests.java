@@ -70,35 +70,6 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     assertEquals(0, connection.getStatementCount());
   }
 
-  public void testCloseFromAnotherThread() throws SQLiteException, InterruptedException {
-    final SQLiteConnection connection = fileDb().open().exec("create table x (x)");
-    final SQLiteStatement st = connection.prepare("insert into x values (?)");
-    assertFalse(st.isDisposed());
-
-    Thread closer = new Thread() {
-      public void run() {
-        try {
-          st.dispose();
-          boolean assertions = false;
-          assert assertions = true;
-          if (assertions) {
-            fail("disposed " + st + " from another thread with assertions turned on");
-          }
-        } catch (AssertionError e) {
-          // ok
-        }
-
-        connection.dispose();
-      }
-    };
-    closer.start();
-    closer.join();
-    assertFalse(connection.isOpen());
-
-    // cannot dispose from another thread actually:
-    assertFalse(st.isDisposed());
-  }
-
   public void testCloseFromCorrectThreadWithOpenStatement() throws SQLiteException {
     SQLiteConnection connection = fileDb().open().exec("create table x (x, y)");
     connection.exec("insert into x values (2, '3');");

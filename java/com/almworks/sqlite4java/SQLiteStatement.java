@@ -60,8 +60,6 @@ public final class SQLiteStatement {
    */
   public static final SQLiteStatement DISPOSED = new SQLiteStatement();
 
-  private static final int COLUMN_COUNT_UNKNOWN = -1;
-
   /**
    * The SQL of this statement.
    */
@@ -98,10 +96,10 @@ public final class SQLiteStatement {
   private boolean myStepped;
 
   /**
-   * The number of columns in current result set. When set to COLUMN_COUNT_UNKNOWN, the number of columns should
+   * The number of columns in current result set. If negative, the number is unknown and should
    * be requested at first need.
    */
-  private int myColumnCount;
+  private int myColumnCount = -1;
 
   /**
    * All currently active bind streams.
@@ -217,8 +215,8 @@ public final class SQLiteStatement {
       myController.throwResult(rc, "reset()", this);
     }
     myHasRow = false;
-    myColumnCount = 0;
     myStepped = false;
+    myColumnCount = -1;
     if (clearBindings && myHasBindings) {
       if (fineLogging)
         Internal.logFine(this, "clearing bindings");
@@ -284,47 +282,21 @@ public final class SQLiteStatement {
    */
   public boolean step() throws SQLiteException {
     myController.validate();
-    SQLiteProfiler profiler = myProfiler;
     if (Internal.isFineLogging())
       Internal.logFine(this, "step");
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    clearBindStreams(true);
-    clearColumnStreams();
     int rc;
-    ProgressHandler ph = myController.getProgressHandler();
-    ph.reset();
-    synchronized (this) {
-      if (myCancelled)
-        throw new SQLiteInterruptedException();
-      myProgressHandler = ph;
-    }
+    ProgressHandler ph = prepareStep();
     try {
+      SQLiteProfiler profiler = myProfiler;
       long from = profiler == null ? 0 : System.nanoTime();
       rc = _SQLiteSwigged.sqlite3_step(handle);
-      if (profiler != null) profiler.reportStep(myStepped, mySqlParts.toString(), from, System.nanoTime(), rc);
+      if (profiler != null)
+        profiler.reportStep(myStepped, mySqlParts.toString(), from, System.nanoTime(), rc);
     } finally {
-      synchronized (this) {
-        myProgressHandler = null;
-      }
-      if (Internal.isFineLogging())
-        Internal.logFine(this, "step " + ph.getSteps() + " steps");
-      ph.reset();
+      finalizeStep(ph, "step");
     }
-    myStepped = true;
-    if (rc == SQLITE_ROW) {
-      Internal.logFine(this, "step ROW");
-      if (!myHasRow) {
-        // at first row, set column count to COLUMN_COUNT_UNKNOWN so it will be requested at first need
-        myColumnCount = COLUMN_COUNT_UNKNOWN;
-      }
-      myHasRow = true;
-    } else if (rc == SQLITE_DONE) {
-      Internal.logFine(this, "step DONE");
-      myColumnCount = 0;
-      myHasRow = false;
-    } else {
-      myController.throwResult(rc, "step()", this);
-    }
+    stepResult(rc, "step");
     return myHasRow;
   }
 
@@ -431,7 +403,6 @@ public final class SQLiteStatement {
    */
   public int loadInts(int column, int[] buffer, int offset, int length) throws SQLiteException {
     myController.validate();
-    SQLiteProfiler profiler = myProfiler;
     if (buffer == null || length <= 0 || offset < 0 || offset + length > buffer.length) {
       assert false;
       return 0;
@@ -441,41 +412,20 @@ public final class SQLiteStatement {
     if (myStepped && !myHasRow)
       return 0;
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    clearBindStreams(true);
-    clearColumnStreams();
     int r;
     int rc;
-    ProgressHandler ph = myController.getProgressHandler();
-    ph.reset();
-    synchronized (this) {
-      if (myCancelled)
-        throw new SQLiteInterruptedException();
-      myProgressHandler = ph;
-    }
+    ProgressHandler ph = prepareStep();
     try {
       _SQLiteManual manual = myController.getSQLiteManual();
+      SQLiteProfiler profiler = myProfiler;
       long from = profiler == null ? 0 : System.nanoTime();
       r = manual.wrapper_load_ints(handle, column, buffer, offset, length);
       rc = manual.getLastReturnCode();
       if (profiler != null) profiler.reportLoadInts(myStepped, mySqlParts.toString(), from, System.nanoTime(), rc, r);
     } finally {
-      synchronized (this) {
-        myProgressHandler = null;
-      }
-      ph.reset();
+      finalizeStep(ph, "loadInts");
     }
-    myStepped = true;
-    if (rc == SQLITE_ROW) {
-      if (!myHasRow) {
-        myColumnCount = COLUMN_COUNT_UNKNOWN;
-      }
-      myHasRow = true;
-    } else if (rc == SQLITE_DONE) {
-      myColumnCount = 0;
-      myHasRow = false;
-    } else {
-      myController.throwResult(rc, "loadInts()", this);
-    }
+    stepResult(rc, "loadInts");
     return r;
   }
 
@@ -513,7 +463,6 @@ public final class SQLiteStatement {
    */
   public int loadLongs(int column, long[] buffer, int offset, int length) throws SQLiteException {
     myController.validate();
-    SQLiteProfiler profiler = myProfiler;
     if (buffer == null || length <= 0 || offset < 0 || offset + length > buffer.length) {
       assert false;
       return 0;
@@ -523,41 +472,20 @@ public final class SQLiteStatement {
     if (myStepped && !myHasRow)
       return 0;
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    clearBindStreams(true);
-    clearColumnStreams();
     int r;
     int rc;
-    ProgressHandler ph = myController.getProgressHandler();
-    ph.reset();
-    synchronized (this) {
-      if (myCancelled)
-        throw new SQLiteInterruptedException();
-      myProgressHandler = ph;
-    }
+    ProgressHandler ph = prepareStep();
     try {
       _SQLiteManual manual = myController.getSQLiteManual();
+      SQLiteProfiler profiler = myProfiler;
       long from = profiler == null ? 0 : System.nanoTime();
       r = manual.wrapper_load_longs(handle, column, buffer, offset, length);
       rc = manual.getLastReturnCode();
       if (profiler != null) profiler.reportLoadLongs(myStepped, mySqlParts.toString(), from, System.nanoTime(), rc, r);
     } finally {
-      synchronized (this) {
-        myProgressHandler = null;
-      }
-      ph.reset();
+      finalizeStep(ph, "loadLongs");
     }
-    myStepped = true;
-    if (rc == SQLITE_ROW) {
-      if (!myHasRow) {
-        myColumnCount = COLUMN_COUNT_UNKNOWN;
-      }
-      myHasRow = true;
-    } else if (rc == SQLITE_DONE) {
-      myColumnCount = 0;
-      myHasRow = false;
-    } else {
-      myController.throwResult(rc, "loadLongs()", this);
-    }
+    stepResult(rc, "loadLongs");
     return r;
   }
 
@@ -725,7 +653,7 @@ public final class SQLiteStatement {
   }
 
   /**
-   * Binds SQL parameter to a BLOB value, consiting of a given number of zero bytes. 
+   * Binds SQL parameter to a BLOB value, consiting of a given number of zero bytes.
    *
    * @param index  the index of the boundable parameter, starting with 1
    * @param length number of zero bytes to use as a parameter
@@ -769,9 +697,9 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a BLOB value, represented by a stream. The stream can further be used to write into,
    * before the first call to {@link #step}.
-   * <p>
+   * <p/>
    * After the application is done writing to the parameter stream, it should be closed.
-   * <p>
+   * <p/>
    * If statement is executed before the stream is closed, the value will not be set for the parameter.
    *
    * @param index the index of the boundable parameter, starting with 1
@@ -786,13 +714,13 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a BLOB value, represented by a stream. The stream can further be used to write into,
    * before the first call to {@link #step}.
-   * <p>
+   * <p/>
    * After the application is done writing to the parameter stream, it should be closed.
-   * <p>
+   * <p/>
    * If statement is executed before the stream is closed, the value will not be set for the parameter.
    *
-   * @param index the index of the boundable parameter, starting with 1
-   * @param bufferSize  the number of bytes to be allocated for the buffer (the buffer will grow as needed)
+   * @param index      the index of the boundable parameter, starting with 1
+   * @param bufferSize the number of bytes to be allocated for the buffer (the buffer will grow as needed)
    * @return stream to receive data for the BLOB parameter
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
@@ -818,7 +746,7 @@ public final class SQLiteStatement {
 
   /**
    * Gets a column value after step has returned a row of the result set.
-   * <p>
+   * <p/>
    * Call this method to retrieve data of type String after {@link #step()} has returned true.
    *
    * @param column the index of the column, starting with 0
@@ -829,7 +757,7 @@ public final class SQLiteStatement {
   public String columnString(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, true);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnString(" + column + ")");
     _SQLiteManual sqlite = myController.getSQLiteManual();
@@ -849,7 +777,7 @@ public final class SQLiteStatement {
 
   /**
    * Gets a column value after step has returned a row of the result set.
-   * <p>
+   * <p/>
    * Call this method to retrieve data of type int after {@link #step()} has returned true.
    *
    * @param column the index of the column, starting with 0
@@ -860,7 +788,7 @@ public final class SQLiteStatement {
   public int columnInt(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, true);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnInt(" + column + ")");
     int r = _SQLiteSwigged.sqlite3_column_int(handle, column);
@@ -871,7 +799,7 @@ public final class SQLiteStatement {
 
   /**
    * Gets a column value after step has returned a row of the result set.
-   * <p>
+   * <p/>
    * Call this method to retrieve data of type double after {@link #step()} has returned true.
    *
    * @param column the index of the column, starting with 0
@@ -882,7 +810,7 @@ public final class SQLiteStatement {
   public double columnDouble(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, true);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnDouble(" + column + ")");
     double r = _SQLiteSwigged.sqlite3_column_double(handle, column);
@@ -893,7 +821,7 @@ public final class SQLiteStatement {
 
   /**
    * Gets a column value after step has returned a row of the result set.
-   * <p>
+   * <p/>
    * Call this method to retrieve data of type long after {@link #step()} has returned true.
    *
    * @param column the index of the column, starting with 0
@@ -904,7 +832,7 @@ public final class SQLiteStatement {
   public long columnLong(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, true);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnLong(" + column + ")");
     long r = _SQLiteSwigged.sqlite3_column_int64(handle, column);
@@ -915,7 +843,7 @@ public final class SQLiteStatement {
 
   /**
    * Gets a column value after step has returned a row of the result set.
-   * <p>
+   * <p/>
    * Call this method to retrieve data of type BLOB after {@link #step()} has returned true.
    *
    * @param column the index of the column, starting with 0
@@ -926,7 +854,7 @@ public final class SQLiteStatement {
   public byte[] columnBlob(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, true);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnBytes(" + column + ")");
     _SQLiteManual sqlite = myController.getSQLiteManual();
@@ -939,9 +867,9 @@ public final class SQLiteStatement {
 
   /**
    * Gets an InputStream for reading a BLOB column value after step has returned a row of the result set.
-   * <p>
+   * <p/>
    * Call this method to retrieve data of type BLOB after {@link #step()} has returned true.
-   * <p>
+   * <p/>
    * The stream should be read and closed before next call to step or reset. Otherwise, the stream is automatically
    * closed and disposed, and the following attempts to read from it result in IOException.
    *
@@ -953,7 +881,7 @@ public final class SQLiteStatement {
   public InputStream columnStream(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, true);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnStream(" + column + ")");
     _SQLiteManual sqlite = myController.getSQLiteManual();
@@ -985,25 +913,29 @@ public final class SQLiteStatement {
 
   /**
    * Gets the number of columns in the result set.
-   * <p>
-   * This method may be called both before or after statement has executed.
+   * <p/>
+   * This method may be called before statement is executed, during execution or after statement has executed (
+   * {@link #step} returned false).
+   * <p/>
+   * However, for some statements where the number of columns may vary - such as
+   * "SELECT * FROM ..." - the correct result is guaranteed only if method is called during statement execution,
+   * when <code>step()</code> has returned true. (That is so because sqlite3_column_count function does not
+   * force statement recompilation if database schema has changed, but sqlite3_step does.)
    *
    * @return the number of columns
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
-   * @see <a href="http://www.sqlite.org/c3ref/data_count.html">sqlite3_data_count</a>
+   * @see <a href="http://www.sqlite.org/c3ref/column_count.html">sqlite3_column_count</a>
    */
   public int columnCount() throws SQLiteException {
     myController.validate();
-    ensureCorrectColumnCount(handle());
-    return myColumnCount;
+    return getColumnCount(handle());
   }
-
 
   /**
    * Gets a column value after step has returned a row of the result set.
-   * <p>
+   * <p/>
    * Call this method to retrieve data of any type after {@link #step()} has returned true.
-   * <p>
+   * <p/>
    * The class of the object returned depends on the value and the type of value reported by SQLite. It can be:
    * <ul>
    * <li><code>null</code> if the value is NULL
@@ -1041,15 +973,15 @@ public final class SQLiteStatement {
 
   /**
    * Gets a type of a column after step() has returned a row.
-   * <p>
+   * <p/>
    * Call this method to retrieve data of any type after {@link #step()} has returned true.
-   * <p>
+   * <p/>
    * Note that SQLite has dynamic typing, so this method returns the affinity of the specified column.
    * See <a href="http://sqlite.org/datatype3.html">dynamic typing</a> for details.
-   * <p>
+   * <p/>
    * This method returns an integer constant, defined in {@link SQLiteConstants}: <code>SQLITE_NULL</code>,
    * <code>SQLITE_INTEGER</code>, <code>SQLITE_TEXT</code>, <code>SQLITE_BLOB</code> or <code>SQLITE_FLOAT</code>.
-   * <p>
+   * <p/>
    * The value returned by this method is only meaningful if
    * no type conversions have occurred as the result of calling columnNNN() methods.
    *
@@ -1074,7 +1006,7 @@ public final class SQLiteStatement {
   public String getColumnName(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, false);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnName(" + column + ")");
     String r = _SQLiteSwigged.sqlite3_column_name(handle, column);
@@ -1094,7 +1026,7 @@ public final class SQLiteStatement {
   public String getColumnTableName(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, false);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnTableName(" + column + ")");
     String r = _SQLiteSwigged.sqlite3_column_table_name(handle, column);
@@ -1114,7 +1046,7 @@ public final class SQLiteStatement {
   public String getColumnDatabaseName(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, false);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnDatabaseName(" + column + ")");
     String r = _SQLiteSwigged.sqlite3_column_database_name(handle, column);
@@ -1135,7 +1067,7 @@ public final class SQLiteStatement {
   public String getColumnOriginName(int column) throws SQLiteException {
     myController.validate();
     SWIGTYPE_p_sqlite3_stmt handle = handle();
-    checkColumn(column, handle);
+    checkColumn(column, handle, false);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnOriginName(" + column + ")");
     String r = _SQLiteSwigged.sqlite3_column_origin_name(handle, column);
@@ -1152,7 +1084,7 @@ public final class SQLiteStatement {
     clearColumnStreams();
     myHandle = null;
     myHasRow = false;
-    myColumnCount = 0;
+    myColumnCount = -1;
     myHasBindings = false;
     myStepped = false;
     myController = SQLiteController.getDisposed(myController);
@@ -1202,7 +1134,7 @@ public final class SQLiteStatement {
   }
 
   private int getColumnType(int column, SWIGTYPE_p_sqlite3_stmt handle) throws SQLiteException {
-    checkColumn(column, handle);
+    checkColumn(column, handle, false);
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnType(" + column + ")");
     int valueType = _SQLiteSwigged.sqlite3_column_type(handle, column);
@@ -1211,24 +1143,73 @@ public final class SQLiteStatement {
     return valueType;
   }
 
-  private void checkColumn(int column, SWIGTYPE_p_sqlite3_stmt handle) throws SQLiteException {
+  private void checkColumn(int column, SWIGTYPE_p_sqlite3_stmt handle, boolean mustHaveRow) throws SQLiteException {
     // assert right thread
-    if (!myHasRow)
+    if (mustHaveRow && !myHasRow)
       throw new SQLiteException(WRAPPER_NO_ROW, null);
     if (column < 0)
       throw new SQLiteException(WRAPPER_COLUMN_OUT_OF_RANGE, String.valueOf(column));
-    ensureCorrectColumnCount(handle);
-    if (column >= myColumnCount)
-      throw new SQLiteException(WRAPPER_COLUMN_OUT_OF_RANGE, column + "(" + myColumnCount + ")");
+    int columnCount = getColumnCount(handle);
+    if (column >= columnCount)
+      throw new SQLiteException(WRAPPER_COLUMN_OUT_OF_RANGE, column + "(" + columnCount + ")");
   }
 
-  private void ensureCorrectColumnCount(SWIGTYPE_p_sqlite3_stmt handle) {
-    if (myColumnCount == COLUMN_COUNT_UNKNOWN) {
+  private int getColumnCount(SWIGTYPE_p_sqlite3_stmt handle) {
+    int cc = myColumnCount;
+    if (cc < 0) {
       // data_count seems more safe than column_count
       Internal.logFine(this, "asking column count");
-      myColumnCount = _SQLiteSwigged.sqlite3_data_count(handle);
+      myColumnCount = cc = _SQLiteSwigged.sqlite3_column_count(handle);
+      if (cc < 0) {
+        Internal.recoverableError(this, "columnsCount=" + cc, true);
+        cc = 0;
+      } else if (Internal.isFineLogging()) {
+        Internal.logFine(this, "columnCount=" + cc);
+      }
+    }
+    return cc;
+  }
+
+  private ProgressHandler prepareStep() throws SQLiteException {
+    clearBindStreams(true);
+    clearColumnStreams();
+    ProgressHandler ph = myController.getProgressHandler();
+    ph.reset();
+    synchronized (this) {
+      if (myCancelled)
+        throw new SQLiteInterruptedException();
+      myProgressHandler = ph;
+    }
+    return ph;
+  }
+
+  private void finalizeStep(ProgressHandler ph, String methodName) {
+    synchronized (this) {
+      myProgressHandler = null;
+    }
+    if (ph != null) {
       if (Internal.isFineLogging())
-        Internal.logFine(this, "data_count=" + myColumnCount);
+        Internal.logFine(this, methodName + " " + ph.getSteps() + " steps");
+      ph.reset();
+    }
+  }
+
+  private void stepResult(int rc, String methodName) throws SQLiteException {
+    if (!myStepped) {
+      // if this is a first step, the statement may have been recompiled and column count changed
+      myColumnCount = -1;
+    }
+    myStepped = true;
+    if (rc == SQLITE_ROW) {
+      if (Internal.isFineLogging())
+        Internal.logFine(this, methodName + " ROW");
+      myHasRow = true;
+    } else if (rc == SQLITE_DONE) {
+      if (Internal.isFineLogging())
+        Internal.logFine(this, methodName + " DONE");
+      myHasRow = false;
+    } else {
+      myController.throwResult(rc, methodName + "()", this);
     }
   }
 
