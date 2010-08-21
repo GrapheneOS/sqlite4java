@@ -960,7 +960,11 @@ public final class SQLiteStatement {
         return columnDouble(column);
       case SQLITE_INTEGER:
         long value = columnLong(column);
-        return value == ((long) ((int) value)) ? Integer.valueOf((int) value) : Long.valueOf(value);
+        if (value == (int)value) {
+          return (int)value;
+        } else {
+          return value;
+        }
       case SQLITE_TEXT:
         return columnString(column);
       case SQLITE_BLOB:

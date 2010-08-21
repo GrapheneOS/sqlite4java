@@ -97,6 +97,21 @@ public class SQLiteValueTests extends SQLiteConnectionFixture {
     st.reset();
   }
 
+  public void testColumnValueReturnsIntegerOrLong() throws SQLiteException {
+    SQLiteConnection c = memDb().open();
+    SQLiteStatement st = insertAndSelect(c, 1, false);
+    Object o = st.columnValue(0);
+    assertNotNull(o);
+    assertEquals((Integer)1, o);
+    assertEquals(Integer.class, o.getClass());
+    st.dispose();
+    st = insertAndSelect(c, 0xCAFEBABECAFEBABEL, true);
+    o = st.columnValue(0);
+    assertNotNull(o);
+    assertEquals((Long) 0xCAFEBABECAFEBABEL, o);
+    assertEquals(Long.class, o.getClass());
+  }
+
   public void testFloats() throws SQLiteException {
     SQLiteConnection con = fileDb().open();
     SQLiteStatement st;
