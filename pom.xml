@@ -1,0 +1,39 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>4</version>
+  </parent>
+  <groupId>com.almworks.sqlite4java</groupId>
+  <artifactId>sqlite4java</artifactId>
+  <packaging>jar</packaging>
+  <name>sqlite4java</name>
+  <version>0.193</version>
+  <description>Minimalistic high-performance Java wrapper for SQLite</description>
+  <url>http://code.google.com/p/sqlite4java</url>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <organization>
+    <name>ALM Works</name>
+    <url>http://almworks.com</url>
+  </organization>
+  <scm>
+    <connection>scm:svn:http://sqlite4java.googlecode.com/svn/trunk/</connection>
+    <developerConnection>scm:svn:https://sqlite4java.googlecode.com/svn/trunk/</developerConnection>
+    <url>http://sqlite4java.googlecode.com/svn/trunk/</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>[3.8,)</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
