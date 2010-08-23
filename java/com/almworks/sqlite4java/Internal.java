@@ -82,7 +82,9 @@ final class Internal {
   static Throwable loadLibraryX() {
     if (checkLoaded() == null)
       return null;
-    String defaultPath = getDefaultLibPath();
+    String classUrl = getClassUrl();
+    String defaultPath = getDefaultLibPath(classUrl);
+    String versionSuffix = getVersionSuffix(classUrl);
     logFine(Internal.class, "loading library");
     logFine(Internal.class, "java.library.path=" + System.getProperty("java.library.path"));
     logFine(Internal.class, "cwd=" + new File(".").getAbsolutePath());
@@ -93,6 +95,11 @@ final class Internal {
     Throwable bestReason = null;
     try {
       String[] suffixes = SQLite.isDebugBinaryPreferred() ? DEBUG_SUFFIXES : RELEASE_SUFFIXES;
+      if (versionSuffix != null) {
+        for (String suffix : suffixes) {
+          bestReason = tryLoadWithSuffix(suffix + versionSuffix, os, arch, bestReason, loadedSignal, defaultPath);
+        }
+      }
       for (String suffix : suffixes) {
         bestReason = tryLoadWithSuffix(suffix, os, arch, bestReason, loadedSignal, defaultPath);
       }
@@ -107,6 +114,21 @@ final class Internal {
       } else {
         throw e;
       }
+    }
+  }
+
+  private static String getClassUrl() {
+    Class c = Internal.class;
+    String name = c.getName().replace('.', '/') + ".class";
+    URL url = c.getClassLoader().getResource(name);
+    if (url == null)
+      return null;
+    String classUrl = url.toString();
+    try {
+      return URLDecoder.decode(classUrl, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      recoverableError(Internal.class, e.getMessage(), true);
+      return classUrl;
     }
   }
 
@@ -145,34 +167,13 @@ final class Internal {
     return os;
   }
 
-  private static String getDefaultLibPath() {
-    Class c = Internal.class;
-    String name = c.getName().replace('.', '/') + ".class";
-    URL url = c.getClassLoader().getResource(name);
-    if (url == null)
-      return null;
-    String propKey = "java.library.path";
-    String oldPath = System.getProperty(propKey);
-    String classUrl = url.toString();
-    try {
-      classUrl = URLDecoder.decode(classUrl, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new Error(e);
-    }
-    return getDefaultLibPath(oldPath, classUrl);
+  private static String getDefaultLibPath(String classUrl) {
+    return getDefaultLibPath(System.getProperty("java.library.path"), classUrl);
   }
 
   static String getDefaultLibPath(String libraryPath, String classUrl) {
-    String s = classUrl;
-    String prefix = "jar:file:";
-    if (!s.startsWith(prefix))
-      return null;
-    s = s.substring(prefix.length());
-    int k = s.lastIndexOf('!');
-    if (k < 0)
-      return null;
-    File jar = new File(s.substring(0, k));
-    if (!jar.isFile())
+    File jar = getJarFileFromClassUrl(classUrl);
+    if (jar == null)
       return null;
     File loadDir = jar.getParentFile();
     if (loadDir.getPath().length() == 0 || !loadDir.isDirectory())
@@ -182,7 +183,7 @@ final class Internal {
     boolean contains = false;
     char sep = File.pathSeparatorChar;
     if (libraryPath.length() > 0) {
-      k = 0;
+      int k = 0;
       while (k < libraryPath.length()) {
         int p = libraryPath.indexOf(sep, k);
         if (p < 0) {
@@ -202,6 +203,39 @@ final class Internal {
 //      logFine(Internal.class, "appending to library path: [" + loadPath + "]");
       return loadPath;
     }
+  }
+
+  private static File getJarFileFromClassUrl(String classUrl) {
+    if (classUrl == null)
+      return null;
+    String s = classUrl;
+    String prefix = "jar:file:";
+    if (!s.startsWith(prefix))
+      return null;
+    s = s.substring(prefix.length());
+    int k = s.lastIndexOf('!');
+    if (k < 0)
+      return null;
+    File jar = new File(s.substring(0, k));
+    if (!jar.isFile())
+      return null;
+    return jar;
+  }
+
+  // gets the suffix used in jar file - will check libs with that suffix too - or null
+  static String getVersionSuffix(String classUrl) {
+    File jar = getJarFileFromClassUrl(classUrl);
+    if (jar == null)
+      return null;
+    String name = jar.getName();
+    String lower = name.toLowerCase(Locale.US);
+    if (!lower.startsWith(BASE_LIBRARY_NAME))
+      return null;
+    if (!lower.endsWith(".jar"))
+      return null;
+    int f = BASE_LIBRARY_NAME.length();
+    int t = name.length() - 4; // ".jar".length()
+    return f + 1 < t && name.charAt(f) == '-' ? name.substring(f, t) : null; 
   }
 
   private static Throwable tryLoadWithSuffix(String suffix, String os, String arch, Throwable bestReason, RuntimeException loadedSignal, String defaultPath) {

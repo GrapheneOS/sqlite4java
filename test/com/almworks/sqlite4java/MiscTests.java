@@ -39,4 +39,22 @@ public class MiscTests extends SQLiteTestFixture {
       assertTrue(e.getMessage().toLowerCase(Locale.US).contains("file"));
     }
   }
+
+  public void testJarSuffix() throws IOException {
+    String jar = tempName("sqlite4java.jar");
+    File jarFile = new File(jar);
+    new RandomAccessFile(jarFile, "rw").close();
+    assertTrue(jarFile.exists());
+    jarFile.deleteOnExit();
+    String url = "jar:file:" + jar + "!/sqlite/Internal.class";
+    assertNull(Internal.getVersionSuffix(url));
+
+    jar = tempName("sqlite4java-0.1999-SNAPSHOT.jar");
+    jarFile = new File(jar);
+    new RandomAccessFile(jarFile, "rw").close();
+    assertTrue(jarFile.exists());
+    jarFile.deleteOnExit();
+    url = "jar:file:" + jar + "!/sqlite/Internal.class";
+    assertEquals("-0.1999-SNAPSHOT", Internal.getVersionSuffix(url));
+  }
 }
