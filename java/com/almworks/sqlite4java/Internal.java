@@ -216,6 +216,9 @@ final class Internal {
     } else if (arch.equals("i386")) {
       t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-x86" + suffix, t, loadedSignal, defaultPath);
     }
+    if ("osx".equals(os)) {
+      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-10.4" + suffix, t, loadedSignal, defaultPath);
+    }
     t = tryLoad(BASE_LIBRARY_NAME + "-" + os + suffix, t, loadedSignal, defaultPath);
     t = tryLoad(BASE_LIBRARY_NAME + suffix, t, loadedSignal, defaultPath);
     return t;
