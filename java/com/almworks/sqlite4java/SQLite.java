@@ -37,6 +37,11 @@ import static com.almworks.sqlite4java.SQLiteConstants.WRAPPER_CANNOT_LOAD_LIBRA
  * @author Igor Sereda
  */
 public final class SQLite {
+  /**
+   * System property that, if set, defines where to look for native sqlite4java libraries.
+   */
+  public static final String LIBRARY_PATH_PROPERTY = "sqlite4java.library.path";
+
   private static boolean debugBinaryPreferred = "true".equalsIgnoreCase(System.getProperty("sqlite4java.debug.binary.preferred"));
   private static boolean libraryLoaded = false;
   private static String jarVersion = null;
@@ -291,6 +296,34 @@ public final class SQLite {
     return jarVersion;
   }
 
+  /**
+   * Sets the path where sqlite4java should look for the native library, by modifying <tt>sqlite4java.library.path</tt>
+   * system property.
+   * <p/>
+   * By default, sqlite4java looks for native libraries in the same directory where sqlite4java.jar is located,
+   * and it also tries to use {@link java.lang.System#loadLibrary} method, which uses <tt>java.library.path</tt> system
+   * property.
+   * <p/>
+   * Use this method (or explicitly set <tt>sqlite4java.library.path</tt>) system property when the native library
+   * is located in the non-default location, and changing <tt>java.library.path</tt> may not have the desired effect.
+   * <p/>
+   * When <tt>sqlite4java.library.path</tt> property is set, the library will be loaded only from that directory.
+   * Default directories will not be tried.
+   * <p/>
+   * Calling this method when native library has been already loaded has no effect.
+   * <p/>
+   * This method is thread-safe.
+   *
+   * @param path local directory that sqlite4java should use to load native libraries from, or null to disable the setting
+   */
+  public static synchronized void setLibraryPath(String path) {
+    if (libraryLoaded) {
+      Internal.logWarn(SQLite.class, "cannot set library path, library already loaded");
+      return;
+    }
+    System.setProperty(LIBRARY_PATH_PROPERTY, path);
+  }
+
   private SQLite() {
   }
 
@@ -307,7 +340,9 @@ public final class SQLite {
       Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.FINE);
       Handler[] handlers = Logger.getLogger("").getHandlers();
       for (Handler handler : handlers) {
-        if (handler instanceof ConsoleHandler) handler.setLevel(Level.FINE);
+        if (handler instanceof ConsoleHandler) {
+          handler.setLevel(Level.FINE);
+        }
       }
     } else {
       Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.SEVERE);
