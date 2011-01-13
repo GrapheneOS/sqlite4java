@@ -92,9 +92,11 @@ int sqlite3_get_autocommit(sqlite3*);
 sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
 int sqlite3_enable_shared_cache(int);
 int sqlite3_release_memory(int);
-void sqlite3_soft_heap_limit(int);
+sqlite3_int64 sqlite3_soft_heap_limit64(sqlite3_int64);
 int sqlite3_blob_close(sqlite3_blob *);
 int sqlite3_blob_bytes(sqlite3_blob *);
+int sqlite3_stmt_readonly(sqlite3_stmt *);
+int sqlite3_blob_reopen(sqlite3_blob *, sqlite3_int64);
 
 /*
 ** ******************************************************************

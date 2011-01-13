@@ -36,7 +36,6 @@ native/sqlite3_wrap_manual.c -text
 native/test_intarray.c -text
 native/test_intarray.h -text
 sqlite/sqlite3.c -text
-sqlite/sqlite3.def -text
 sqlite/sqlite3.h -text
 sqlite/sqlite3ext.h -text
 swig/sqlite.i -text

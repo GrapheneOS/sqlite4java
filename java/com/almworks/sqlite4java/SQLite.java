@@ -230,7 +230,21 @@ public final class SQLite {
    */
   public static void setSoftHeapLimit(int limit) throws SQLiteException {
     loadLibrary();
-    _SQLiteSwigged.sqlite3_soft_heap_limit(limit);
+    _SQLiteSwigged.sqlite3_soft_heap_limit64(limit);
+  }
+
+  /**
+   * Sets the "soft limit" on the amount of memory allocated before SQLite starts trying to free some
+   * memory before allocating more memory.
+   *
+   * @param limit the number of bytes to set the soft memory limit to
+   * @return size of the soft heap limit prior to the call
+   * @throws SQLiteException if native library cannot be loaded
+   * @see <a href="http://www.sqlite.org/c3ref/soft_heap_limit64.html">sqlite3_soft_heap_limit64</a>
+   */
+  public static long softHeapLimit(long limit) throws SQLiteException {
+    loadLibrary();
+    return _SQLiteSwigged.sqlite3_soft_heap_limit64(limit);
   }
 
   /**

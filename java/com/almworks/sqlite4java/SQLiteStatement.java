@@ -268,6 +268,9 @@ public final class SQLiteStatement {
    * An SQL statement is represented as a VM program in SQLite, and a call to <code>step</code> runs that program
    * until there's a "break point".
    * <p/>
+   * Note that since SQlite 3.7, {@link #reset} method is called by step() automatically if anything other than
+   * SQLITE_ROW is returned.
+   * <p/>
    * This method can produce one of the three results:
    * <ul>
    * <li>If the return value is <strong>true</strong>, there's data to be read using <code>columnXYZ</code> methods;
@@ -1078,6 +1081,18 @@ public final class SQLiteStatement {
     if (Internal.isFineLogging())
       Internal.logFine(this, "columnOriginName(" + column + ")=" + r);
     return r;
+  }
+
+  /**
+   * Check if the underlying statement is a SELECT.
+   *
+   * @return true if statement is a SELECT; false if it is UPDATE, INSERT or other DML statement. The return value is undefined for some statements - see SQLite docs.
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/stmt_readonly.html">sqlite3_stmt_readonly</a>
+   */
+  public boolean isReadOnly() throws SQLiteException {
+    myController.validate();
+    return _SQLiteSwigged.sqlite3_stmt_readonly(handle()) != 0;
   }
 
   /**

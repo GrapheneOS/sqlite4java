@@ -57,7 +57,9 @@ class _SQLiteSwiggedJNI {
   public final static native long sqlite3_db_handle(long jarg1);
   public final static native int sqlite3_enable_shared_cache(int jarg1);
   public final static native int sqlite3_release_memory(int jarg1);
-  public final static native void sqlite3_soft_heap_limit(int jarg1);
+  public final static native long sqlite3_soft_heap_limit64(long jarg1);
   public final static native int sqlite3_blob_close(long jarg1);
   public final static native int sqlite3_blob_bytes(long jarg1);
+  public final static native int sqlite3_stmt_readonly(long jarg1);
+  public final static native int sqlite3_blob_reopen(long jarg1, long jarg2);
 }

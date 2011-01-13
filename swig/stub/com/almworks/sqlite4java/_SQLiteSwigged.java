@@ -202,8 +202,8 @@ class _SQLiteSwigged {
     return _SQLiteSwiggedJNI.sqlite3_release_memory(arg0);
   }
 
-  public static void sqlite3_soft_heap_limit(int arg0) {
-    _SQLiteSwiggedJNI.sqlite3_soft_heap_limit(arg0);
+  public static long sqlite3_soft_heap_limit64(long arg0) {
+    return _SQLiteSwiggedJNI.sqlite3_soft_heap_limit64(arg0);
   }
 
   public static int sqlite3_blob_close(SWIGTYPE_p_sqlite3_blob arg0) {
@@ -212,6 +212,14 @@ class _SQLiteSwigged {
 
   public static int sqlite3_blob_bytes(SWIGTYPE_p_sqlite3_blob arg0) {
     return _SQLiteSwiggedJNI.sqlite3_blob_bytes(SWIGTYPE_p_sqlite3_blob.getCPtr(arg0));
+  }
+
+  public static int sqlite3_stmt_readonly(SWIGTYPE_p_sqlite3_stmt arg0) {
+    return _SQLiteSwiggedJNI.sqlite3_stmt_readonly(SWIGTYPE_p_sqlite3_stmt.getCPtr(arg0));
+  }
+
+  public static int sqlite3_blob_reopen(SWIGTYPE_p_sqlite3_blob arg0, long arg1) {
+    return _SQLiteSwiggedJNI.sqlite3_blob_reopen(SWIGTYPE_p_sqlite3_blob.getCPtr(arg0), arg1);
   }
 
 }

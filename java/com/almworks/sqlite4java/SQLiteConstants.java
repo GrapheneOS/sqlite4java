@@ -74,7 +74,13 @@ public interface SQLiteConstants {
   int SQLITE_IOERR_LOCK = (SQLITE_IOERR | (15 << 8));
   int SQLITE_IOERR_CLOSE = (SQLITE_IOERR | (16 << 8));
   int SQLITE_IOERR_DIR_CLOSE = (SQLITE_IOERR | (17 << 8));
+  int SQLITE_IOERR_SHMOPEN = (SQLITE_IOERR | (18 << 8));
+  int SQLITE_IOERR_SHMSIZE = (SQLITE_IOERR | (19 << 8));
+  int SQLITE_IOERR_SHMLOCK = (SQLITE_IOERR | (20 << 8));
   int SQLITE_LOCKED_SHAREDCACHE = (SQLITE_LOCKED | (1 << 8));
+  int SQLITE_BUSY_RECOVERY = (SQLITE_BUSY | (1 << 8));
+  int SQLITE_CANTOPEN_NOTEMPDIR = (SQLITE_CANTOPEN | (1 << 8));
+
 
   // SQLite Value Types
   int SQLITE_INTEGER = 1;
@@ -101,6 +107,7 @@ public interface SQLiteConstants {
   int SQLITE_OPEN_FULLMUTEX = 0x00010000;
   int SQLITE_OPEN_SHAREDCACHE = 0x00020000;
   int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
+  int SQLITE_OPEN_WAL = 0x00080000;
 
   /**
    * Something strange happened.

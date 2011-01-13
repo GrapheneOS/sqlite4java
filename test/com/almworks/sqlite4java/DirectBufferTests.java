@@ -97,14 +97,7 @@ public class DirectBufferTests extends SQLiteConnectionFixture {
 
     assertTrue(st.step());
     in = st.columnStream(0);
-    assertEquals(-1, in.read());
-    st.step();
-    try {
-      in.read();
-      fail("read after stepping");
-    } catch (IOException e) {
-      // ok
-    }
+    assertNull(in);
 
     db.dispose();
   }

@@ -177,6 +177,21 @@ public final class SQLiteBlob {
     return myWriteAccess;
   }
 
+  /**
+   * Repositions BLOB to another row in the table. It should be quickier that closing the blob and opening another one.
+   *
+   * @param rowid row id to move to - it must exist and contain data
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/blob_reopen.html">sqlite3_blob_reopen</a>
+   */
+  public void reopen(long rowid) throws SQLiteException {
+    myController.validate();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "reopen[" + rowid + "]");
+    int rc = _SQLiteSwigged.sqlite3_blob_reopen(handle(), rowid);
+    myController.throwResult(rc, "reopen", this);
+  }
+
   private SWIGTYPE_p_sqlite3_blob handle() throws SQLiteException {
     SWIGTYPE_p_sqlite3_blob handle = myHandle;
     if (handle == null) {
