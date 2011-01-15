@@ -678,13 +678,13 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   const char *name = 0;
   char *namec = 0;
   int rc = 0;
-
+ 
   if (!module) return WRAPPER_INVALID_ARG_1;
   if (!ppBuf) return WRAPPER_INVALID_ARG_3;
 
   name = (*jenv)->GetStringUTFChars(jenv, jname, 0);
   if (!name) return WRAPPER_CANNOT_TRANSFORM_STRING;
-  namec = (char*)sqlite3_malloc(strlen(name) + 1);
+  namec = (char*)sqlite3_malloc((int)strlen(name) + 1);
   if (namec) {
     strcpy(namec, name);
   }
