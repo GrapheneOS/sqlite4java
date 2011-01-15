@@ -73,18 +73,38 @@ public class LongArrayTests extends SQLiteConnectionFixture {
     assertNotSame(a2.getName(), a3.getName());
   }
 
-// This test is commented out because it fails.   See http://code.google.com/p/sqlite4java/issues/detail?id=4
- /* public void testCrashFollowingFailedCreate() throws SQLiteException {
+  // See http://code.google.com/p/sqlite4java/issues/detail?id=4
+  public void testCrashFollowingFailedCreate() throws SQLiteException {
     SQLiteConnection con = memDb().open();
     SQLiteLongArray a1 = con.createArray("a1", true);
     try {
       SQLiteLongArray a2 = con.createArray("a1", true);
       fail("no name conflict?");
     } catch (SQLiteException e) {
+      assertTrue(true);
       // ok
     }
     a1.dispose(); // CRASH!
-  }*/
+  }
+
+  public void testRollbackSurvival() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    con.exec("BEGIN IMMEDIATE");
+    SQLiteLongArray a1 = con.createArray("a1", true);
+    a1.bind(new long[]{1, 2, 3});
+    con.exec("ROLLBACK");
+
+    try {
+      SQLiteStatement st = con.prepare("SELECT * FROM a1");
+      fail("a1 exists?");
+    } catch (SQLiteException e) {
+      // normal
+    }
+
+    con.exec("BEGIN IMMEDIATE");
+    a1.bind(new long[]{1, 2, 3});
+    checkContents(con, a1, 1, 2, 3);
+  }
 
   public void testNaming() throws SQLiteException {
     SQLiteConnection con = memDb().open();
@@ -114,6 +134,31 @@ public class LongArrayTests extends SQLiteConnectionFixture {
 
     // a5 still was cached
     assertTrue(tableExists(con, "a1"));
+  }
+
+  public void testCannotBindWhileCursorIsOpen() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a1 = con.createArray("a1", true);
+    a1.bind(new long[]{1, 2, 3});
+    SQLiteStatement st = con.prepare("SELECT * FROM a1");
+    assertTrue(st.step());
+    try {
+      a1.bind(new long[]{2, 3, 4});
+      fail("bind must fail");
+    } catch (SQLiteException e) {
+      assertTrue(true);
+    }
+  }
+
+  public void testCannotCreateTableThroughSQL() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a1 = con.createArray("a1", true);
+    try {
+      con.exec("CREATE VIRTUAL TABLE TEMP.a2 USING INTARRAY");
+      fail("must fail");
+    } catch (SQLiteException e) {
+      assertTrue(true);
+    }
   }
 
   private boolean tableExists(SQLiteConnection con, String name) {

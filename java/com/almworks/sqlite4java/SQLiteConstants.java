@@ -57,6 +57,10 @@ public interface SQLiteConstants {
   int SQLITE_ROW = 100;  /* sqlite_step() has another row ready */
   int SQLITE_DONE = 101;  /* sqlite_step() has finished executing */
 
+  int INTARRAY_INUSE = 210;   /* Attempting to re-bind array while a cursor is traversing old values */
+  int INTARRAY_NOTABLE = 211;  /* Array's table does not exist - this should not happen */
+  int INTARRAY_INITERR = 212;  /* Some other problem with initialization */
+
   int SQLITE_IOERR_READ = (SQLITE_IOERR | (1 << 8));
   int SQLITE_IOERR_SHORT_READ = (SQLITE_IOERR | (2 << 8));
   int SQLITE_IOERR_WRITE = (SQLITE_IOERR | (3 << 8));

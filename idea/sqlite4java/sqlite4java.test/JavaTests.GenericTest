@@ -1,0 +1,5 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<GenericTest name="JavaTests" storage="c:\work\almworks\code\sqlite4java\idea\sqlite4java\sqlite4java.test\javatests.generictest" id="e709bb7d-8088-415a-af58-f3bff46f9db8" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Command filename="C:\Dev\jdk1.6.0_23\bin\java.exe" arguments="-ea -cp ..\..\..\..\..\..\..\lib\junit.jar;..\..\..\..\..\..\..\build\classes;..\..\..\..\..\..\..\build\testClasses -Dsqlite4java.library.path=..\..\..\Out\ org.junit.runner.JUnitCore com.almworks.sqlite4java.Suite" workingDirectory="%TestOutputDirectory%" />
+  <SummaryXmlFile path="%TestOutputDirectory%\&lt;Enter summary file name here&gt;" />
+</GenericTest>

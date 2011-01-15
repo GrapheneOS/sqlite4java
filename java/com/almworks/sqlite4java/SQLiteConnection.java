@@ -133,6 +133,11 @@ public final class SQLiteConnection {
   private final _SQLiteManual mySQLiteManual = new _SQLiteManual();
 
   /**
+   * This object is initialized when INTARRAY module is added to the connection.
+   */
+  private SWIGTYPE_p_intarray_module myIntArrayModule;
+
+  /**
    * Native byte buffer to communicate between Java and SQLite to report progress and cancel execution.
    */
   private ProgressHandler myProgressHandler;
@@ -846,13 +851,35 @@ public final class SQLiteConnection {
     SWIGTYPE_p_sqlite3 handle = handle();
     if (name == null)
       name = nextArrayName();
-    SWIGTYPE_p_intarray r = mySQLiteManual.sqlite3_intarray_create(handle, name);
+    SWIGTYPE_p_intarray_module module = getIntArrayModule(handle);
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "creating intarray [" + name + "]");
+    SWIGTYPE_p_intarray r = mySQLiteManual.sqlite3_intarray_create(module, name);
     int rc = mySQLiteManual.getLastReturnCode();
-    throwResult(rc, "createArray()", name);
+    if (rc != 0) {
+      throwResult(rc, "createArray()", name + " (cannot allocate virtual table)");
+    }
     if (r == null) {
       throwResult(SQLiteConstants.WRAPPER_WEIRD, "createArray()", name);
     }
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "created intarray [" + name + "]");
     return new SQLiteLongArray(controller, r, name);
+  }
+
+  private SWIGTYPE_p_intarray_module getIntArrayModule(SWIGTYPE_p_sqlite3 handle) throws SQLiteException {
+    SWIGTYPE_p_intarray_module r = myIntArrayModule;
+    // single-thread: we may be sure of singularity
+    if (r == null) {
+      if (Internal.isFineLogging())
+        Internal.logFine(this, "registering INTARRAY module");
+      myIntArrayModule = r = mySQLiteManual.sqlite3_intarray_register(handle);
+      throwResult(mySQLiteManual.getLastReturnCode(), "getIntArrayModule()");
+      if (r == null) {
+        throwResult(SQLiteConstants.WRAPPER_WEIRD, "getIntArrayModule()");
+      }
+    }
+    return r;
   }
 
   private String nextArrayName() {
@@ -994,11 +1021,11 @@ public final class SQLiteConnection {
 
   private void finalizeArray(SQLiteLongArray array) {
     Internal.logFine(array, "finalizing");
+    SWIGTYPE_p_intarray handle = array.arrayHandle();
     String tableName = array.getName();
-    try {
-      exec("DROP TABLE IF EXISTS " + tableName);
-    } catch (SQLiteException e) {
-      Internal.log(Level.WARNING, array, "cannot drop " + tableName, e);
+    int rc = _SQLiteManual.sqlite3_intarray_destroy(handle);
+    if (rc != SQLITE_OK) {
+      Internal.logWarn(this, "error [" + rc + "] finalizing array " + tableName);
     }
   }
 
@@ -1139,30 +1166,30 @@ public final class SQLiteConnection {
   }
 
   void throwResult(int resultCode, String operation, Object additional) throws SQLiteException {
-    if (resultCode != SQLiteConstants.SQLITE_OK) {
-      // ignore sync
-      SWIGTYPE_p_sqlite3 handle = myHandle;
-      String message = this + " " + operation;
-      String additionalMessage = additional == null ? null : String.valueOf(additional);
-      if (additionalMessage != null)
-        message += " " + additionalMessage;
-      if (handle != null) {
-        try {
-          String errmsg = _SQLiteSwigged.sqlite3_errmsg(handle);
-          if (additionalMessage == null || !additionalMessage.equals(errmsg)) {
-            message += " [" + errmsg + "]";
-          }
-        } catch (Exception e) {
-          Internal.log(Level.WARNING, this, "cannot get sqlite3_errmsg", e);
+    if (resultCode == SQLiteConstants.SQLITE_OK)  return;
+
+    // ignore sync
+    SWIGTYPE_p_sqlite3 handle = myHandle;
+    String message = this + " " + operation;
+    String additionalMessage = additional == null ? null : String.valueOf(additional);
+    if (additionalMessage != null)
+      message += " " + additionalMessage;
+    if (handle != null) {
+      try {
+        String errmsg = _SQLiteSwigged.sqlite3_errmsg(handle);
+        if (additionalMessage == null || !additionalMessage.equals(errmsg)) {
+          message += " [" + errmsg + "]";
         }
+      } catch (Exception e) {
+        Internal.log(Level.WARNING, this, "cannot get sqlite3_errmsg", e);
       }
-      if (resultCode == SQLITE_BUSY || resultCode == SQLITE_IOERR_BLOCKED) {
-        throw new SQLiteBusyException(resultCode, message);
-      } else if (resultCode == SQLITE_INTERRUPT) {
-        throw new SQLiteInterruptedException(resultCode, message);
-      } else {
-        throw new SQLiteException(resultCode, message);
-      }
+    }
+    if (resultCode == SQLITE_BUSY || resultCode == SQLITE_IOERR_BLOCKED) {
+      throw new SQLiteBusyException(resultCode, message);
+    } else if (resultCode == SQLITE_INTERRUPT) {
+      throw new SQLiteInterruptedException(resultCode, message);
+    } else {
+      throw new SQLiteException(resultCode, message);
     }
   }
 

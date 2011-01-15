@@ -154,14 +154,14 @@ target(name: 'lib.compile') {
         clargs = antProp("${buildtype}.cl.args") + " " + antProp("cl.paranoid");
         wsdk("${antProp('cl')} $clargs -Fo$out/sqlite_wrap.o $build/swig/sqlite_wrap.c", "$out/sqlite_wrap.o", arch, buildtype)
         wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3_wrap_manual.o native/sqlite3_wrap_manual.c", "$out/sqlite3_wrap_manual.o", arch, buildtype)
-        wsdk("${antProp('cl')} $clargs -Fo$out/test_intarray.o native/test_intarray.c", "$out/test_intarray.o", arch, buildtype)
+        wsdk("${antProp('cl')} $clargs -Fo$out/intarray.o native/intarray.c", "$out/intarray.o", arch, buildtype)
       } else {
         def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite") + " " + antProp("cc.args.${platform}");
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
         clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid") + " " + antProp("cc.args.${platform}");
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c $build/swig/sqlite_wrap.c -o $out/sqlite_wrap.o")
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c native/sqlite3_wrap_manual.c -o $out/sqlite3_wrap_manual.o")
-        ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c native/test_intarray.c -o $out/test_intarray.o")
+        ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c native/intarray.c -o $out/intarray.o")
       }
     }
   }
@@ -196,12 +196,12 @@ target(name: 'lib.link') {
       ant.mkdir(dir: out)
       if (os == "windows") {
         def arch = antProp("arch.$platform")
-        wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/test_intarray.o",
+        wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o",
           "$out/${libname(platform, buildtype)}", arch, buildtype)
       } else {
         def clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.args.${platform}");
         def soname = (os == "linux") ? "-Wl,-soname=${libname(platform, buildtype)}" : ""
-        ant.exec(dir: mod, command: "${antProp('cc')} $clargs ${antProp('cc.link')} $soname -o $out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/test_intarray.o")
+        ant.exec(dir: mod, command: "${antProp('cc')} $clargs ${antProp('cc.link')} $soname -o $out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o")
       }
     }
   }
@@ -265,9 +265,8 @@ target('dist': 'create distributable artifacts') {
   }
 }
 
-target('test': 'run all tests') {
-  depends(['dist'])
-  ant.echo(message: "[test]")
+target(name: 'test.compile') {
+  ant.echo(message: "[test.compile]")
   ant.mkdir(dir: "$build/testClasses")
   ant.javac(srcdir: "$mod/test", destdir: "$build/testClasses", debug: "on") {
     classpath {
@@ -276,6 +275,11 @@ target('test': 'run all tests') {
       pathelement(location: junit)
     }
   }
+}
+
+target('test': 'run all tests') {
+  depends(['dist', 'test.compile'])
+  ant.echo(message: "[test]")
   platforms.each { String platform ->
     buildtypes.each { String buildtype ->
       if (antProp("skip.test.$platform")) return;

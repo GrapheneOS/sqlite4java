@@ -19,19 +19,16 @@ package com.almworks.sqlite4java;
 import static com.almworks.sqlite4java.SQLiteConstants.WRAPPER_STATEMENT_DISPOSED;
 
 /**
- * SQLiteLongArray wraps a virtual table handle, created with {@link SQLiteConnection#createArray}
- * (<code>sqlite3_intarray*</code>
- * in <a href="http://www.sqlite.org/src/artifact/489edb9068bb926583445cb02589344961054207">test_intarray.h</a>).
+ * SQLiteLongArray wraps a virtual table handle, created with {@link SQLiteConnection#createArray}.
  * Use methods of this class to set the array's contents (maybe several times), and dispose it when done.
  * <p/>
  * Like with other classes, the methods are confined to the thread that opened SQLiteConnection, unless stated otherwise.
  * <p/>
- * The virtual array table has a single column named <code>value</code>.
+ * The virtual array table has a single column named <code>value</code> with INTEGER affinity.
  * <p/>
- * Values must not be unique or come in any order - they are not a primary key, nor is there an index over them.
- * That also means searching through the virtual array table is done with a full scan, so be careful with the
- * performance.
- * 
+ * If you bind ordered and/or unique values to the array, it may greatly improve performance if the underlying
+ * code knows about that fact. See {@link #bind(long[], int, int, boolean, boolean)} method for details.
+ *
  * @author Igor Sereda
  */
 public class SQLiteLongArray {
@@ -126,7 +123,12 @@ public class SQLiteLongArray {
    * Values are copied into a native non-heap memory, so the array can be used for other purposes after
    * calling this method.
    * <p/>
-   * Values need not to be unique or come in any specific order.
+   * If <tt>ordered</tt> and <tt>unique</tt> are false, values need not to be unique or come in any specific order.
+   * If <tt>ordered</tt> is true, then the caller guarantees that the values come in ascending order. If <tt>unique</tt>
+   * is true, then the values are guaranteed to be unique. Failing those guarantees would result in incorrect search
+   * results.
+   * <p/>
+   * Passing ordered and/or unique values allows SQLite to optimize search and access to the array.
    * <p/>
    * Memory, allocated for the virtual array table, is freed on the next call to bind, when array instance
    * is disposed, or when database is closed.
@@ -134,12 +136,14 @@ public class SQLiteLongArray {
    * @param values array of the values to bind, may be null if length == 0
    * @param offset the index of an element to be bound as the first row
    * @param length the number of values to bind, if set to 0 then the virtual array table will be empty
+   * @param ordered if true, the values within the specified by offset and length region are in non-strict ascending order
+   * @param unique if true, the values within the specified by offset and length region are not repeating
    * @return this instance
    * @throws SQLiteException                if this instance has been disposed or problem occurs on the underlying layer
    * @throws ArrayIndexOutOfBoundsException if offset and length do not specify a valid range within values array
    * @throws NullPointerException           if values is null and length is not zero
    */
-  public SQLiteLongArray bind(long[] values, int offset, int length) throws SQLiteException {
+  public SQLiteLongArray bind(long[] values, int offset, int length, boolean ordered, boolean unique) throws SQLiteException {
     if (offset < 0) throw new ArrayIndexOutOfBoundsException(offset);
     if (length < 0) throw new ArrayIndexOutOfBoundsException(length);
     if (length > 0 && offset + length > values.length) throw new ArrayIndexOutOfBoundsException(offset + length);
@@ -151,23 +155,51 @@ public class SQLiteLongArray {
       rc = _SQLiteManual.sqlite3_intarray_unbind(handle());
     } else {
       if (values == null) throw new NullPointerException();
-      rc = _SQLiteManual.sqlite3_intarray_bind(handle(), values, offset, length);
+      rc = _SQLiteManual.sqlite3_intarray_bind(handle(), values, offset, length, ordered, unique);
     }
     myController.throwResult(rc, "bind(array)", this);
     return this;
   }
 
   /**
-   * Fills virtual array table with values from a Java array. This is a convenience method for {@link #bind(long[], int, int)}.
+   * Fills virtual array table with values from a Java array. This is a convenience method for {@link #bind(long[], int, int, boolean, boolean)}.
    *
-   * @param values array of the values to bind, if null - bind to an empty array
+   * @param values array of the values to bind, may be null if length == 0
+   * @param offset the index of an element to be bound as the first row
+   * @param length the number of values to bind, if set to 0 then the virtual array table will be empty
    * @return this instance
    * @throws SQLiteException                if this instance has been disposed or problem occurs on the underlying layer
    * @throws ArrayIndexOutOfBoundsException if offset and length do not specify a valid range within values array
    * @throws NullPointerException           if values is null and length is not zero
    */
+  public SQLiteLongArray bind(long[] values, int offset, int length) throws SQLiteException {
+    return bind(values, offset, length, false, false);
+  }
+
+  /**
+   * Fills virtual array table with values from a Java array. This is a convenience method for {@link #bind(long[], int, int, boolean, boolean)}.
+   *
+   * @param values array of the values to bind, if null - bind to an empty array
+   * @return this instance
+   * @throws SQLiteException                if this instance has been disposed or problem occurs on the underlying layer
+   * @throws ArrayIndexOutOfBoundsException if offset and length do not specify a valid range within values array
+   */
   public SQLiteLongArray bind(long[] values) throws SQLiteException {
-    return bind(values, 0, values == null ? 0 : values.length);
+    return bind(values, 0, values == null ? 0 : values.length, false, false);
+  }
+
+  /**
+   * Fills virtual array table with values from a Java array. This is a convenience method for {@link #bind(long[], int, int, boolean, boolean)}.
+   *
+   * @param values array of the values to bind, if null - bind to an empty array
+   * @param ordered if true, the values within the specified by offset and length region are in non-strict ascending order
+   * @param unique if true, the values within the specified by offset and length region are not repeating
+   * @return this instance
+   * @throws SQLiteException                if this instance has been disposed or problem occurs on the underlying layer
+   * @throws ArrayIndexOutOfBoundsException if offset and length do not specify a valid range within values array
+   */
+  public SQLiteLongArray bind(long[] values, boolean ordered, boolean unique) throws SQLiteException {
+    return bind(values, 0, values == null ? 0 : values.length, ordered, unique);
   }
 
   private SWIGTYPE_p_intarray handle() throws SQLiteException {

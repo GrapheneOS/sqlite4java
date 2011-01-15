@@ -198,18 +198,29 @@ final class _SQLiteManual {
     return r;
   }
 
-  public SWIGTYPE_p_intarray sqlite3_intarray_create(SWIGTYPE_p_sqlite3 db, String name) {
+  public SWIGTYPE_p_intarray_module sqlite3_intarray_register(SWIGTYPE_p_sqlite3 db) {
     myLastReturnCode = 0;
     myLong[0] = 0;
-    myLastReturnCode = _SQLiteManualJNI.sqlite3_intarray_create(SWIGTYPE_p_sqlite3.getCPtr(db), name, myLong);
+    myLastReturnCode = _SQLiteManualJNI.sqlite3_intarray_register(SWIGTYPE_p_sqlite3.getCPtr(db), myLong);
+    return myLong[0] == 0 ? null : new SWIGTYPE_p_intarray_module(myLong[0], true);
+  }
+
+  public SWIGTYPE_p_intarray sqlite3_intarray_create(SWIGTYPE_p_intarray_module module, String name) {
+    myLastReturnCode = 0;
+    myLong[0] = 0;
+    myLastReturnCode = _SQLiteManualJNI.sqlite3_intarray_create(SWIGTYPE_p_intarray_module.getCPtr(module), name, myLong);
     return myLong[0] == 0 ? null : new SWIGTYPE_p_intarray(myLong[0], true);
   }
 
-  public static int sqlite3_intarray_bind(SWIGTYPE_p_intarray array, long[] values, int offset, int length) {
-    return _SQLiteManualJNI.sqlite3_intarray_bind(SWIGTYPE_p_intarray.getCPtr(array), values, offset, length);
+  public static int sqlite3_intarray_bind(SWIGTYPE_p_intarray array, long[] values, int offset, int length, boolean ordered, boolean unique) {
+    return _SQLiteManualJNI.sqlite3_intarray_bind(SWIGTYPE_p_intarray.getCPtr(array), values, offset, length, ordered, unique);
   }
 
   public static int sqlite3_intarray_unbind(SWIGTYPE_p_intarray array) {
     return _SQLiteManualJNI.sqlite3_intarray_unbind(SWIGTYPE_p_intarray.getCPtr(array));
+  }
+
+  public static int sqlite3_intarray_destroy(SWIGTYPE_p_intarray array) {
+    return _SQLiteManualJNI.sqlite3_intarray_destroy(SWIGTYPE_p_intarray.getCPtr(array));
   }
 }

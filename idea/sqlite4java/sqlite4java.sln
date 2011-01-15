@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sqlite4java", "sqlite4java.vcxproj", "{F9E7B054-43E2-46FA-A814-17F4320EBC2E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{27E67014-8B9C-4CD6-8603-97D47DB212AF}"
+	ProjectSection(SolutionItems) = preProject
+		Coverage.testsettings = Coverage.testsettings
+		sqlite4java.vsmdi = sqlite4java.vsmdi
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sqlite4java.test", "sqlite4java.test\sqlite4java.test.vcxproj", "{4A4C9946-A55A-4BA8-AB8B-203F881DFEC4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F9E7B054-43E2-46FA-A814-17F4320EBC2E} = {F9E7B054-43E2-46FA-A814-17F4320EBC2E}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = sqlite4java.vsmdi
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F9E7B054-43E2-46FA-A814-17F4320EBC2E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F9E7B054-43E2-46FA-A814-17F4320EBC2E}.Debug|Win32.Build.0 = Debug|Win32
+		{F9E7B054-43E2-46FA-A814-17F4320EBC2E}.Release|Win32.ActiveCfg = Release|Win32
+		{F9E7B054-43E2-46FA-A814-17F4320EBC2E}.Release|Win32.Build.0 = Release|Win32
+		{4A4C9946-A55A-4BA8-AB8B-203F881DFEC4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4A4C9946-A55A-4BA8-AB8B-203F881DFEC4}.Debug|Win32.Build.0 = Debug|Win32
+		{4A4C9946-A55A-4BA8-AB8B-203F881DFEC4}.Release|Win32.ActiveCfg = Release|Win32
+		{4A4C9946-A55A-4BA8-AB8B-203F881DFEC4}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

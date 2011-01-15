@@ -95,9 +95,13 @@ final class _SQLiteManualJNI {
 
   public final static native int wrapper_load_longs(long stmt, int column, long[] buffer, int offset, int count, int[] ppCount);
 
-  public final static native int sqlite3_intarray_create(long db, String name, long[] ppIntarray);
+  public final static native int sqlite3_intarray_register(long db, long[] ppIntarrayModule);
 
-  public final static native int sqlite3_intarray_bind(long intarray, long[] buffer, int offset, int length);
+  public final static native int sqlite3_intarray_create(long module, String name, long[] ppIntarray);
+
+  public final static native int sqlite3_intarray_destroy(long intarray);
+
+  public final static native int sqlite3_intarray_bind(long intarray, long[] buffer, int offset, int length, boolean ordered, boolean unique);
 
   public final static native int sqlite3_intarray_unbind(long intarray);
 }
