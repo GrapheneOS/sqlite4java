@@ -184,7 +184,7 @@ public class SQLiteLongArray {
    * @throws SQLiteException                if this instance has been disposed or problem occurs on the underlying layer
    * @throws ArrayIndexOutOfBoundsException if offset and length do not specify a valid range within values array
    */
-  public SQLiteLongArray bind(long[] values) throws SQLiteException {
+  public SQLiteLongArray bind(long... values) throws SQLiteException {
     return bind(values, 0, values == null ? 0 : values.length, false, false);
   }
 

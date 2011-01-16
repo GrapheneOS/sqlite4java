@@ -1,5 +1,7 @@
 package com.almworks.sqlite4java;
 
+import java.util.Random;
+
 public class LongArrayTests extends SQLiteConnectionFixture {
   private final long[] BUFFER = new long[1000];
 
@@ -91,7 +93,28 @@ public class LongArrayTests extends SQLiteConnectionFixture {
     SQLiteConnection con = memDb().open();
     con.exec("BEGIN IMMEDIATE");
     SQLiteLongArray a1 = con.createArray("a1", true);
-    a1.bind(new long[]{1, 2, 3});
+    a1.bind(1, 2, 3);
+    con.exec("ROLLBACK");
+
+    try {
+      SQLiteStatement st = con.prepare("SELECT * FROM a1");
+      fail("a1 exists?");
+    } catch (SQLiteException e) {
+      //  normal
+    }
+
+    con.exec("BEGIN IMMEDIATE");
+    a1.bind(1, 2, 3);
+    checkContents(con, a1, 1, 2, 3);
+  }
+
+  public void testRollbackSurvival2() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    con.exec("BEGIN IMMEDIATE");
+    SQLiteLongArray a1 = con.createArray("a1", true);
+    a1.bind(1, 2, 3);
+    checkContents(con, a1, 1, 2, 3);
+    a1.dispose();
     con.exec("ROLLBACK");
 
     try {
@@ -102,7 +125,8 @@ public class LongArrayTests extends SQLiteConnectionFixture {
     }
 
     con.exec("BEGIN IMMEDIATE");
-    a1.bind(new long[]{1, 2, 3});
+    a1 = con.createArray("a1", true);
+    a1.bind(1, 2, 3);
     checkContents(con, a1, 1, 2, 3);
   }
 
@@ -254,6 +278,23 @@ public class LongArrayTests extends SQLiteConnectionFixture {
     select.reset();
   }
 
+  public void testXConnect_Regression() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    con.exec("BEGIN IMMEDIATE");
+    con.exec("create table id (item INTEGER, value INTEGER)").exec("insert into id values (1, 2)");
+    SQLiteLongArray a = con.createArray();
+    a.bind(1, 2, 3);
+    SQLiteStatement st = con.prepare("SELECT t1.value, t2.value FROM " + a.getName() + " t1 LEFT OUTER JOIN id t2 ON t1.value = t2.item ORDER BY 1");
+    checkBuffer(st.loadLongs(0, BUFFER, 0, BUFFER.length), 1, 2, 3);
+
+    con.exec("CREATE TABLE x (x)");
+
+    st.reset();
+    a.bind(1, 2, 3);
+
+    checkBuffer(st.loadLongs(0, BUFFER, 0, BUFFER.length), 1, 2, 3);
+  }
+
   public void testOrderedPerformance() throws SQLiteException {
     int COUNT = 50000;
     SQLiteConnection con = memDb().open();
@@ -283,6 +324,22 @@ public class LongArrayTests extends SQLiteConnectionFixture {
     } catch (SQLiteException e) {
       return false;
     }
+  }
+
+  public void testManyTables() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    con.exec("BEGIN IMMEDIATE");
+    int COUNT = 250;
+    Random random = new Random(1919919);
+    for (int i = 0; i < COUNT; i++) {
+      int r = random.nextInt(100000);
+      long[] v = {r, r + 1, r + 2};
+      SQLiteLongArray a = con.createArray("X" + r, i % 2 == 0);
+      a.bind(v);
+      checkContents(con, a, v);
+      a.dispose();
+    }
+    con.exec("COMMIT");
   }
 
   private void check(SQLiteConnection con, long... values) throws SQLiteException {

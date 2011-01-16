@@ -82,6 +82,9 @@ final class Internal {
   static Throwable loadLibraryX() {
     if (checkLoaded() == null)
       return null;
+    if ("true".equalsIgnoreCase(System.getProperty("sqlite4java.debug"))) {
+      logger.setLevel(Level.FINE);
+    }
     String classUrl = getClassUrl();
     String defaultPath = getDefaultLibPath(classUrl);
     String versionSuffix = getVersionSuffix(classUrl);

@@ -22,8 +22,8 @@
 
 /* Specific error codes */
 #define INTARRAY_INUSE    210     /* Attempting to re-bind array while a cursor is traversing old values */
-#define INTARRAY_NOTABLE  211     /* Array's table does not exist - this should not happen */
-#define INTARRAY_INITERR  212     /* Some other problem with initialization */
+#define INTARRAY_INTERNAL_ERROR  212     /* Some other problem with initialization */
+#define INTARRAY_DUPLICATE_NAME  213     /* Creating intarray with the same name as already existing intarray */
 
 /* Represents Integer Array with some name. A virtual table may or may not exist - it is created as needed. */
 typedef struct sqlite3_intarray sqlite3_intarray;
@@ -42,12 +42,12 @@ int sqlite3_intarray_register(sqlite3 *db, sqlite3_intarray_module **ppReturn);
 ** with a name of zName.
 **
 ** zName should be allocated with sqlite3_malloc or similar methods and
-** will be freed automatically by sqlite3_intarray_destroy.
+** will be freed automatically by sqlite3_intarray_destroy or on creation error.
 **
 ** The virtual table is created initially when this method is called.
 ** However, if dropped afterwards, it will be recreated on the next call to sqlite3_intarray_bind.
 */
-int sqlite3_intarray_create(sqlite3_intarray_module *module, const char *zName, sqlite3_intarray **ppReturn);
+int sqlite3_intarray_create(sqlite3_intarray_module *module, char *zName, sqlite3_intarray **ppReturn);
 
 /*
 ** Destroy intarray and drop table. The pointer (array) is no longer usable after calling this method.
@@ -67,6 +67,7 @@ int sqlite3_intarray_bind(
   sqlite3_int64 *aElements,      /* Content of the intarray */
   void (*xFree)(void*),          /* How to dispose of the intarray when done */
   int bOrdered,                  /* If non-zero, the values are guaranteed to be in ascending order */
-  int bUnique                    /* If non-zero, the values are guaranteed to be unique */
+  int bUnique,                   /* If non-zero, the values are guaranteed to be unique */
+  int ensureTableExists
 );
 

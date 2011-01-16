@@ -22,6 +22,7 @@
 #include "intarray.h"
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #define MODULE_NAME "INTARRAY"
 
@@ -29,13 +30,25 @@
 typedef struct intarray_vtab intarray_vtab;
 typedef struct intarray_cursor intarray_cursor;
 
+typedef struct intarray_map_entry intarray_map_entry;
+typedef struct intarray_map intarray_map;
+struct intarray_map_entry {
+  const char *key;
+  int hash;   /* hash = -1 means empty cell, but collision checking must continue */
+  void *value;
+};
+struct intarray_map {
+  intarray_map_entry *hashtable;
+  int size;
+  int rehashSize;
+  int count;
+};
+
+
 struct sqlite3_intarray_module {
   /* link to the sqlite session */
   sqlite3 *db;
-
-  /* link to the array that's being initialized - so that pointer to the created 
-  ** vtable may be stored there */
-  sqlite3_intarray *initializingArray;
+  intarray_map arrayMap;
 };
 
 /*
@@ -48,25 +61,26 @@ struct sqlite3_intarray_module {
 */
 struct sqlite3_intarray {
   sqlite3_intarray_module *module;
-  const char *zName;
+  char *zName;
 
-  /* when virtual table is created, it writes pointer to itself here
-     when it is destroyed, the pointer is cleared */
-  intarray_vtab *table; 
+  /* data */
+  int n;                    /* Number of elements in the array */
+  sqlite3_int64 *a;         /* Contents of the array */
+  void (*xFree)(void*);     /* Function used to free a[] */
+  int ordered;              /* If true, the elements in a[] are guaranteed to be ordered */
+  int unique;               /* If true, the elements in a[] are guaranteed to be unique */
+
+  /* lifecycle */
+  int useCount;             /* Number of open cursors */
+  int connectCount;         /* Number of connected intarray_vtab's -- may be wrong because xDestroy / xDisconnect may not be called by ROLLBACK */
+  int commitState;          /* 0 - transaction in progress; 1 - committed; -1 - rolled back */
 };
 
 /* A intarray table object */
 struct intarray_vtab {
   /* base class */
   sqlite3_vtab base;            
-
-  sqlite3_intarray *pHandle; 
-  int n;                    /* Number of elements in the array */
-  sqlite3_int64 *a;         /* Contents of the array */
-  void (*xFree)(void*);     /* Function used to free a[] */
-  int ordered;              /* If true, the elements in a[] are guaranteed to be ordered */
-  int unique;               /* If true, the elements in a[] are guaranteed to be unique */
-  int useCount;             /* Number of open cursors */
+  sqlite3_intarray *intarray; 
 };
 
 /* A intarray cursor object */
@@ -85,35 +99,159 @@ struct intarray_cursor {
   int uniqueLeft;              /* Count of found unique results (cannot be more than max - min + 1) */
 };
 
-int intarrayNextMatch(intarray_cursor *pCur, int startIndex) {
+/* table of intarrays */
+static int intarrayMapInit(intarray_map *map) {
+  int initialCount = 17;
+  int len = initialCount * sizeof(intarray_map_entry);
+  map->size = initialCount;
+  map->rehashSize = initialCount * 2 / 3;
+  map->hashtable = (intarray_map_entry*)sqlite3_malloc(len);
+  if (!map->hashtable) return SQLITE_NOMEM;
+  memset(map->hashtable, 0, len);
+  map->count = 0;
+  return SQLITE_OK;
+}
+
+static void intarrayMapDestroy(intarray_map *map) {
+  sqlite3_free(map->hashtable);
+}
+
+/* taken from SQLite */
+static unsigned int strHash(const char *s) {
+  unsigned int h = 0;
+  while (*s) {
+    h = (h << 3) ^ h ^ tolower(*s++);
+  }
+  return h == 0 || h == -1 ? 1 : h;
+}
+
+static int mapPut_(intarray_map_entry *t, int size, sqlite3_intarray *a, unsigned int hash) {
+  int i = hash % size, j = size, k = 0;
+  while (t[i].key && j > 0) {
+    if (hash == t[i].hash && !_stricmp(t[i].key, a->zName)) {
+      return INTARRAY_DUPLICATE_NAME;
+    }
+    i = (i + 1) % size;
+    j--;
+  }
+  if (t[i].key) return INTARRAY_INTERNAL_ERROR;
+  if (t[i].hash == -1) {
+    // check trail
+    k = (i + 1) % size; j--;
+    while ((t[k].key || t[k].hash == -1) && j > 0) {
+      if (hash == t[k].hash && !_stricmp(t[k].key, a->zName)) {
+        return INTARRAY_DUPLICATE_NAME;
+      }
+      k = (k + 1) % size;
+      j--;
+    }
+  }
+  t[i].key = a->zName;
+  t[i].hash = hash;
+  t[i].value = a;
+  return SQLITE_OK;
+}
+
+static int rehash(intarray_map *map) {
+  int newsize = map->size + (map->size >> 1);
+  int newlen = newsize * sizeof(intarray_map_entry);
+  intarray_map_entry *newtable = (intarray_map_entry*)sqlite3_malloc(newlen);
+  intarray_map_entry *t = map->hashtable;
+  int i = 0;
+
+  if (!newtable) return SQLITE_NOMEM;
+  memset(newtable, 0, newlen);
+  for (i = 0; i < map->size; i++) {
+    if (t[i].key) {
+      mapPut_(newtable, newsize, (sqlite3_intarray*)t[i].value, t[i].hash);
+    }
+  }
+  map->rehashSize = map->size;
+  map->size = newsize;
+  map->hashtable = newtable;
+
+  sqlite3_free(t);
+  return SQLITE_OK;
+}
+
+static int intarrayMapPut(intarray_map *map, sqlite3_intarray *a) {
+  unsigned int h1 = strHash(a->zName);
+  int rc = mapPut_(map->hashtable, map->size, a, h1);
+  if (rc != SQLITE_OK) return rc;
+  
+  map->count++;
+  if (map->count >= map->rehashSize) {
+    rc = rehash(map);
+  }
+  return rc;
+}
+
+static void intarrayMapRemove(intarray_map *map, sqlite3_intarray *a) {
+  unsigned int hash = strHash(a->zName);
+  int i = hash % map->size, j = map->size;
+  intarray_map_entry *t = map->hashtable;
+  while (t[i].key && j > 0) {
+    if (hash == t[i].hash && !_stricmp(t[i].key, a->zName)) {
+      break;
+    }
+    i = (i + 1) % map->size;
+    j--;
+  }
+  if (j > 0 && t[i].key) {
+    /* mark for further traversal and removal */
+    t[i].key = 0;
+    t[i].hash = -1;
+    t[i].value = 0;
+    map->count--;
+  }
+}
+
+static sqlite3_intarray* intarrayMapFind(intarray_map *map, const char *zName) {
+  unsigned int hash = strHash(zName);
+  int i = hash % map->size, j = map->size;
+  intarray_map_entry *t = map->hashtable;
+  while ((t[i].key || t[i].hash == -1) && j > 0) {
+    if (hash == t[i].hash && !_stricmp(t[i].key, zName)) {
+      return (sqlite3_intarray*)t[i].value;
+    }
+    i = (i + 1) % map->size;
+    j--;
+  }
+  return 0;
+}
+
+/* ------------------------ */
+
+static int intarrayNextMatch(intarray_cursor *pCur, int startIndex) {
   intarray_vtab *table = (intarray_vtab*)pCur->base.pVtab;
+  sqlite3_intarray *arr = table->intarray;
   sqlite3_int64 v = 0;
-  if (startIndex >= table->n) return table->n;
+  if (startIndex >= arr->n) return arr->n;
   if (pCur->mode == 1) {
     /* search by rowid: check we did not exceed */
-    return (pCur->hasMax && startIndex > pCur->max) ? table->n : startIndex;
+    return (pCur->hasMax && startIndex > pCur->max) ? arr->n : startIndex;
   } else if (pCur->mode == 2) {
     /* search by value  */
-    if (table->ordered) {
-      return (pCur->hasMax && table->a[startIndex] > pCur->max) ? table->n : startIndex;
+    if (arr->ordered) {
+      return (pCur->hasMax && arr->a[startIndex] > pCur->max) ? arr->n : startIndex;
     }
-    if (table->unique && pCur->uniqueLeft == 0) {
+    if (arr->unique && pCur->uniqueLeft == 0) {
       /* all possible values retrieved */
-      return table->n;
+      return arr->n;
     }
     /* check constraints */
-    while (startIndex < table->n && ((pCur->hasMin && pCur->min > table->a[startIndex]) || (pCur->hasMax && pCur->max < table->a[startIndex]))) {
+    while (startIndex < arr->n && ((pCur->hasMin && pCur->min > arr->a[startIndex]) || (pCur->hasMax && pCur->max < arr->a[startIndex]))) {
       startIndex++;
     }
     /* manage unique */
-    if (table->unique && pCur->uniqueLeft > 0 && startIndex < table->n) {
+    if (arr->unique && pCur->uniqueLeft > 0 && startIndex < arr->n) {
       pCur->uniqueLeft--;
     }
   }
   return startIndex;
 }
 
-int intarray_bsearch(sqlite3_int64 value, const sqlite3_int64 *a, int from, int to, int locateFirst) {
+static int intarray_bsearch(sqlite3_int64 value, const sqlite3_int64 *a, int from, int to, int locateFirst) {
   /* when we need to locate first element, we look not for value, but for "value - 1/2" */
   int i = 0;
   sqlite3_int64 mid = 0;
@@ -129,32 +267,30 @@ int intarray_bsearch(sqlite3_int64 value, const sqlite3_int64 *a, int from, int 
 }
 
 /* clear data from vtable */
-int drop_vtable_content(intarray_vtab *table) {
-  if (!table) return SQLITE_OK;
-  if (table->useCount) return INTARRAY_INUSE;
-  if (table->xFree) table->xFree(table->a);
-  table->xFree = 0;
-  table->a = 0;
-  table->n = 0;
-  table->ordered = 0;
-  table->unique = 0;
+static int drop_array_content(sqlite3_intarray *a) {
+  if (!a) return SQLITE_OK;
+  if (a->useCount) return INTARRAY_INUSE;
+  if (a->xFree) a->xFree(a->a);
+  a->xFree = 0;
+  a->a = 0;
+  a->n = 0;
+  a->ordered = 0;
+  a->unique = 0;
   return SQLITE_OK;
 }
 
 /* create a new vtable */
-int create_vtable(sqlite3_intarray *pIntArray) {
+static int create_vtable(sqlite3_intarray *pIntArray) {
   int rc = SQLITE_OK;
   char *zSql;
   zSql = sqlite3_mprintf("CREATE VIRTUAL TABLE temp.%Q USING INTARRAY", pIntArray->zName);
-  pIntArray->module->initializingArray = pIntArray;
   rc = sqlite3_exec(pIntArray->module->db, zSql, 0, 0, 0);
-  pIntArray->module->initializingArray = 0;
   sqlite3_free(zSql);
   return rc;
 }
 
 /* drop vtable - clears pIntArray->table through intarrayDestroy method */
-int drop_vtable(sqlite3_intarray *pIntArray) {
+static int drop_vtable(sqlite3_intarray *pIntArray) {
   int rc = SQLITE_OK;
   char *zSql;
   zSql = sqlite3_mprintf("DROP TABLE IF EXISTS temp.%Q", pIntArray->zName);
@@ -174,9 +310,7 @@ int drop_vtable(sqlite3_intarray *pIntArray) {
 */
 static int intarrayDestroy(sqlite3_vtab *p) {
   intarray_vtab *table = *((intarray_vtab**)&p);
-  int rc = drop_vtable_content(table);
-  if (rc != SQLITE_OK) return rc;
-  if (table->pHandle) table->pHandle->table = 0;
+  table->intarray->connectCount--;
   sqlite3_free(table);
   return SQLITE_OK;
 }
@@ -188,20 +322,28 @@ static int intarrayCreate(sqlite3 *db, void *pAux, int argc, const char *const*a
   int rc = SQLITE_NOMEM;
   sqlite3_intarray_module *module = *((sqlite3_intarray_module**)&pAux);
   intarray_vtab *table;
+  sqlite3_intarray *a;
 
-  if (!module) return INTARRAY_INITERR;
-  if (!module->initializingArray) {
-    *pzErr = sqlite3_mprintf("INTARRAY tables can be created through API only");
+  if (!module || argc < 3) return INTARRAY_INTERNAL_ERROR;
+  a = intarrayMapFind(&module->arrayMap, argv[2]);
+  if (!a) {
+    *pzErr = sqlite3_mprintf("intarray %s is not created", argv[2]);
     return SQLITE_ERROR;
   }
 
   table = (intarray_vtab*)sqlite3_malloc(sizeof(intarray_vtab));
-  if (table) {
-    memset(table, 0, sizeof(intarray_vtab));
-    table->pHandle = module->initializingArray;
-    module->initializingArray->table = table;
-    rc = sqlite3_declare_vtab(db, "CREATE TABLE x(value INTEGER)");
+  if (!table) return rc;
+
+  rc = sqlite3_declare_vtab(db, "CREATE TABLE x(value INTEGER)");
+  if (rc != SQLITE_OK) {
+    sqlite3_free(table);
+    return rc;
   }
+
+  memset(table, 0, sizeof(intarray_vtab));
+  table->intarray = a;
+  a->connectCount++;
+
   *ppVtab = (sqlite3_vtab *)table;
   return rc;
 }
@@ -216,7 +358,7 @@ static int intarrayOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   if (pCur) {
     memset(pCur, 0, sizeof(intarray_cursor));
     *ppCursor = (sqlite3_vtab_cursor *)pCur;
-    ((intarray_vtab*)pVTab)->useCount++;
+    ((intarray_vtab*)pVTab)->intarray->useCount++;
     rc = SQLITE_OK;
   }
   return rc;
@@ -227,7 +369,7 @@ static int intarrayOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 */
 static int intarrayClose(sqlite3_vtab_cursor *cur){
   intarray_cursor *pCur = (intarray_cursor *)cur;
-  ((intarray_vtab*)(cur->pVtab))->useCount--;
+  ((intarray_vtab*)(cur->pVtab))->intarray->useCount--;
   sqlite3_free(pCur);
   return SQLITE_OK;
 }
@@ -238,8 +380,9 @@ static int intarrayClose(sqlite3_vtab_cursor *cur){
 static int intarrayColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int column) {
   intarray_cursor *pCur = (intarray_cursor*)cur;
   intarray_vtab *table = (intarray_vtab*)cur->pVtab;
-  if (pCur->i >= 0 && pCur->i < table->n) {
-    sqlite3_result_int64(ctx, table->a[pCur->i]);
+  sqlite3_intarray *arr = table->intarray;
+  if (pCur->i >= 0 && pCur->i < arr->n) {
+    sqlite3_result_int64(ctx, arr->a[pCur->i]);
   }
   return SQLITE_OK;
 }
@@ -256,7 +399,8 @@ static int intarrayRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
 static int intarrayEof(sqlite3_vtab_cursor *cur){
   intarray_cursor *pCur = (intarray_cursor *)cur;
   intarray_vtab *table = (intarray_vtab *)cur->pVtab;
-  return pCur->i >= table->n;
+  sqlite3_intarray *arr = table->intarray;
+  return pCur->i >= arr->n;
 }
 
 /*
@@ -307,6 +451,8 @@ static void intarrayOpVal(sqlite3_int64 v, int op, sqlite3_int64 *max, sqlite3_i
 static int intarrayFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum, const char *idxStr, int argc, sqlite3_value **argv) {
   intarray_cursor *pCur = (intarray_cursor *)pVtabCursor;
   intarray_vtab *table = (intarray_vtab*)pCur->base.pVtab;
+  sqlite3_intarray *arr = table->intarray;
+
   int op1 = (idxNum >> 2) & 7, op2 = (idxNum >> 5) & 7;
   sqlite3_int64 v = 0;
   int startIndex = 0;
@@ -327,18 +473,18 @@ static int intarrayFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum, const ch
 
   if (pCur->hasMin && pCur->hasMax && pCur->min > pCur->max) {
     /* constraint is never true */
-    pCur->i = table->n;
+    pCur->i = arr->n;
     return SQLITE_OK;
   }
 
   if (pCur->hasMin && pCur->mode == 1 ) {
     startIndex = (int)pCur->min;
     if (startIndex < 0) startIndex = 0;
-  } else if (pCur->hasMin && pCur->mode == 2 && table->ordered && table->n > INTARRAY_BSEARCH_THRESHOLD) {
-    startIndex = intarray_bsearch(pCur->min, table->a, 0, table->n, !table->unique);
+  } else if (pCur->hasMin && pCur->mode == 2 && arr->ordered && arr->n > INTARRAY_BSEARCH_THRESHOLD) {
+    startIndex = intarray_bsearch(pCur->min, arr->a, 0, arr->n, !arr->unique);
   }
 
-  if (table->unique && pCur->mode == 2 && pCur->hasMin && pCur->hasMax) {
+  if (arr->unique && pCur->mode == 2 && pCur->hasMin && pCur->hasMax) {
     v = pCur->max - pCur->min + 1;
     if (v > 0 && v < 0x7FFFFFFF) {
       pCur->uniqueLeft = (int)v;
@@ -388,7 +534,6 @@ static int intarrayC2opbits(sqlite3_index_info *pIdxInfo, int *ix) {
 ** Analyse the WHERE condition.
 */
 static int intarrayBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
-  intarray_vtab *table = (intarray_vtab*)tab;
   int mode = 0; /*full scan*/
   int i = 0;
   /* support only 2 constraints at maximum - search optimal */
@@ -435,6 +580,23 @@ static int intarrayBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   return SQLITE_OK;
 }
 
+static int intarrayBegin(sqlite3_vtab *pVTab) {
+  return SQLITE_OK;
+}
+
+static int intarrayRollback(sqlite3_vtab *pVTab) {
+  sqlite3_intarray *a = ((intarray_vtab*)pVTab)->intarray;
+  if (a->commitState == 0) a->commitState = -1;
+  return SQLITE_OK;
+}
+
+static int intarrayCommit(sqlite3_vtab *pVTab) {
+  sqlite3_intarray *a = ((intarray_vtab*)pVTab)->intarray;
+  if (a->commitState == 0) a->commitState = 1;
+  return SQLITE_OK;
+}
+
+
 /*
 ** A virtual table module that merely echos method calls into TCL
 ** variables.
@@ -454,15 +616,21 @@ static sqlite3_module intarrayModule = {
   intarrayColumn,              /* xColumn - read data */
   intarrayRowid,               /* xRowid - read data */
   0,                           /* xUpdate */
-  0,                           /* xBegin */
+  intarrayBegin,               /* xBegin */
   0,                           /* xSync */
-  0,                           /* xCommit */
-  0,                           /* xRollback */
+  intarrayCommit,              /* xCommit */
+  intarrayRollback,            /* xRollback */
   0,                           /* xFindMethod */
   0,                           /* xRename */
 };
 
 #endif /* !defined(SQLITE_OMIT_VIRTUALTABLE) */
+
+static void sqlite3_module_free(void *v) {
+  sqlite3_intarray_module *module = (sqlite3_intarray_module *)v;
+  intarrayMapDestroy(&module->arrayMap);
+  sqlite3_free(v);
+}
 
 int sqlite3_intarray_register(sqlite3 *db, sqlite3_intarray_module **ppReturn) {
   int rc = SQLITE_OK;
@@ -471,8 +639,9 @@ int sqlite3_intarray_register(sqlite3 *db, sqlite3_intarray_module **ppReturn) {
   p = (sqlite3_intarray_module*)sqlite3_malloc(sizeof(*p));
   if (!p) return SQLITE_NOMEM;
   p->db = db;
-  p->initializingArray = 0;
-  rc = sqlite3_create_module_v2(db, MODULE_NAME, &intarrayModule, p, sqlite3_free);
+  rc = intarrayMapInit(&p->arrayMap);
+  if (rc != SQLITE_OK) return rc;
+  rc = sqlite3_create_module_v2(db, MODULE_NAME, &intarrayModule, p, sqlite3_module_free);
   if (rc == SQLITE_OK) {
     *ppReturn = p;
   }
@@ -480,17 +649,31 @@ int sqlite3_intarray_register(sqlite3 *db, sqlite3_intarray_module **ppReturn) {
   return rc;
 }
 
-int sqlite3_intarray_create(sqlite3_intarray_module *module, const char *zName, sqlite3_intarray **ppReturn) {
+
+
+int sqlite3_intarray_create(sqlite3_intarray_module *module, char *zName, sqlite3_intarray **ppReturn) {
   int rc = SQLITE_OK;
 #ifndef SQLITE_OMIT_VIRTUALTABLE
   sqlite3_intarray *p;
   p = (sqlite3_intarray*)sqlite3_malloc(sizeof(*p));
-  if (!p) return SQLITE_NOMEM;
+  if (!p) {
+    sqlite3_free(zName);
+    return SQLITE_NOMEM;
+  }
+  memset(p, 0, sizeof(*p));
   p->module = module;
   p->zName = zName;
-  p->table = 0;
+  rc = intarrayMapPut(&module->arrayMap, p);
+  if (rc != SQLITE_OK) {
+    sqlite3_free(zName);
+    sqlite3_free(p);
+    return rc;
+  }
+  p->commitState = sqlite3_get_autocommit(module->db) ? 1 : 0;
   rc = create_vtable(p);
   if (rc != SQLITE_OK) {
+    intarrayMapRemove(&module->arrayMap, p);
+    sqlite3_free(zName);
     sqlite3_free(p);
   } else {
     *ppReturn = p;
@@ -499,37 +682,44 @@ int sqlite3_intarray_create(sqlite3_intarray_module *module, const char *zName, 
   return rc;
 }
 
-int sqlite3_intarray_bind(sqlite3_intarray *pIntArray, int nElements, sqlite3_int64 *aElements, void (*xFree)(void*), int bOrdered, int bUnique) {
+int sqlite3_intarray_bind(sqlite3_intarray *pIntArray, int nElements, sqlite3_int64 *aElements, void (*xFree)(void*), int bOrdered, int bUnique, int ensureTableExists) {
   int rc = SQLITE_OK;
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  intarray_vtab *table = pIntArray->table;
-  if (!table) {
-    rc = create_vtable(pIntArray);
-    table = pIntArray->table;
-  } else {
-    rc = drop_vtable_content(table);
-  }
+  rc = drop_array_content(pIntArray);
   if (rc != SQLITE_OK) return rc;
-  if (!table) return INTARRAY_NOTABLE;
-  table->n = nElements;
-  table->a = aElements;
-  table->xFree = xFree;
-  table->ordered = bOrdered;
-  table->unique = bUnique;
+  if (ensureTableExists && (pIntArray->commitState < 0 || pIntArray->connectCount <= 0)) {
+    rc = create_vtable(pIntArray);
+    if (rc == SQLITE_OK) {
+      pIntArray->connectCount = 1;
+      pIntArray->commitState = sqlite3_get_autocommit(pIntArray->module->db) ? 1 : 0;
+    }
+    /* ignore rc (duplicate table exists); todo: discern other errors */ 
+    /*if (rc != SQLITE_OK) return rc;*/
+    rc = SQLITE_OK;
+  }
+  pIntArray->n = nElements;
+  pIntArray->a = aElements;
+  pIntArray->xFree = xFree;
+  pIntArray->ordered = bOrdered;
+  pIntArray->unique = bUnique;
 #endif
   return rc;
 }
 
-int sqlite3_intarray_destroy(sqlite3_intarray *array) {
+int sqlite3_intarray_destroy(sqlite3_intarray *a) {
   int rc = SQLITE_OK;
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  intarray_vtab *table = array->table;
-  if (table) {
-    rc = drop_vtable(array);
-  }
-  sqlite3_free(array);
+  rc = drop_array_content(a);
+  if (rc != SQLITE_OK) return rc;
+  rc = drop_vtable(a);
+  if (rc != SQLITE_OK) return rc;
+  /* if (a->connectCount) return INTARRAY_INUSE;  *//* not reliable */
+  intarrayMapRemove(&a->module->arrayMap, a);
+  sqlite3_free(a->zName);
+  sqlite3_free(a);
 #endif
   return rc;
 }
+
 
 

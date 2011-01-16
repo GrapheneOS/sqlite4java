@@ -723,9 +723,9 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
     if (!buf) return WRAPPER_CANNOT_ALLOCATE_STRING;
     memcpy(copy, buf + joffset, jlength * sizeof(sqlite3_int64));
     (*jenv)->ReleasePrimitiveArrayCritical(jenv, jbuffer, (void*)buf, JNI_ABORT);
-    rc = sqlite3_intarray_bind(array, jlength, copy, sqlite3_free, (int)ordered, (int)unique);
+    rc = sqlite3_intarray_bind(array, jlength, copy, sqlite3_free, (int)ordered, (int)unique, 1);
   } else {
-    rc = sqlite3_intarray_bind(array, 0, 0, 0, 0, 0);
+    rc = sqlite3_intarray_bind(array, 0, 0, 0, 0, 0, 1);
   }
 
   return rc;
@@ -738,7 +738,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   int rc = 0;
 
   if (!array) return WRAPPER_INVALID_ARG_1;
-  rc = sqlite3_intarray_bind(array, 0, 0, 0, 0, 0);
+  rc = sqlite3_intarray_bind(array, 0, 0, 0, 0, 0, 0);
   return rc;
 }
 

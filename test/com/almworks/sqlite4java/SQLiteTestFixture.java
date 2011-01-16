@@ -20,7 +20,7 @@ public abstract class SQLiteTestFixture extends TestCase {
   private final boolean myAutoLoad;
 
   static {
-    installFormatter(Logger.getLogger("sqlite"), new DecentFormatter(), Level.FINE);
+    installFormatter(Logger.getLogger("com.almworks.sqlite4java"), new DecentFormatter(), Level.FINE);
   }
 
   private static void installFormatter(Logger logger, Formatter formatter, Level level) {
