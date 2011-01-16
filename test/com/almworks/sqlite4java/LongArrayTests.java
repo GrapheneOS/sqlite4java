@@ -161,6 +161,118 @@ public class LongArrayTests extends SQLiteConnectionFixture {
     }
   }
 
+  public void testSearchNotOrderedNotUnique() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a = con.createArray("a", true);
+    a.bind(new long[] {-89, 7, 1, 0, 0, 4, 3, 10, 9, 30, -8});
+    checkSelect(con, a, "value > 0", 7, 1, 4, 3, 10, 9, 30);
+    checkSelect(con, a, "value >= 4", 7, 4, 10, 9, 30);
+    checkSelect(con, a, "value = 0", 0, 0);
+    checkSelect(con, a, "value < 9", -89, 7, 1, 0, 0, 4, 3, -8);
+    checkSelect(con, a, "value <= 1", -89, 1, 0, 0, -8);
+
+    checkSelect(con, a, "value > 0 and value <= 9", 7, 1, 4, 3, 9);
+    checkSelect(con, a, "value between 4 and 4", 4);
+    checkSelect(con, a, "value is not null", -89, 7, 1, 0, 0, 4, 3, 10, 9, 30, -8);
+    checkSelect(con, a, "value > 1 and value < -1");
+
+    checkSelect(con, a, "value > 0 and value <= 9 and value = 1", 1);
+    checkSelect(con, a, "value > 0 and value > 9 and value < 111", 10, 30);
+    checkSelect(con, a, "value >= 20 or value is null or value = 4", 4, 30);
+  }
+
+  public void testSearchByRowId() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a = con.createArray("a", true);
+    a.bind(new long[] {-89, 7, 1, 0, 0, 4, 3, 10, 9, 30, -8});
+    checkSelect(con, a, "rowid = 0", -89);
+    checkSelect(con, a, "rowid > 9", -8);
+    checkSelect(con, a, "rowid > -11 and rowid <= 1", -89, 7);
+  }
+
+  public void testSearchNotOrderedUnique() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a = con.createArray("a", true);
+    a.bind(new long[] {-89, 7, 1, 0, 4, 3, 10, 9, 30, -8}, false, true);
+    checkSelect(con, a, "value > 0", 7, 1, 4, 3, 10, 9, 30);
+    checkSelect(con, a, "value between 3 and 4", 4, 3);
+    checkSelect(con, a, "value = 0", 0);
+    checkSelect(con, a, "value < 9", -89, 7, 1, 0, 4, 3, -8);
+    checkSelect(con, a, "value <= 1", -89, 1, 0, -8);
+
+    checkSelect(con, a, "value > 0 and value <= 9", 7, 1, 4, 3, 9);
+    checkSelect(con, a, "value between 4 and 4", 4);
+    checkSelect(con, a, "value is not null", -89, 7, 1, 0, 4, 3, 10, 9, 30, -8);
+    checkSelect(con, a, "value > 1 and value < -1");
+  }
+
+  public void testSearchOrdered() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a = con.createArray("a", true);
+    a.bind(new long[] {-89, -8, 0, 3, 3, 10, 30, 100, 112, 112, 112, 112, 113, 145}, true, false);
+    checkSelect(con, a, "value > 0", 3, 3, 10, 30, 100, 112, 112, 112, 112, 113, 145);
+    checkSelect(con, a, "value between 3 and 4", 3, 3);
+    checkSelect(con, a, "value = 0", 0);
+    checkSelect(con, a, "value < 9", -89, -8, 0, 3, 3);
+    checkSelect(con, a, "value <= 30", -89, -8, 0, 3, 3, 10, 30);
+
+    checkSelect(con, a, "value > 0 and value <= 10", 3, 3, 10);
+    checkSelect(con, a, "value between 10 and 10", 10);
+    checkSelect(con, a, "value > 1 and value < -1");
+  }
+
+  public void testSearchOrderedUnique() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a = con.createArray("a", true);
+    a.bind(new long[] {-89, -8, 0, 3, 10, 30, 100, 112, 113, 145}, true, true);
+    checkSelect(con, a, "value > 0", 3, 10, 30, 100, 112, 113, 145);
+    checkSelect(con, a, "value between 3 and 4", 3);
+    checkSelect(con, a, "value = 0", 0);
+    checkSelect(con, a, "value < 9", -89, -8, 0, 3);
+    checkSelect(con, a, "value <= 30", -89, -8, 0, 3, 10, 30);
+
+    checkSelect(con, a, "value > 0 and value <= 10", 3, 10);
+    checkSelect(con, a, "value between 10 and 10", 10);
+    checkSelect(con, a, "value > 1 and value < -1");
+  }
+
+  public void testSearchingAfterRebind() throws SQLiteException {
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a = con.createArray("a", true);
+    SQLiteStatement select = con.prepare("SELECT value FROM a WHERE value between 0 and 10");
+
+    a.bind(new long[]{-89, -8, 0, 3, 10, 30, 100, 112, 113, 145}, true, true);
+    checkBuffer(select.loadLongs(0, BUFFER, 0, BUFFER.length), 0, 3, 10);
+    select.reset();
+
+    a.bind(new long[]{0, -10, 10, -10, 4, 11, 4, 1032}, false, false);
+    checkBuffer(select.loadLongs(0, BUFFER, 0, BUFFER.length), 0, 10, 4, 4);
+    select.reset();
+
+    a.bind(new long[]{1010101, 0, -10, 10, 4, 11, 1032}, false, true);
+    checkBuffer(select.loadLongs(0, BUFFER, 0, BUFFER.length), 0, 10, 4);
+    select.reset();
+  }
+
+  public void testOrderedPerformance() throws SQLiteException {
+    int COUNT = 50000;
+    SQLiteConnection con = memDb().open();
+    SQLiteLongArray a = con.createArray("a", true);
+    long[] array = new long[COUNT];
+    for (int i = 0; i < array.length; i++) {
+      array[i] = i + 1;
+    }
+
+    a.bind(array, true, true);
+
+    // without binary search this will work ~ 100 times slower (n^2)
+    SQLiteStatement select = con.prepare("SELECT v1.value FROM a v1, a v2 WHERE v1.value = v2.value");
+    long[] r = new long[array.length];
+    select.loadLongs(0, r, 0, r.length);
+
+    checkBuffer2(r, array);
+  }
+
   private boolean tableExists(SQLiteConnection con, String name) {
     try {
       SQLiteStatement st = con.prepare("SELECT * FROM " + name);
@@ -183,14 +295,28 @@ public class LongArrayTests extends SQLiteConnectionFixture {
   private void checkContents(SQLiteConnection con, SQLiteLongArray array, long... values) throws SQLiteException {
     SQLiteStatement select = con.prepare("SELECT value FROM " + array.getName());
     int n = select.loadLongs(0, BUFFER, 0, BUFFER.length);
-    checkBuffer(values, n);
+    checkBuffer(n, values);
     select.dispose();
   }
 
-  private void checkBuffer(long[] sample, int n) {
+  private void checkSelect(SQLiteConnection con, SQLiteLongArray array, String where, long... values) throws SQLiteException {
+    SQLiteStatement select = con.prepare("SELECT value FROM " + array.getName() + " WHERE " + where);
+    int n = select.loadLongs(0, BUFFER, 0, BUFFER.length);
+    checkBuffer(n, values);
+    select.dispose();
+  }
+
+  private void checkBuffer(int n, long ... sample) {
     assertEquals(sample == null ? 0 : sample.length, n);
     for (int i = 0; i < n && sample != null; i++) {
       assertEquals("[" + i + "]", sample[i], BUFFER[i]);
+    }
+  }
+
+  private void checkBuffer2(long[] result, long[] sample) {
+    assertEquals(sample == null ? 0 : sample.length, result.length);
+    for (int i = 0; i < result.length && sample != null; i++) {
+      assertEquals("[" + i + "]", sample[i], result[i]);
     }
   }
 }
