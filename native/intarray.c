@@ -122,13 +122,14 @@ static unsigned int strHash(const char *s) {
   while (*s) {
     h = (h << 3) ^ h ^ tolower(*s++);
   }
-  return h == 0 || h == -1 ? 1 : h;
+  return h == 0 ? 1 : h & 0x7FFFFFFF;
 }
 
 static int mapPut_(intarray_map_entry *t, int size, sqlite3_intarray *a, unsigned int hash) {
-  int i = hash % size, j = size, k = 0;
+  unsigned int i = hash % size;
+  int j = size, k = 0;
   while (t[i].key && j > 0) {
-    if (hash == t[i].hash && !_stricmp(t[i].key, a->zName)) {
+    if (hash == (unsigned int)t[i].hash && !strcasecmp(t[i].key, a->zName)) {
       return INTARRAY_DUPLICATE_NAME;
     }
     i = (i + 1) % size;
@@ -139,7 +140,7 @@ static int mapPut_(intarray_map_entry *t, int size, sqlite3_intarray *a, unsigne
     // check trail
     k = (i + 1) % size; j--;
     while ((t[k].key || t[k].hash == -1) && j > 0) {
-      if (hash == t[k].hash && !_stricmp(t[k].key, a->zName)) {
+      if (hash == (unsigned int)t[k].hash && !strcasecmp(t[k].key, a->zName)) {
         return INTARRAY_DUPLICATE_NAME;
       }
       k = (k + 1) % size;
@@ -147,7 +148,7 @@ static int mapPut_(intarray_map_entry *t, int size, sqlite3_intarray *a, unsigne
     }
   }
   t[i].key = a->zName;
-  t[i].hash = hash;
+  t[i].hash = (int)hash;
   t[i].value = a;
   return SQLITE_OK;
 }
@@ -188,10 +189,11 @@ static int intarrayMapPut(intarray_map *map, sqlite3_intarray *a) {
 
 static void intarrayMapRemove(intarray_map *map, sqlite3_intarray *a) {
   unsigned int hash = strHash(a->zName);
-  int i = hash % map->size, j = map->size;
+  unsigned int i = hash % map->size;
+  int j = map->size;
   intarray_map_entry *t = map->hashtable;
   while (t[i].key && j > 0) {
-    if (hash == t[i].hash && !_stricmp(t[i].key, a->zName)) {
+    if (hash == (unsigned int)t[i].hash && !strcasecmp(t[i].key, a->zName)) {
       break;
     }
     i = (i + 1) % map->size;
@@ -208,10 +210,11 @@ static void intarrayMapRemove(intarray_map *map, sqlite3_intarray *a) {
 
 static sqlite3_intarray* intarrayMapFind(intarray_map *map, const char *zName) {
   unsigned int hash = strHash(zName);
-  int i = hash % map->size, j = map->size;
+  unsigned int i = hash % map->size;
+  int j = map->size;
   intarray_map_entry *t = map->hashtable;
   while ((t[i].key || t[i].hash == -1) && j > 0) {
-    if (hash == t[i].hash && !_stricmp(t[i].key, zName)) {
+    if (hash == (unsigned int)t[i].hash && !strcasecmp(t[i].key, zName)) {
       return (sqlite3_intarray*)t[i].value;
     }
     i = (i + 1) % map->size;
