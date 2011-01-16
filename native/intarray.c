@@ -24,6 +24,13 @@
 #include <assert.h>
 #include <ctype.h>
 
+#ifdef _MSC_VER
+#define stricmp _stricmp
+#else
+#include <strings.h>
+#define stricmp strcasecmp
+#endif
+
 #define MODULE_NAME "INTARRAY"
 
 /* Objects used internally by the virtual table implementation */
@@ -129,7 +136,7 @@ static int mapPut_(intarray_map_entry *t, int size, sqlite3_intarray *a, unsigne
   unsigned int i = hash % size;
   int j = size, k = 0;
   while (t[i].key && j > 0) {
-    if (hash == (unsigned int)t[i].hash && !strcasecmp(t[i].key, a->zName)) {
+    if (hash == (unsigned int)t[i].hash && !stricmp(t[i].key, a->zName)) {
       return INTARRAY_DUPLICATE_NAME;
     }
     i = (i + 1) % size;
@@ -140,7 +147,7 @@ static int mapPut_(intarray_map_entry *t, int size, sqlite3_intarray *a, unsigne
     // check trail
     k = (i + 1) % size; j--;
     while ((t[k].key || t[k].hash == -1) && j > 0) {
-      if (hash == (unsigned int)t[k].hash && !strcasecmp(t[k].key, a->zName)) {
+      if (hash == (unsigned int)t[k].hash && !stricmp(t[k].key, a->zName)) {
         return INTARRAY_DUPLICATE_NAME;
       }
       k = (k + 1) % size;
@@ -193,7 +200,7 @@ static void intarrayMapRemove(intarray_map *map, sqlite3_intarray *a) {
   int j = map->size;
   intarray_map_entry *t = map->hashtable;
   while (t[i].key && j > 0) {
-    if (hash == (unsigned int)t[i].hash && !strcasecmp(t[i].key, a->zName)) {
+    if (hash == (unsigned int)t[i].hash && !stricmp(t[i].key, a->zName)) {
       break;
     }
     i = (i + 1) % map->size;
@@ -214,7 +221,7 @@ static sqlite3_intarray* intarrayMapFind(intarray_map *map, const char *zName) {
   int j = map->size;
   intarray_map_entry *t = map->hashtable;
   while ((t[i].key || t[i].hash == -1) && j > 0) {
-    if (hash == (unsigned int)t[i].hash && !strcasecmp(t[i].key, zName)) {
+    if (hash == (unsigned int)t[i].hash && !stricmp(t[i].key, zName)) {
       return (sqlite3_intarray*)t[i].value;
     }
     i = (i + 1) % map->size;

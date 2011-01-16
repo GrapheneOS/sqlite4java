@@ -329,7 +329,7 @@ public class LongArrayTests extends SQLiteConnectionFixture {
   public void testManyTables() throws SQLiteException {
     SQLiteConnection con = memDb().open();
     con.exec("BEGIN IMMEDIATE");
-    int COUNT = 250;
+    int COUNT = 100;
     Random random = new Random(1919919);
     for (int i = 0; i < COUNT; i++) {
       int r = random.nextInt(100000);
