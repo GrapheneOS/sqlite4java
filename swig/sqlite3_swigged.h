@@ -43,6 +43,7 @@ typedef sqlite_uint64 sqlite3_uint64;
 typedef struct sqlite3 sqlite3;
 typedef struct sqlite3_stmt sqlite3_stmt;
 typedef struct sqlite3_blob sqlite3_blob;
+typedef struct sqlite3_backup sqlite3_backup;
 
 int sqlite3_initialize(void);
 int sqlite3_shutdown(void);
@@ -97,6 +98,11 @@ int sqlite3_blob_close(sqlite3_blob *);
 int sqlite3_blob_bytes(sqlite3_blob *);
 int sqlite3_stmt_readonly(sqlite3_stmt *);
 int sqlite3_blob_reopen(sqlite3_blob *, sqlite3_int64);
+sqlite3_backup *sqlite3_backup_init(sqlite3 *, const char *, sqlite3 *, const char *);
+int sqlite3_backup_step(sqlite3_backup *p, int nPage);
+int sqlite3_backup_finish(sqlite3_backup *p);
+int sqlite3_backup_remaining(sqlite3_backup *p);
+int sqlite3_backup_pagecount(sqlite3_backup *p);
 
 /*
 ** ******************************************************************
@@ -178,18 +184,6 @@ int sqlite3_blob_reopen(sqlite3_blob *, sqlite3_int64);
 //int sqlite3_limit(sqlite3*, int id, int newVal);
 //void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
 //void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
-
-//typedef struct sqlite3_backup sqlite3_backup;
-//SQLITE_API sqlite3_backup *sqlite3_backup_init(
-//  sqlite3 *pDest,                        /* Destination database handle */
-//  const char *zDestName,                 /* Destination database name */
-//  sqlite3 *pSource,                      /* Source database handle */
-//  const char *zSourceName                /* Source database name */
-//);
-//SQLITE_API int sqlite3_backup_step(sqlite3_backup *p, int nPage);
-//SQLITE_API int sqlite3_backup_finish(sqlite3_backup *p);
-//SQLITE_API int sqlite3_backup_remaining(sqlite3_backup *p);
-//SQLITE_API int sqlite3_backup_pagecount(sqlite3_backup *p);
 
 
 /*

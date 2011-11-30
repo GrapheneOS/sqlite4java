@@ -20,7 +20,7 @@ package com.almworks.sqlite4java;
  * This interface lists SQLite constants that may be used with sqlite4java. Normally you don't need to use them.
  * <p/>
  * Some error messages are produced by SQLite wrapper, these have names WRAPPER_*. For
- * docmentation on SQLite constants, see SQLite docs.
+ * documentation on SQLite constants, see SQLite docs.
  *
  * @author Igor Sereda
  * @see <a href="http://sqlite.org/c3ref/constlist.html">list of constants in SQLite docs</a>
@@ -145,6 +145,11 @@ public interface SQLiteConstants {
    */
   int WRAPPER_BLOB_DISPOSED = -93;
 
+  /**
+   * Backup disposed
+   */
+  int WRAPPER_BACKUP_DISPOSED = -113;
+
   int WRAPPER_INVALID_ARG_1 = -11;
   int WRAPPER_INVALID_ARG_2 = -12;
   int WRAPPER_INVALID_ARG_3 = -13;
@@ -161,7 +166,7 @@ public interface SQLiteConstants {
 
   int WRAPPER_WEIRD_2 = -199;
 
-  int WRAPPER_CANNOT_LOAD_LIBRARY = -93;
+  int WRAPPER_CANNOT_LOAD_LIBRARY = -91;
   int WRAPPER_MISUSE = -92;
 
   int WRAPPER_USER_ERROR = -999;

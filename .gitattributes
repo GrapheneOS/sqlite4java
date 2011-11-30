@@ -25,6 +25,7 @@ idea/sqlite4java/sqlite4java.vsmdi -text
 java/com/almworks/sqlite4java/DirectBuffer.java -text
 java/com/almworks/sqlite4java/ProgressHandler.java -text
 java/com/almworks/sqlite4java/SQLParts.java -text
+java/com/almworks/sqlite4java/SQLiteBackup.java -text
 java/com/almworks/sqlite4java/SQLiteBlob.java -text
 java/com/almworks/sqlite4java/SQLiteBusyException.java -text
 java/com/almworks/sqlite4java/SQLiteConnection.java -text
@@ -55,6 +56,7 @@ sqlite/sqlite3ext.h -text
 swig/sqlite.i -text
 swig/sqlite3_swigged.h -text
 swig/stub/com/almworks/sqlite4java/SWIGTYPE_p_sqlite3.java -text
+swig/stub/com/almworks/sqlite4java/SWIGTYPE_p_sqlite3_backup.java -text
 swig/stub/com/almworks/sqlite4java/SWIGTYPE_p_sqlite3_blob.java -text
 swig/stub/com/almworks/sqlite4java/SWIGTYPE_p_sqlite3_stmt.java -text
 swig/stub/com/almworks/sqlite4java/_SQLiteSwigged.java -text
@@ -70,6 +72,7 @@ test/com/almworks/sqlite4java/MiscTests.java -text
 test/com/almworks/sqlite4java/ProfilerTests.java -text
 test/com/almworks/sqlite4java/ProgressHandlerTests.java -text
 test/com/almworks/sqlite4java/SQLPartsTests.java -text
+test/com/almworks/sqlite4java/SQLiteBackupTests.java -text
 test/com/almworks/sqlite4java/SQLiteBasicTests.java -text
 test/com/almworks/sqlite4java/SQLiteConnectionFixture.java -text
 test/com/almworks/sqlite4java/SQLiteConnectionTests.java -text

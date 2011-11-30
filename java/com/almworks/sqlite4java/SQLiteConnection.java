@@ -52,6 +52,8 @@ import static com.almworks.sqlite4java.SQLiteConstants.*;
  * @see <a href="http://www.sqlite.org/c3ref/sqlite3.html">sqlite3*</a>
  */
 public final class SQLiteConnection {
+  public static final String DEFAULT_DB_NAME = "main";
+
   private static final int MAX_POOLED_DIRECT_BUFFER_SIZE = 1 << 20;
   private static final int DEFAULT_STEPS_PER_CALLBACK = 1;
 
@@ -847,6 +849,32 @@ public final class SQLiteConnection {
     return createArray(null, true);
   }
 
+  public SQLiteBackup initializeBackup(String sourceDbName, File destinationDbFile, int flags) throws SQLiteException {
+    checkThread();
+    SQLiteConnection destination = new SQLiteConnection(destinationDbFile).openV2(flags);
+    if (Internal.isFineLogging()) {
+      Internal.logFine(this, "initializeBackup to " + destination);
+    }
+    SWIGTYPE_p_sqlite3 sourceDb = handle();
+    SWIGTYPE_p_sqlite3 destinationDb = destination.handle();
+    SWIGTYPE_p_sqlite3_backup backup = _SQLiteSwigged.sqlite3_backup_init(destinationDb, DEFAULT_DB_NAME, sourceDb, sourceDbName);
+    if (backup == null) {
+      int errorCode = destination.getErrorCode();
+      try {
+        destination.throwResult(errorCode, "Backup initialization failed");
+        throw new AssertionError("error code is 0");
+      } finally {
+        destination.dispose();
+      }
+    }
+    SQLiteController destinationController = destination.myUncachedController;
+    return new SQLiteBackup(myUncachedController, destinationController, backup, this, destination);
+  }
+
+  public SQLiteBackup initializeBackup(File destinationDbFile) throws SQLiteException {
+    return initializeBackup(DEFAULT_DB_NAME, destinationDbFile, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+  }
+
   private SQLiteLongArray createArray0(String name, SQLiteController controller) throws SQLiteException {
     SWIGTYPE_p_sqlite3 handle = handle();
     if (name == null)
@@ -1166,7 +1194,7 @@ public final class SQLiteConnection {
   }
 
   void throwResult(int resultCode, String operation, Object additional) throws SQLiteException {
-    if (resultCode == SQLiteConstants.SQLITE_OK)  return;
+    if (resultCode == SQLiteConstants.SQLITE_OK) return;
 
     // ignore sync
     SWIGTYPE_p_sqlite3 handle = myHandle;
@@ -1266,7 +1294,7 @@ public final class SQLiteConnection {
   void checkThread() throws SQLiteException {
     Thread confinement = myConfinement;
     if (confinement == null) {
-      throw new SQLiteException(WRAPPER_CONFINEMENT_VIOLATED, this + " is not confined");
+      throw new SQLiteException(WRAPPER_MISUSE, this + " is not confined or already disposed");
     }
     Thread thread = Thread.currentThread();
     if (thread != confinement) {
