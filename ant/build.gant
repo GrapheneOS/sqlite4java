@@ -291,7 +291,7 @@ target(name: 'extension.sample.compile')  {
             def ext = getExtension(arch)
             def clargs = antProp("extension.cl.args")
             clargs = (arch == 'x86' ? "$clargs /Gd" : clargs)
-            wsdk("${antProp('cl')} $clargs native/sqlite_extension_example.c ${antProp(extension.link.args)} /OUT:$build/extension_sample/half.sqlext.$ext", "$build/extension_sample/half.sqlext.$ext", arch, buildtype)
+            wsdk("${antProp('cl')} $clargs native/sqlite_extension_example.c ${antProp('extension.link.args')} /OUT:$build/extension_sample/half.sqlext.$ext", "$build/extension_sample/half.sqlext.$ext", arch, buildtype)
         } else {
             def ext = getExtension(platform)
             if (os == 'mac') {
