@@ -67,4 +67,6 @@ class _SQLiteSwiggedJNI {
   public final static native int sqlite3_backup_finish(long jarg1);
   public final static native int sqlite3_backup_remaining(long jarg1);
   public final static native int sqlite3_backup_pagecount(long jarg1);
+  public final static native int sqlite3_enable_load_extension(long jarg1, int jarg2);
+  public final static native int sqlite3_load_extension(long jarg1, String jarg2, String jarg3, String[] jarg4);
 }

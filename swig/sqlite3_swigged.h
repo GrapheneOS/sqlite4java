@@ -103,6 +103,9 @@ int sqlite3_backup_step(sqlite3_backup *p, int nPage);
 int sqlite3_backup_finish(sqlite3_backup *p);
 int sqlite3_backup_remaining(sqlite3_backup *p);
 int sqlite3_backup_pagecount(sqlite3_backup *p);
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+int sqlite3_load_extension(sqlite3 *db, const char *zFile, const char *zProc, char **SQLITE3_STRING_OUT);
+
 
 /*
 ** ******************************************************************
