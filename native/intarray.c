@@ -442,8 +442,9 @@ static int intarrayNext(sqlite3_vtab_cursor *cur){
 /*
 ** Reset a intarray table cursor.
 */
-static void intarrayOpVal(sqlite3_int64 v, int op, sqlite3_int64 *max, sqlite3_int64 *min, int *hasMax, int *hasMin) {
+static void intarrayOpVal(int vtype, sqlite3_int64 v, int op, sqlite3_int64 *max, sqlite3_int64 *min, int *hasMax, int *hasMin) {
   sqlite3_int64 vs = 0;
+  if (vtype != SQLITE_INTEGER) return;
   if (!(op & 4)) { 
     vs = (op & 2) ? v : v - 1;
     if (!*hasMax || vs < *max) *max = vs; 
@@ -466,6 +467,7 @@ static int intarrayFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum, const ch
   int op1 = (idxNum >> 2) & 7, op2 = (idxNum >> 5) & 7;
   sqlite3_int64 v = 0;
   int startIndex = 0;
+  int vtype = 0;
 
   pCur->mode = (idxNum & 3);
   pCur->hasMin = 0, pCur->hasMax = 0;
@@ -473,16 +475,23 @@ static int intarrayFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum, const ch
   pCur->max = 0;
   pCur->uniqueLeft = -1;
   if (argc > 0 && op1) {
+    vtype = sqlite3_value_type(argv[0]);
     v = sqlite3_value_int64(argv[0]);
-    intarrayOpVal(v, op1, &pCur->max, &pCur->min, &pCur->hasMax, &pCur->hasMin);
+    intarrayOpVal(vtype, v, op1, &pCur->max, &pCur->min, &pCur->hasMax, &pCur->hasMin);
   }
   if (argc > 1 && op2) {
+    vtype = sqlite3_value_type(argv[1]);
     v = sqlite3_value_int64(argv[1]); 
-    intarrayOpVal(v, op2, &pCur->max, &pCur->min, &pCur->hasMax, &pCur->hasMin);
+    intarrayOpVal(vtype, v, op2, &pCur->max, &pCur->min, &pCur->hasMax, &pCur->hasMin);
   }
 
   if (pCur->hasMin && pCur->hasMax && pCur->min > pCur->max) {
     /* constraint is never true */
+    pCur->i = arr->n;
+    return SQLITE_OK;
+  }
+  
+  if (!pCur->hasMin && !pCur->hasMax && vtype && vtype != SQLITE_INTEGER) {
     pCur->i = arr->n;
     return SQLITE_OK;
   }
@@ -543,7 +552,16 @@ static int intarrayC2opbits(sqlite3_index_info *pIdxInfo, int *ix) {
 /*
 ** Analyse the WHERE condition.
 */
+#define FULLSCAN_COST(a) ((a) < 64 ? 64 : (a))
+static int llog2(int x) {
+  int r = 0;
+  while (x > 1) { r++; x >>= 1; }
+  return r;
+}
+
 static int intarrayBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
+  sqlite3_intarray *arr = ((intarray_vtab*)tab)->intarray;
+  int arraySize = arr ? arr->n : 0;
   int mode = 0; /*full scan*/
   int i = 0;
   /* support only 2 constraints at maximum - search optimal */
@@ -554,7 +572,7 @@ static int intarrayBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
     if (pIdxInfo->aConstraint[i].usable) {
       if (pIdxInfo->aConstraint[i].op & (~INTARRAY_ACCEPTED_OPS)) {
         /* strange operation */
-        pIdxInfo->estimatedCost = 100.0;
+        pIdxInfo->estimatedCost = FULLSCAN_COST(arraySize);
         pIdxInfo->idxNum = 0;
         return SQLITE_OK;
       }
@@ -576,7 +594,10 @@ static int intarrayBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   } else if (vcount > 0) {
     mode = 2;
     mode |= intarrayC2opbits(pIdxInfo, ix + 2);
-    pIdxInfo->estimatedCost = 5.0;
+    pIdxInfo->estimatedCost = 1.0 + llog2(arraySize);
+  } else {
+    // full scan
+    pIdxInfo->estimatedCost = FULLSCAN_COST(arraySize);
   }
 
  
@@ -612,7 +633,7 @@ static int intarrayCommit(sqlite3_vtab *pVTab) {
 ** variables.
 */
 static sqlite3_module intarrayModule = {
-  0,                           /* iVersion */
+  2,                           /* iVersion */
   intarrayCreate,              /* xCreate - create a new virtual table */
   intarrayCreate,              /* xConnect - connect to an existing vtab */
   intarrayBestIndex,           /* xBestIndex - find the best query index */
@@ -632,6 +653,8 @@ static sqlite3_module intarrayModule = {
   intarrayRollback,            /* xRollback */
   0,                           /* xFindMethod */
   0,                           /* xRename */
+
+  0, 0, 0
 };
 
 #endif /* !defined(SQLITE_OMIT_VIRTUALTABLE) */
