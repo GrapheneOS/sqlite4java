@@ -89,10 +89,35 @@ public class SQLiteValueTests extends SQLiteConnectionFixture {
 
     st = insertAndSelect(con, Long.MAX_VALUE, true);
     st.reset();
+    st = con.prepare("select x from x");
+    st.step();
+    assertEquals(Long.MAX_VALUE, st.columnLong(0));
+    assertFalse(st.columnNull(0));
+    st.reset();
+
+    st = insertAndSelect(con, Long.MIN_VALUE, true);
+    st.reset();
+    st = con.prepare("select x from x");
+    st.step();
+    assertEquals(Long.MIN_VALUE, st.columnLong(0));
+    assertFalse(st.columnNull(0));
+    st.reset();
+
+    st = insertAndSelect(con, Long.MAX_VALUE, true);
+    st.reset();
     con.exec("update x set x = x + 2");
     st = con.prepare("select x from x");
     st.step();
-    assertEquals(Long.MIN_VALUE + 1L, st.columnLong(0));
+    assertEquals(Long.MIN_VALUE, st.columnLong(0));
+    assertFalse(st.columnNull(0));
+    st.reset();
+
+    st = insertAndSelect(con, Long.MIN_VALUE, true);
+    st.reset();
+    con.exec("update x set x = x - 2");
+    st = con.prepare("select x from x");
+    st.step();
+    assertEquals(Long.MIN_VALUE, st.columnLong(0));
     assertFalse(st.columnNull(0));
     st.reset();
   }
@@ -102,7 +127,7 @@ public class SQLiteValueTests extends SQLiteConnectionFixture {
     SQLiteStatement st = insertAndSelect(c, 1, false);
     Object o = st.columnValue(0);
     assertNotNull(o);
-    assertEquals((Integer)1, o);
+    assertEquals((Integer) 1, o);
     assertEquals(Integer.class, o.getClass());
     st.dispose();
     st = insertAndSelect(c, 0xCAFEBABECAFEBABEL, true);
