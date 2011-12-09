@@ -849,6 +849,23 @@ public final class SQLiteConnection {
     return createArray(null, true);
   }
 
+  /**
+   * Initializes a backup of database with given name from current connection to specified file.
+   * This method creates a connection to destination file, opens it with specified flags and
+   * initialize an instance of SQLiteBackup for source and destination connection.Each successful call
+   * to initializeBackup must be followed by call to {@link com.almworks.sqlite4java.SQLiteBackup#dispose}.
+   * <p>
+   *   Name of source database may be "main" for main database, "temp" for temporary database or name used in ATTACH clause
+   *   for attached database.
+   * </p>
+   *
+   * @param sourceDbName name of source database (usually "main")
+   * @param destinationDbFile file in which source database will be copied or <strong>null</strong> if you want to back up into in-memory database
+   * @param flags flags for opening connection to destination database. See {@link #openV2(int)} for details
+   * @return an instance of {@link SQLiteBackup}
+   * @throws SQLiteException if SQLite return an error, or if the call violates the contract of this class
+   * @see <a href=http://www.sqlite.org/c3ref/backup_finish.html#sqlite3backupinit>sqlite3_backup_init</a>
+   */
   public SQLiteBackup initializeBackup(String sourceDbName, File destinationDbFile, int flags) throws SQLiteException {
     checkThread();
     SQLiteConnection destination = new SQLiteConnection(destinationDbFile).openV2(flags);
@@ -871,6 +888,17 @@ public final class SQLiteConnection {
     return new SQLiteBackup(myUncachedController, destinationController, backup, this, destination);
   }
 
+  /**
+   * Initialize a backup of main database of current connection to specialized file.
+   * <p>
+   * This is convenience method, equivalent to
+   * <code><strong>initializeBackup</strong>(<strong>"main"</strong>, destinationDbFile, <strong>SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE</strong>)</code>
+   * </p>
+   * @param destinationDbFile file in which source database will be copied or <strong>null</strong> if you want to back up into in-memory database
+   * @return an instance of {@link SQLiteBackup}
+   * @throws SQLiteException if SQLite return an error, or if the call violates the contract of this class
+   *
+   */
   public SQLiteBackup initializeBackup(File destinationDbFile) throws SQLiteException {
     return initializeBackup(DEFAULT_DB_NAME, destinationDbFile, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
   }
