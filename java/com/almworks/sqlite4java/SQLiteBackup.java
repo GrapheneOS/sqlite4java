@@ -87,8 +87,8 @@ public class SQLiteBackup {
    * @see <a href=http://www.sqlite.org/c3ref/backup_finish.html#sqlite3backupstep>sqlite3_backup_step</a>
    */
   public boolean backupStep(int pagesToBackup) throws SQLiteException, SQLiteBusyException {
-    mySourceController.validate();
-    myDestinationController.validate();
+    mySource.checkThread();
+    myDestination.checkThread();
     if (myFinished) {
       Internal.logWarn(this, "already finished");
       return true;
