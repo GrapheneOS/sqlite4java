@@ -444,16 +444,49 @@ static int intarrayNext(sqlite3_vtab_cursor *cur){
 */
 static void intarrayOpVal(int vtype, sqlite3_int64 v, int op, sqlite3_int64 *max, sqlite3_int64 *min, int *hasMax, int *hasMin) {
   sqlite3_int64 vs = 0;
-  if (vtype != SQLITE_INTEGER) return;
-  if (!(op & 4)) { 
-    vs = (op & 2) ? v : v - 1;
-    if (!*hasMax || vs < *max) *max = vs; 
-    *hasMax = 1; 
+  if (vtype == SQLITE_NULL) {
+    *hasMax = *hasMin = 1;
+    *min = *max + 1;
+    return; 
   }
-  if (!(op & 1)) { 
-    vs = (op & 2) ? v : v + 1;
-    if (!*hasMin || vs > *min) *min = vs; 
-    *hasMin = 1; 
+  if (vtype == SQLITE_TEXT) {
+    if (op != 1) {
+      *hasMax = *hasMin = 1;
+      *min = *max + 1; 
+    }
+    return;
+  }
+  if (vtype == SQLITE_FLOAT) {
+    if (op == 2){
+      *hasMax = *hasMin = 1;
+      *min = *max + 1;
+      return;      
+    }
+    else {
+      if (op % 2) {
+	vs = v - 1;
+	if (!*hasMax || vs < *max) *max = vs;
+        *hasMax = 1;
+      }
+      else {
+	vs = v + 1;
+	if (!*hasMin || vs > *min) *min = vs;
+        *hasMin = 1;	
+      }
+    }
+  }
+  if (vtype == SQLITE_INTEGER) {
+        if (!(op & 4)) {
+            vs = (op & 2) ? v : v - 1;
+            if (!*hasMax || vs < *max) *max = vs;
+            *hasMax = 1;
+        }
+        if (!(op & 1)) {
+            vs = (op & 2) ? v : v + 1;
+            if (!*hasMin || vs > *min) *min = vs;
+            *hasMin = 1;
+        }
+        return;
   }
 }
 
@@ -491,10 +524,10 @@ static int intarrayFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum, const ch
     return SQLITE_OK;
   }
   
-  if (!pCur->hasMin && !pCur->hasMax && vtype && vtype != SQLITE_INTEGER) {
-    pCur->i = arr->n;
-    return SQLITE_OK;
-  }
+//   if (!pCur->hasMin && !pCur->hasMax && vtype && vtype == SQLITE_NULL) {
+//     pCur->i = arr->n;
+//     return SQLITE_OK;
+//   }
 
   if (pCur->hasMin && pCur->mode == 1 ) {
     startIndex = (int)pCur->min;

@@ -225,9 +225,19 @@ public class LongArrayTests extends SQLiteConnectionFixture {
     checkSelect(con, a, "value < 9", -89, 7, 1, 0, 4, 3, -8);
     checkSelect(con, a, "value <= 1", -89, 1, 0, -8);
     checkSelect(con, a, "value > 0 and value <= 9", 7, 1, 4, 3, 9);
+    checkSelect(con, a, "value <= 9.9",-89, 7, 1, 0, 4, 3, -8);
+    checkSelect(con, a, "value = 9.9 and value > 9");
+    checkSelect(con, a, "value < '1111111x'", -89, 7, 1, 0, 4, 3, 10, 9, 30, -8);
+    checkSelect(con, a, "value <= '1111111x'");
+    checkSelect(con, a, "value = '9'");
+    checkSelect(con, a, "value >= '1111111x'");
+    checkSelect(con, a, "value > '1111111x' and value < 3");
+    checkSelect(con, a, "value < 3 and value < 'xyz'");
     checkSelect(con, a, "value between 4 and 4", 4);
     checkSelect(con, a, "value is null");
     checkSelect(con, a, "value > null");
+    checkSelect(con, a, "value > null or  value < 3", -89, 1, 0, -8);
+    checkSelect(con, a, "value > null and  value < 3");
     checkSelect(con, a, "value is not null", -89, 7, 1, 0, 4, 3, 10, 9, 30, -8);
     checkSelect(con, a, "value > 1 and value < -1");
   }
@@ -296,6 +306,17 @@ public class LongArrayTests extends SQLiteConnectionFixture {
 
     checkBuffer(st.loadLongs(0, BUFFER, 0, BUFFER.length), 1, 2, 3);
   }
+
+//  public void testNew() throws SQLiteException {
+//    SQLiteConnection con = memDb().open();
+//    SQLiteLongArray arr  = con.createArray();
+//    arr.bind(1,2,3,4,5);
+//    SQLiteStatement st = con.prepare("select typeof(value) from " + arr.getName());
+//    st.step();
+//    System.out.println(st.columnString(0));
+//    checkSelect(con, arr, "value > '2a'", 1,2,3,4,5);
+//
+//  }
 
   public void testOrderedPerformance() throws SQLiteException {
     int COUNT = 50000;
