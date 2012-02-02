@@ -140,7 +140,7 @@ public final class SQLite {
    *
    * @return a number representing the version; example: version "3.6.23.1" is represented as 3006023.
    * @throws SQLiteException if native library cannot be loaded
-   * @see <a href="http://www.sqlite.org/c3ref/version.html">sqlite3_version</a>
+   * @see <a href="http://www.sqlite.org/c3ref/libversion.html">sqlite3_version</a>
    */
   public static int getSQLiteVersionNumber() throws SQLiteException {
     loadLibrary();
