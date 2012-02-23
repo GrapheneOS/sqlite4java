@@ -1,6 +1,7 @@
 package com.almworks.sqlite4java;
 
 import java.io.File;
+import java.net.URL;
 import java.util.Locale;
 
 public class ExtensionLoadTests extends SQLiteConnectionFixture {
@@ -9,20 +10,22 @@ public class ExtensionLoadTests extends SQLiteConnectionFixture {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    String arch = System.getProperty("os.arch");
-    String fileSuffix = arch.substring(arch.length() - 2);
-    String osname = System.getProperty("os.name").toLowerCase(Locale.US);
-
-    if (osname.startsWith("mac") || osname.startsWith("darwin") || osname.startsWith("os x")) {
-      if (System.getProperty("os.version").contains("10.4")) {
-        fileSuffix = "10.4";
-      } else if (!arch.equals("ppc")) {
-        fileSuffix = "";
+    URL url = getClass().getClassLoader().getResource(getClass().getName().replace('.', '/') + ".class");
+    String path = url.getPath();
+    int k = path.indexOf('!');
+    if (k >= 0) path = path.substring(0, k);
+    File dir = new File(path).getParentFile();
+    if (dir == null || !dir.isDirectory()) throw new IllegalStateException("cannot find class directory");
+    while (dir != null) {
+      File f = new File(new File(dir, "build"), "extension_sample");
+      if (f.isDirectory()) {
+        myExtensionFile = new File(f, "half.sqlext." + System.getProperty("os.arch"));
+        break;
       }
+      dir = dir.getParentFile();
     }
-
-    String sep = File.separator;
-    myExtensionFile = new File(".." + sep + "build" + sep + "extension_sample" + sep + "half.sqlext." + fileSuffix);
+    if (myExtensionFile == null) throw new IllegalStateException("cannot locate build directory");
+    if (!myExtensionFile.isFile()) throw new IllegalStateException("cannot find extension");
   }
 
   public void testLoadFailWhenNotEnabled() throws SQLiteException {
