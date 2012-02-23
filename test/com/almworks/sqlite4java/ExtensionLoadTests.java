@@ -11,20 +11,12 @@ public class ExtensionLoadTests extends SQLiteConnectionFixture {
   protected void setUp() throws Exception {
     super.setUp();
     
-    String ext;
-    String osName = System.getProperty("os.name").toLowerCase();
-    if (osName.contains("windows")) {
-      ext = "32".equals(System.getProperty("sun.arch.data.model")) ? "x86" : "x64";
-    } else if (osName.contains("mac")) {
-      if (System.getProperty("os.version").startsWith("10.4")) {
-        ext = "osx-10.4";
-      } else if (System.getProperty("os.arch").toLowerCase().contains("power")) {
-        ext = "osx-ppc";
-      } else {
-        ext = "osx";
-      }
-    } else {
-      ext = "32".equals(System.getProperty("sun.arch.data.model")) ? "linux-i386" : "linux-amd64";
+    String ext = System.getProperty("test.platform");
+    if (ext == null) {
+      throw new IllegalStateException("cannot run this test without test.platform");
+    }
+    if (ext.startsWith("win32-")) {
+      ext = ext.substring(6);
     }
 
     URL url = getClass().getClassLoader().getResource(getClass().getName().replace('.', '/') + ".class");

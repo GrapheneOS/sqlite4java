@@ -318,6 +318,8 @@ target('test': 'run all tests') {
         jvmarg(value: "-Djava.awt.headless=true")
         jvmarg(value: "-ea")
         jvmarg(value: "-Djava.library.path=${build}/testRun.$buildtype.$platform")
+        jvmarg(value: "-Dtest.platform=$platform")
+        jvmarg(value: "-Dtest.buildtype=$buildtype")
         classpath {
           pathelement(location: "$build/testClasses")
           pathelement(location: "$build/testRun.$buildtype.$platform/${antProp('jarname')}")
