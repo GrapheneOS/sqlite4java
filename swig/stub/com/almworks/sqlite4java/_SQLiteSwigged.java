@@ -243,4 +243,7 @@ class _SQLiteSwigged {
     return _SQLiteSwiggedJNI.sqlite3_backup_pagecount(SWIGTYPE_p_sqlite3_backup.getCPtr(p));
   }
 
+  public static int sqlite3_enable_load_extension(SWIGTYPE_p_sqlite3 db, int onoff) {
+    return _SQLiteSwiggedJNI.sqlite3_enable_load_extension(SWIGTYPE_p_sqlite3.getCPtr(db), onoff);
+  }
 }

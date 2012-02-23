@@ -50,6 +50,7 @@ lib/junit.jar -text
 native/intarray.c -text
 native/intarray.h -text
 native/sqlite3_wrap_manual.c -text
+native/sqlite_extension_example.c -text
 sqlite/sqlite3.c -text
 sqlite/sqlite3.h -text
 sqlite/sqlite3ext.h -text
@@ -65,12 +66,14 @@ test/com/almworks/sqlite4java/BlobComparisonPerformance.java -text
 test/com/almworks/sqlite4java/BlobTests.java -text
 test/com/almworks/sqlite4java/DirectBufferTests.java -text
 test/com/almworks/sqlite4java/Experiment.java -text
+test/com/almworks/sqlite4java/ExtensionLoadTests.java -text
 test/com/almworks/sqlite4java/IncrementalBlobIOAnalysis.java -text
 test/com/almworks/sqlite4java/IncrementalIODemo.java -text
 test/com/almworks/sqlite4java/LongArrayTests.java -text
 test/com/almworks/sqlite4java/MiscTests.java -text
 test/com/almworks/sqlite4java/ProfilerTests.java -text
 test/com/almworks/sqlite4java/ProgressHandlerTests.java -text
+test/com/almworks/sqlite4java/RTreeTests.java -text
 test/com/almworks/sqlite4java/SQLPartsTests.java -text
 test/com/almworks/sqlite4java/SQLiteBackupTests.java -text
 test/com/almworks/sqlite4java/SQLiteBasicTests.java -text

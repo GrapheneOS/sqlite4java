@@ -753,6 +753,44 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   return rc;
 }
 
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1load_1extension(JNIEnv *jenv, jclass jcls,
+  jlong jdb, jstring jfile, jstring jproc, jobjectArray ppError)
+{
+  sqlite3* db = *(sqlite3**)&jdb;
+  int rc = 0;
+  char* file = 0;
+  char* proc = 0;
+  char* error = 0;
+  jstring errorString = 0;
+
+  if (jfile) {
+    file = (char *)(*jenv)->GetStringUTFChars(jenv, jfile, 0);
+    if (!file) return WRAPPER_CANNOT_TRANSFORM_STRING;
+  }
+  if (jproc) {
+    proc = (char *)(*jenv)->GetStringUTFChars(jenv, jproc, 0);
+    if (!proc) {
+      if (file) (*jenv)->ReleaseStringUTFChars(jenv, jfile, (const char *)file);
+      return WRAPPER_CANNOT_TRANSFORM_STRING;
+    }
+  }
+
+  rc = sqlite3_load_extension(db, (char const *)file, (char const *)proc, &error);
+
+  if (error) {
+    errorString = (*jenv)->NewStringUTF(jenv, error);
+    if (errorString) {
+      (*jenv)->SetObjectArrayElement(jenv, ppError, 0, errorString);
+    }
+    sqlite3_free(error);
+  }
+
+  if (proc) (*jenv)->ReleaseStringUTFChars(jenv, jproc, (const char *)proc);
+  if (file) (*jenv)->ReleaseStringUTFChars(jenv, jfile, (const char *)file);
+
+  return rc;
+}
+
 #ifdef __cplusplus
 }
 #endif

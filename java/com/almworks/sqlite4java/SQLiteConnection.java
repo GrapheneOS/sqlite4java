@@ -903,6 +903,58 @@ public final class SQLiteConnection {
     return initializeBackup(DEFAULT_DB_NAME, destinationDbFile, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
   }
 
+  /**
+   * Enables or disables SQLite extension loading. By default, extension loading is disabled.
+   *
+   * @param enabled if true, extensions can be loaded via {@link #loadExtension} function
+   * @throws SQLiteException if extension loading flag cannot be changed
+   * @see <a href=http://www.sqlite.org/c3ref/enable_load_extension.html>enable_load_extension</a>
+   */
+  public void setExtensionLoadingEnabled(boolean enabled) throws SQLiteException {
+    checkThread();
+    int rc = _SQLiteSwigged.sqlite3_enable_load_extension(handle(), enabled ? 1 : 0);
+    throwResult(rc, "enableLoadExtension()");
+    if (Internal.isFineLogging()) {
+      Internal.logFine(this, enabled ? "Extension load enabled" : "Extension load disabled");
+    }
+  }
+
+  /**
+   * Loads an SQLite extension library. Extension loading must be enabled with {@link #setExtensionLoadingEnabled(boolean)}
+   * prior to calling this method.
+   *
+   * @param extensionFile extension library, not null
+   * @param entryPoint entry point function; if null, defaults to "sqlite3_extension_init"
+   * @throws SQLiteException if extension can't be loaded
+   * @see <a href=http://www.sqlite.org/c3ref/load_extension.html>load_extension</a>
+   */
+  public void loadExtension(File extensionFile, String entryPoint) throws SQLiteException {
+    checkThread();
+    SWIGTYPE_p_sqlite3 handle = handle();
+    String path = extensionFile.getAbsolutePath();
+    if (Internal.isFineLogging()) {
+      Internal.logFine(this, "loading extension from (" + path + "," + entryPoint + ")");
+    }
+    String error = mySQLiteManual.sqlite3_load_extension(handle, path, entryPoint);
+    int rc = mySQLiteManual.getLastReturnCode();
+    throwResult(rc, "loadExtension()", error);
+    if (Internal.isFineLogging()) {
+      Internal.logFine(this, "extension (" + path + "," + entryPoint + ") loaded");
+    }
+  }
+
+  /**
+   * Loads an SQLite extension library using default extension entry point. Extension loading must be enabled with {@link #setExtensionLoadingEnabled(boolean)}
+   * prior to calling this method.
+   *
+   * @param extensionFile extension library, not null
+   * @throws SQLiteException if extension can't be loaded
+   * @see <a href=http://www.sqlite.org/c3ref/load_extension.html>load_extension</a>
+   */
+  public void loadExtension(File extensionFile) throws SQLiteException {
+    loadExtension(extensionFile, null);
+  }
+
   private SQLiteLongArray createArray0(String name, SQLiteController controller) throws SQLiteException {
     SWIGTYPE_p_sqlite3 handle = handle();
     if (name == null)

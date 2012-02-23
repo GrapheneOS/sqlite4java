@@ -23,6 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <math.h>
 
 #ifdef _MSC_VER
 #define stricmp _stricmp
@@ -86,8 +87,8 @@ struct sqlite3_intarray {
 /* A intarray table object */
 struct intarray_vtab {
   /* base class */
-  sqlite3_vtab base;            
-  sqlite3_intarray *intarray; 
+  sqlite3_vtab base;
+  sqlite3_intarray *intarray;
 };
 
 /* A intarray cursor object */
@@ -98,9 +99,9 @@ struct intarray_cursor {
   int mode;                    /* Search mode - see below */
   sqlite3_int64 max;           /* maximum value */
   sqlite3_int64 min;           /* maximum value */
-  int hasMax;                  
-  int hasMin;                  
-  
+  int hasMax;
+  int hasMin;
+
   /* state */
   int i;                       /* Current cursor position */
   int uniqueLeft;              /* Count of found unique results (cannot be more than max - min + 1) */
@@ -145,7 +146,8 @@ static int mapPut_(intarray_map_entry *t, int size, sqlite3_intarray *a, unsigne
   if (t[i].key) return INTARRAY_INTERNAL_ERROR;
   if (t[i].hash == -1) {
     // check trail
-    k = (i + 1) % size; j--;
+    k = (i + 1) % size;
+    j--;
     while ((t[k].key || t[k].hash == -1) && j > 0) {
       if (hash == (unsigned int)t[k].hash && !stricmp(t[k].key, a->zName)) {
         return INTARRAY_DUPLICATE_NAME;
@@ -186,7 +188,7 @@ static int intarrayMapPut(intarray_map *map, sqlite3_intarray *a) {
   unsigned int h1 = strHash(a->zName);
   int rc = mapPut_(map->hashtable, map->size, a, h1);
   if (rc != SQLITE_OK) return rc;
-  
+
   map->count++;
   if (map->count >= map->rehashSize) {
     rc = rehash(map);
@@ -236,7 +238,7 @@ static int intarrayNextMatch(intarray_cursor *pCur, int startIndex) {
   intarray_vtab *table = (intarray_vtab*)pCur->base.pVtab;
   sqlite3_intarray *arr = table->intarray;
   sqlite3_int64 v = 0;
-  if (startIndex >= arr->n) return arr->n;
+  if (startIndex >= arr->n || pCur->mode < 0) return arr->n;
   if (pCur->mode == 1) {
     /* search by rowid: check we did not exceed */
     return (pCur->hasMax && startIndex > pCur->max) ? arr->n : startIndex;
@@ -361,7 +363,7 @@ static int intarrayCreate(sqlite3 *db, void *pAux, int argc, const char *const*a
 /*
 ** Open a new cursor on the intarray table.
 */
-static int intarrayOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+static int intarrayOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   int rc = SQLITE_NOMEM;
   intarray_cursor *pCur;
   pCur = (intarray_cursor*)sqlite3_malloc(sizeof(intarray_cursor));
@@ -377,7 +379,7 @@ static int intarrayOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 /*
 ** Close a intarray table cursor.
 */
-static int intarrayClose(sqlite3_vtab_cursor *cur){
+static int intarrayClose(sqlite3_vtab_cursor *cur) {
   intarray_cursor *pCur = (intarray_cursor *)cur;
   ((intarray_vtab*)(cur->pVtab))->intarray->useCount--;
   sqlite3_free(pCur);
@@ -400,13 +402,13 @@ static int intarrayColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int co
 /*
 ** Retrieve the current rowid.
 */
-static int intarrayRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
+static int intarrayRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
   intarray_cursor *pCur = (intarray_cursor *)cur;
   *pRowid = pCur->i;
   return SQLITE_OK;
 }
 
-static int intarrayEof(sqlite3_vtab_cursor *cur){
+static int intarrayEof(sqlite3_vtab_cursor *cur) {
   intarray_cursor *pCur = (intarray_cursor *)cur;
   intarray_vtab *table = (intarray_vtab *)cur->pVtab;
   sqlite3_intarray *arr = table->intarray;
@@ -416,7 +418,7 @@ static int intarrayEof(sqlite3_vtab_cursor *cur){
 /*
 ** Advance the cursor to the next row.
 */
-static int intarrayNext(sqlite3_vtab_cursor *cur){
+static int intarrayNext(sqlite3_vtab_cursor *cur) {
   intarray_cursor *pCur = (intarray_cursor *)cur;
   pCur->i = intarrayNextMatch(pCur, pCur->i + 1);
   return SQLITE_OK;
@@ -424,7 +426,7 @@ static int intarrayNext(sqlite3_vtab_cursor *cur){
 
 /* search params */
 
-/* 
+/*
 ** We're forced to encode comparison types in the int:
 ** bit  meaning
 ** ---  -------
@@ -439,20 +441,81 @@ static int intarrayNext(sqlite3_vtab_cursor *cur){
 **    7 argv[1] is lower bound
 */
 
-/*
-** Reset a intarray table cursor.
-*/
-static void intarrayOpVal(sqlite3_int64 v, int op, sqlite3_int64 *max, sqlite3_int64 *min, int *hasMax, int *hasMin) {
-  sqlite3_int64 vs = 0;
-  if (!(op & 4)) { 
-    vs = (op & 2) ? v : v - 1;
-    if (!*hasMax || vs < *max) *max = vs; 
-    *hasMax = 1; 
+#define INTARRAY_SCAN 0
+#define INTARRAY_ROWID 1
+#define INTARRAY_VALUE 2
+#define INTARRAY_ZEROSET -1
+
+#define INTARRAY_UPPER 1
+#define INTARRAY_EQ 2
+#define INTARRAY_LOWER 4
+
+#define SMALLEST_INT64 (((sqlite3_int64)1) << 63)
+#define LARGEST_INT64  (~(SMALLEST_INT64))
+
+#define INTARRAY_MAX(cur, val, exclusive) \
+  if ((exclusive) && val > SMALLEST_INT64) val--; \
+  if (!(cur)->hasMax || (cur)->max > val) { (cur)->max = val; (cur)->hasMax = 1; }
+
+#define INTARRAY_MIN(cur, val, exclusive) \
+  if ((exclusive) && val < LARGEST_INT64) val++; \
+  if (!(cur)->hasMin || (cur)->min < val) { (cur)->min = val; (cur)->hasMin = 1; }
+
+static void intarrayBoundary(int op, intarray_cursor *pCur, sqlite3_int64 intValue, int exactInt) {
+  if ((op & INTARRAY_LOWER)) {
+    INTARRAY_MIN(pCur, intValue, exactInt && !(op & INTARRAY_EQ))
+  } else if ((op & INTARRAY_UPPER)) {
+    INTARRAY_MAX(pCur, intValue, exactInt && !(op & INTARRAY_EQ))
+  } else if ((op & INTARRAY_EQ)) {
+    if (!exactInt) {
+      pCur->mode = INTARRAY_ZEROSET;
+    } else {
+      INTARRAY_MIN(pCur, intValue, 0)
+      INTARRAY_MAX(pCur, intValue, 0)
+    }
   }
-  if (!(op & 1)) { 
-    vs = (op & 2) ? v : v + 1;
-    if (!*hasMin || vs > *min) *min = vs; 
-    *hasMin = 1; 
+}
+
+static void intarrayConstrainCursor(int op, sqlite3_value *value, intarray_cursor *pCur) {
+  int vtype = sqlite3_value_type(value);
+  sqlite3_int64 intValue = 0;
+  double doubleValue = 0.0;
+  int exactInt = 0;
+
+  switch (vtype) {
+  case SQLITE_TEXT:
+    // peculiar SQLite behavior makes all numbers less than a string.
+    // setting negative mode will make zero result set
+    if (!(op & INTARRAY_UPPER)) pCur->mode = INTARRAY_ZEROSET;
+    break;
+  case SQLITE_FLOAT:
+    doubleValue = sqlite3_value_double(value);
+    if (doubleValue > (double)LARGEST_INT64) {
+      if (!(op & INTARRAY_UPPER) || (op & INTARRAY_LOWER)) {
+        pCur->mode = INTARRAY_ZEROSET;
+      }
+      break;
+    } else if (doubleValue < (double)SMALLEST_INT64) {
+      if (!(op & INTARRAY_LOWER) || (op & INTARRAY_UPPER)) {
+        pCur->mode = INTARRAY_ZEROSET;
+      }
+      break;
+    }
+
+    intValue =
+      (op & INTARRAY_LOWER) ? (sqlite3_int64)ceil(doubleValue) :
+      (op & INTARRAY_UPPER) ? (sqlite3_int64)floor(doubleValue) :
+      (sqlite3_int64)doubleValue;
+    exactInt = ((double)intValue) == doubleValue;
+    intarrayBoundary(op, pCur, intValue, exactInt);
+    break;
+  case SQLITE_INTEGER :
+    intValue = sqlite3_value_int64(value);
+    intarrayBoundary(op, pCur, intValue, 1);
+    break;
+  default:
+    pCur->mode = INTARRAY_ZEROSET;
+    break;
   }
 }
 
@@ -472,22 +535,20 @@ static int intarrayFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum, const ch
   pCur->min = 0;
   pCur->max = 0;
   pCur->uniqueLeft = -1;
-  if (argc > 0 && op1) {
-    v = sqlite3_value_int64(argv[0]);
-    intarrayOpVal(v, op1, &pCur->max, &pCur->min, &pCur->hasMax, &pCur->hasMin);
+  if (pCur->mode > 0 && argc > 0 && op1) {
+    intarrayConstrainCursor(op1, argv[0], pCur);
   }
-  if (argc > 1 && op2) {
-    v = sqlite3_value_int64(argv[1]); 
-    intarrayOpVal(v, op2, &pCur->max, &pCur->min, &pCur->hasMax, &pCur->hasMin);
+  if (pCur->mode > 0 && argc > 1 && op2) {
+    intarrayConstrainCursor(op2, argv[1], pCur);
   }
 
-  if (pCur->hasMin && pCur->hasMax && pCur->min > pCur->max) {
+  if (pCur->mode < 0 || (pCur->hasMin && pCur->hasMax && pCur->min > pCur->max)) {
     /* constraint is never true */
     pCur->i = arr->n;
     return SQLITE_OK;
   }
 
-  if (pCur->hasMin && pCur->mode == 1 ) {
+  if (pCur->hasMin && pCur->mode == 1) {
     startIndex = (int)pCur->min;
     if (startIndex < 0) startIndex = 0;
   } else if (pCur->hasMin && pCur->mode == 2 && arr->ordered && arr->n > INTARRAY_BSEARCH_THRESHOLD) {
@@ -509,13 +570,19 @@ static int intarrayFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum, const ch
 #define INTARRAY_ACCEPTED_OPS (SQLITE_INDEX_CONSTRAINT_EQ | SQLITE_INDEX_CONSTRAINT_GE | SQLITE_INDEX_CONSTRAINT_GT | SQLITE_INDEX_CONSTRAINT_LE | SQLITE_INDEX_CONSTRAINT_LT)
 
 static int intarrayOpbit(int op) {
-  switch(op) {
-  case SQLITE_INDEX_CONSTRAINT_EQ: return 2;
-  case SQLITE_INDEX_CONSTRAINT_GE: return 6;
-  case SQLITE_INDEX_CONSTRAINT_GT: return 4;
-  case SQLITE_INDEX_CONSTRAINT_LE: return 3;
-  case SQLITE_INDEX_CONSTRAINT_LT: return 1;
-  default: return 0;
+  switch (op) {
+  case SQLITE_INDEX_CONSTRAINT_EQ:
+    return INTARRAY_EQ;
+  case SQLITE_INDEX_CONSTRAINT_GE:
+    return INTARRAY_EQ | INTARRAY_LOWER;
+  case SQLITE_INDEX_CONSTRAINT_GT:
+    return INTARRAY_LOWER;
+  case SQLITE_INDEX_CONSTRAINT_LE:
+    return INTARRAY_EQ | INTARRAY_UPPER;
+  case SQLITE_INDEX_CONSTRAINT_LT:
+    return INTARRAY_UPPER;
+  default:
+    return 0;
   }
 }
 
@@ -543,7 +610,19 @@ static int intarrayC2opbits(sqlite3_index_info *pIdxInfo, int *ix) {
 /*
 ** Analyse the WHERE condition.
 */
+#define FULLSCAN_COST(a) ((a) < 64 ? 64 : (a))
+static int llog2(int x) {
+  int r = 0;
+  while (x > 1) {
+    r++;
+    x >>= 1;
+  }
+  return r;
+}
+
 static int intarrayBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
+  sqlite3_intarray *arr = ((intarray_vtab*)tab)->intarray;
+  int arraySize = arr ? arr->n : 0;
   int mode = 0; /*full scan*/
   int i = 0;
   /* support only 2 constraints at maximum - search optimal */
@@ -554,7 +633,7 @@ static int intarrayBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
     if (pIdxInfo->aConstraint[i].usable) {
       if (pIdxInfo->aConstraint[i].op & (~INTARRAY_ACCEPTED_OPS)) {
         /* strange operation */
-        pIdxInfo->estimatedCost = 100.0;
+        pIdxInfo->estimatedCost = FULLSCAN_COST(arraySize);
         pIdxInfo->idxNum = 0;
         return SQLITE_OK;
       }
@@ -576,10 +655,13 @@ static int intarrayBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   } else if (vcount > 0) {
     mode = 2;
     mode |= intarrayC2opbits(pIdxInfo, ix + 2);
-    pIdxInfo->estimatedCost = 5.0;
+    pIdxInfo->estimatedCost = 1.0 + llog2(arraySize);
+  } else {
+    // full scan
+    pIdxInfo->estimatedCost = FULLSCAN_COST(arraySize);
   }
 
- 
+
   /* todo - to consume orderBy we need to make sure the data is always ordered:
   ** right now an intarray may be rebound with no-ordered data, but bestIndex and vdbe
   ** program will not be recompiled. Another solution would be to create a virtual table
@@ -612,7 +694,7 @@ static int intarrayCommit(sqlite3_vtab *pVTab) {
 ** variables.
 */
 static sqlite3_module intarrayModule = {
-  0,                           /* iVersion */
+  2,                           /* iVersion */
   intarrayCreate,              /* xCreate - create a new virtual table */
   intarrayCreate,              /* xConnect - connect to an existing vtab */
   intarrayBestIndex,           /* xBestIndex - find the best query index */
@@ -632,6 +714,7 @@ static sqlite3_module intarrayModule = {
   intarrayRollback,            /* xRollback */
   0,                           /* xFindMethod */
   0,                           /* xRename */
+  0, 0, 0
 };
 
 #endif /* !defined(SQLITE_OMIT_VIRTUALTABLE) */
@@ -703,7 +786,7 @@ int sqlite3_intarray_bind(sqlite3_intarray *pIntArray, int nElements, sqlite3_in
       pIntArray->connectCount = 1;
       pIntArray->commitState = sqlite3_get_autocommit(pIntArray->module->db) ? 1 : 0;
     }
-    /* ignore rc (duplicate table exists); todo: discern other errors */ 
+    /* ignore rc (duplicate table exists); todo: discern other errors */
     /*if (rc != SQLITE_OK) return rc;*/
     rc = SQLITE_OK;
   }

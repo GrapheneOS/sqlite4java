@@ -311,7 +311,7 @@ final class Internal {
       logFine(Internal.class, "cannot load " + libname + ": " + t);
       return bestLoadFailureReason(bestReason, t);
     }
-    return verifyLoading(bestReason, loadedSignal, libname);
+    return verifyLoading(bestReason, loadedSignal, libname + " from system path");
   }
 
   private static Throwable verifyLoading(Throwable bestReason, RuntimeException loadedSignal, String logname) {

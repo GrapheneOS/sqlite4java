@@ -223,4 +223,13 @@ final class _SQLiteManual {
   public static int sqlite3_intarray_destroy(SWIGTYPE_p_intarray array) {
     return _SQLiteManualJNI.sqlite3_intarray_destroy(SWIGTYPE_p_intarray.getCPtr(array));
   }
+
+  public String sqlite3_load_extension(SWIGTYPE_p_sqlite3 db, String file, String proc) {
+    myLastReturnCode = 0;
+    myString[0] = null;
+    myLastReturnCode = _SQLiteManualJNI.sqlite3_load_extension(SWIGTYPE_p_sqlite3.getCPtr(db), file, proc, myString);
+    String r = myString[0];
+    myString[0] = null;
+    return r;
+  }
 }
