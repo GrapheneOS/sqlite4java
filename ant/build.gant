@@ -411,7 +411,7 @@ target(name: 'android') {
   def target = "$build/android"
   ant.delete(dir: target)
   ant.mkdir(dir: target)
-  def template = new File('Android.mk.template')
+  def template = new File("$mod/ant/Android.mk.template")
   if (!template.isFile()) ant.fail(message: "cannot open file $template")
   ant.mkdir(dir: "$target/project")
   ant.mkdir(dir: "$target/project/jni")
