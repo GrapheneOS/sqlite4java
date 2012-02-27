@@ -30,4 +30,8 @@
   <target name="collect">
     <gant file="build.gant" target="collect"/>
   </target>
+
+  <target name="android">
+    <gant file="build.gant" target="android"/>
+  </target>
 </project>
