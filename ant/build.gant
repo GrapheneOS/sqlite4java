@@ -402,3 +402,20 @@ target(name: 'collect') {
   ant.delete(file: "$build/deliver/sqlite4java-${version}.zip")
   ant.zip(destfile: "$build/deliver/sqlite4java-${version}.zip", basedir: "$build", includes: "sqlite4java-${version}/*")
 }
+
+target(name: 'android') {
+  depends(['init', 'lib.swig'])
+  checkProp("ndk.home")
+  def ndkHome = antProp("ndk.home")
+  def target = "$build/android"
+  ant.delete(dir: target)
+  ant.mkdir(dir: target)
+  def template = new File('Android.mk.template')
+  if (!template.isFile()) ant.fail(message: "cannot open file $template")
+  ant.mkdir(dir: "$target/project")
+  ant.mkdir(dir: "$target/project/jni")
+  ant.copy(file: "Android.mk.template", tofile: "$target/project/jni/Android.mk")
+  ant.exec(dir: "$target/project", command: "$ndkHome/ndk-build")
+  ant.mkdir(dir: "$build/dist")
+  ant.copy(file: "$target/project/libs/armeabi/libsqlite4java-android.so", todir: "$build/dist")
+}

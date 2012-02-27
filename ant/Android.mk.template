@@ -1,0 +1,24 @@
+# Copyright (C) 2009 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+LOCAL_PATH := $(call my-dir)
+BASE := ../../../..
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE    	:= sqlite4java-android
+LOCAL_SRC_FILES 	:= $(BASE)/sqlite/sqlite3.c $(BASE)/build/swig/sqlite_wrap.c $(BASE)/native/sqlite3_wrap_manual.c $(BASE)/native/intarray.c
+LOCAL_CFLAGS		:= -O2 -DNDEBUG -Dfdatasync=fsync -fno-omit-frame-pointer -fno-strict-aliasing -static-libgcc -I../../../sqlite -I../../../native -DSQLITE_ENABLE_COLUMN_METADATA -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS -DSQLITE_ENABLE_MEMORY_MANAGEMENT -DSQLITE_ENABLE_STAT2 -DHAVE_READLINE=0 -DSQLITE_THREADSAFE=1 -DSQLITE_THREAD_OVERRIDE_LOCK=-1 -DTEMP_STORE=1  -DSQLITE_OMIT_DEPRECATED -DSQLITE_OS_UNIX=1 -DSQLITE_ENABLE_RTREE=1
+
+include $(BUILD_SHARED_LIBRARY)
