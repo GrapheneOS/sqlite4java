@@ -19,12 +19,12 @@ package com.almworks.sqlite4java;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 import static com.almworks.sqlite4java.SQLiteConstants.WRAPPER_CANNOT_LOAD_LIBRARY;
 
@@ -356,6 +356,7 @@ public final class SQLite {
       for (Handler handler : handlers) {
         if (handler instanceof ConsoleHandler) {
           handler.setLevel(Level.FINE);
+          handler.setFormatter(new NiceFormatter());
         }
       }
     } else {
@@ -375,6 +376,29 @@ public final class SQLite {
       } catch (SQLiteException e) {
         e.printStackTrace();
       }
+    }
+  }
+
+  private static class NiceFormatter extends Formatter {
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyMMdd:HHmmss.SSS", Locale.US);
+    private static final String LINE_SEPARATOR;
+    static {
+      String s = System.getProperty("line.separator");
+      if (s == null) s = "\n";
+      LINE_SEPARATOR = s;
+    }
+    
+    @Override
+    public String format(LogRecord record) {
+      if (record == null) return "";
+      StringBuilder r = new StringBuilder();
+      r.append(DATE_FORMAT.format(record.getMillis())).append(' ');
+      Level level = record.getLevel();
+      if (level == null) level = Level.ALL;
+      r.append(level.getName()).append(' ');
+      r.append(record.getMessage());
+      r.append(LINE_SEPARATOR);
+      return r.toString();
     }
   }
 }

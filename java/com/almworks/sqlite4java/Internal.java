@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -99,30 +101,86 @@ final class Internal {
     }
     String os = getOs();
     String arch = getArch(os);
-    RuntimeException loadedSignal = new RuntimeException("loaded");
-    Throwable bestReason = null;
-    try {
-      String[] suffixes = SQLite.isDebugBinaryPreferred() ? DEBUG_SUFFIXES : RELEASE_SUFFIXES;
-      if (versionSuffix != null) {
-        for (String suffix : suffixes) {
-          bestReason = tryLoadWithSuffix(suffix + versionSuffix, os, arch, bestReason, loadedSignal, defaultPath, forcedPath);
+    List<String> names = collectLibraryNames(versionSuffix, os, arch);
+    Throwable[] failureReason = {null};
+    boolean loaded = false;
+    if (forcedPath != null) {
+      // if forced path is specified with sqlite4java.library.path, load binaries only from there
+      for (String name : names) {
+        loaded = tryLoadFromPath(name, forcedPath, failureReason);
+        if (loaded) break;
+      }
+    } else {
+      if (defaultPath != null) {
+        // if we found .JAR in non-system path, try load binaries from there first
+        for (String name : names) {
+          loaded = tryLoadFromPath(name, defaultPath, failureReason);
+          if (loaded) break;
         }
       }
-      for (String suffix : suffixes) {
-        bestReason = tryLoadWithSuffix(suffix, os, arch, bestReason, loadedSignal, defaultPath, forcedPath);
-      }
-      if (bestReason == null)
-        bestReason = new SQLiteException(SQLiteConstants.WRAPPER_CANNOT_LOAD_LIBRARY, "sqlite4java cannot load native library");
-      return bestReason;
-    } catch (RuntimeException e) {
-      if (e == loadedSignal) {
-        String msg = getLibraryVersionMessage();
-        Internal.logInfo(Internal.class, msg);
-        return null;
-      } else {
-        throw e;
+      if (!loaded) {
+        // try load binaries from any system library directory
+        for (String name : names) {
+          loaded = tryLoadFromSystemPath(name, failureReason);
+          if (loaded) break;
+        }
       }
     }
+    
+    if (loaded) {
+      String msg = getLibraryVersionMessage();
+      Internal.logInfo(Internal.class, msg);
+      return null;
+    } else {
+      Throwable t = failureReason[0];
+      if (t == null) t = new SQLiteException(SQLiteConstants.WRAPPER_CANNOT_LOAD_LIBRARY, "sqlite4java cannot find native library");
+      return t;
+    }
+  }
+
+  private static List<String> collectLibraryNames(String versionSuffix, String os, String arch) {
+    List<String> baseSuffixes = collectBaseLibraryNames(os, arch);
+    ArrayList<String> r = new ArrayList<String>(24);
+    String[] configurationSuffixes = SQLite.isDebugBinaryPreferred() ? DEBUG_SUFFIXES : RELEASE_SUFFIXES;
+    if (versionSuffix != null) {
+      for (String configurationSuffix : configurationSuffixes) {
+        for (String baseSuffix : baseSuffixes) {
+          r.add(baseSuffix + configurationSuffix + versionSuffix);
+        }
+      }
+    }
+    for (String configurationSuffix : configurationSuffixes) {
+      for (String baseSuffix : baseSuffixes) {
+        r.add(baseSuffix + configurationSuffix);
+      }
+    }
+    return r;
+  }
+
+  private static List<String> collectBaseLibraryNames(String os, String arch) {
+    ArrayList<String> r = new ArrayList<String>(6);
+    String base = BASE_LIBRARY_NAME + "-" + os;
+    r.add(base + "-" + arch);
+    if (arch.equals("x86_64") || arch.equals("x64")) {
+      r.add(base + "-amd64");
+    } else if (arch.equals("powerpc")) {
+      r.add(base + "-ppc");
+    } else if (arch.equals("x86")) {
+      r.add(base + "-i386");
+    } else if (arch.equals("i386")) {
+      r.add(base + "-x86");
+    } else if (arch.startsWith("arm") && arch.length() > 3) {
+      if (arch.length() > 5 && arch.startsWith("armv") && Character.isDigit(arch.charAt(4))) {
+        r.add(base + "-" + arch.substring(0, 5));
+      }
+      r.add(base + "-arm");
+    }
+    if ("osx".equals(os)) {
+      r.add(base + "-10.4");
+    }
+    r.add(base);
+    r.add(BASE_LIBRARY_NAME);
+    return r;
   }
 
   private static String getForcedPath() {
@@ -176,7 +234,12 @@ final class Internal {
       } else if (osname.startsWith("windows")) {
         os = "win32";
       } else {
-        os = "linux";
+        String runtimeName = System.getProperty("java.runtime.name");
+        if (runtimeName != null && runtimeName.toLowerCase(Locale.US).contains("android")) {
+          os = "android";
+        } else {
+          os = "linux";
+        }
       }
     }
     logFine(Internal.class, "os.name=" + osname + "; os=" + os);
@@ -187,6 +250,15 @@ final class Internal {
     return getDefaultLibPath(System.getProperty("java.library.path"), classUrl);
   }
 
+  /**
+   * Returns a possible path to the binary library based on the .JAR file location where this class is loaded from.
+   * Binaries are supposed to be stored in the same directory. If this .JAR is located in one of the directories
+   * mentioned in java.library.path, returns null to force loading with System.loadLibrary().
+   *
+   * @param libraryPath java library path
+   * @param classUrl sample sqlite4java class url
+   * @return path to the .JAR file location or null if this path should not be used
+   */
   static String getDefaultLibPath(String libraryPath, String classUrl) {
     File jar = getJarFileFromClassUrl(classUrl);
     if (jar == null)
@@ -216,7 +288,6 @@ final class Internal {
     if (contains) {
       return null;
     } else {
-//      logFine(Internal.class, "appending to library path: [" + loadPath + "]");
       return loadPath;
     }
   }
@@ -255,74 +326,44 @@ final class Internal {
     return f + 1 < t && name.charAt(f) == '-' ? name.substring(f, t) : null;
   }
 
-  private static Throwable tryLoadWithSuffix(String suffix, String os, String arch, Throwable bestReason, RuntimeException loadedSignal, String defaultPath, String forcedPath) {
-    Throwable t = bestReason;
-    t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-" + arch + suffix, t, loadedSignal, defaultPath, forcedPath);
-    if (arch.equals("x86_64") || arch.equals("x64")) {
-      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-amd64" + suffix, t, loadedSignal, defaultPath, forcedPath);
-    } else if (arch.equals("powerpc")) {
-      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-ppc" + suffix, t, loadedSignal, defaultPath, forcedPath);
-    } else if (arch.equals("x86")) {
-      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-i386" + suffix, t, loadedSignal, defaultPath, forcedPath);
-    } else if (arch.equals("i386")) {
-      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-x86" + suffix, t, loadedSignal, defaultPath, forcedPath);
-    }
-    if ("osx".equals(os)) {
-      t = tryLoad(BASE_LIBRARY_NAME + "-" + os + "-10.4" + suffix, t, loadedSignal, defaultPath, forcedPath);
-    }
-    t = tryLoad(BASE_LIBRARY_NAME + "-" + os + suffix, t, loadedSignal, defaultPath, forcedPath);
-    t = tryLoad(BASE_LIBRARY_NAME + suffix, t, loadedSignal, defaultPath, forcedPath);
-    return t;
-  }
-
-  private static Throwable tryLoad(String libname, Throwable bestReason, RuntimeException loadedSignal, String defaultPath, String forcedPath) {
-    Throwable t = bestReason;
-    if (forcedPath != null) {
-      t = tryLoadFromPath(libname, t, loadedSignal, forcedPath);
-    } else {
-      if (defaultPath != null)
-        t = tryLoadFromPath(libname, t, loadedSignal, defaultPath);
-      t = tryLoadFromSystemPath(libname, t, loadedSignal);
-    }
-    return t;
-  }
-
-  private static Throwable tryLoadFromPath(String libname, Throwable bestReason, RuntimeException loadedSignal, String path) {
+  private static boolean tryLoadFromPath(String libname, String path, Throwable[] failureReason) {
     String libFile = System.mapLibraryName(libname);
     File lib = new File(new File(path), libFile);
     if (!lib.isFile() || !lib.canRead())
-      return bestReason;
+      return false;
     String logname = libname + " from " + lib;
     logFine(Internal.class, "trying to load " + logname);
     try {
       System.load(lib.getAbsolutePath());
+      return verifyLoading(failureReason, logname);
     } catch (Throwable t) {
       logFine(Internal.class, "cannot load " + logname + ": " + t);
-      return bestLoadFailureReason(bestReason, t);
+      updateLoadFailureReason(failureReason, t);
     }
-    return verifyLoading(bestReason, loadedSignal, logname);
+    return false;
   }
 
-  private static Throwable tryLoadFromSystemPath(String libname, Throwable bestReason, RuntimeException loadedSignal) {
+  private static boolean tryLoadFromSystemPath(String libname, Throwable[] failureReason) {
     logFine(Internal.class, "trying to load " + libname);
     try {
       System.loadLibrary(libname);
+      return verifyLoading(failureReason, libname + " from system path");
     } catch (Throwable t) {
       logFine(Internal.class, "cannot load " + libname + ": " + t);
-      return bestLoadFailureReason(bestReason, t);
+      updateLoadFailureReason(failureReason, t);
     }
-    return verifyLoading(bestReason, loadedSignal, libname + " from system path");
+    return false;
   }
 
-  private static Throwable verifyLoading(Throwable bestReason, RuntimeException loadedSignal, String logname) {
+  private static boolean verifyLoading(Throwable[] failureReason, String logname) {
     logInfo(Internal.class, "loaded " + logname);
     LinkageError linkError = checkLoaded();
     if (linkError == null) {
-      // done -- exit cycle by throwing exception
-      throw loadedSignal;
+      return true;
     }
     logFine(Internal.class, "cannot use " + logname + ": " + linkError);
-    return bestLoadFailureReason(bestReason, linkError);
+    updateLoadFailureReason(failureReason, linkError);
+    return false;
   }
 
   /**
@@ -330,18 +371,18 @@ final class Internal {
    * (which we gather from the fact that message contains "java.library.path"), then it may or may not be the
    * real reason. If there is another exception which has something else to say, it's given the priority.
    */
-  private static Throwable bestLoadFailureReason(Throwable t1, Throwable t2) {
-    if (t1 == null)
-      return t2;
-    if (t2 == null)
-      return t1;
-    String m1 = t1.getMessage();
-    if (m1 == null || !m1.contains("java.library.path"))
-      return t1;
-    String m2 = t2.getMessage();
-    if (m2 != null && m2.contains("java.library.path"))
-      return t1;
-    return t2;
+  private static void updateLoadFailureReason(Throwable[] bestReason, Throwable currentReason) {
+    if (bestReason[0] == null) {
+      bestReason[0] = currentReason;
+    } else if (currentReason != null) {
+      String m1 = bestReason[0].getMessage();
+      if (m1 != null && m1.contains("java.library.path")) {
+        String m2 = currentReason.getMessage();
+        if (m2 != null && !m2.contains("java.library.path")) {
+          bestReason[0] = currentReason;
+        }
+      }
+    }
   }
 
   private static LinkageError checkLoaded() {

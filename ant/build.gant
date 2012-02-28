@@ -418,5 +418,5 @@ target(name: 'android') {
   ant.copy(file: "Android.mk.template", tofile: "$target/project/jni/Android.mk")
   ant.exec(dir: "$target/project", command: "$ndkHome/ndk-build")
   ant.mkdir(dir: "$build/dist")
-  ant.copy(file: "$target/project/libs/armeabi/libsqlite4java-android.so", todir: "$build/dist")
+  ant.copy(file: "$target/project/libs/armeabi/libsqlite4java-android-armv7.so", todir: "$build/dist")
 }
