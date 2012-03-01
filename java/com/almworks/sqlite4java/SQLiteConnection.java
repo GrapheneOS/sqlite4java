@@ -850,21 +850,27 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Initializes a backup of database with given name from current connection to specified file.
-   * This method creates a connection to destination file, opens it with specified flags and
-   * initialize an instance of SQLiteBackup for source and destination connection.Each successful call
-   * to initializeBackup must be followed by call to {@link com.almworks.sqlite4java.SQLiteBackup#dispose}.
    * <p>
-   *   Name of source database may be "main" for main database, "temp" for temporary database or name used in ATTACH clause
-   *   for attached database.
+   * Initializes backup of the database with the given name from the current connection to the specified file.
+   * </p><p>
+   * This method creates a new SQLite connection to the destination file, opens it with the specified flags and
+   * initializes an instance of {@link SQLiteBackup} for the source and destination connections.
+   * </p><p>Each successful call
+   * to <code>initializeBackup</code> must be followed by a call to {@link com.almworks.sqlite4java.SQLiteBackup#dispose}.
+   * </p>
+   * <p>The name of the source database is usually <code>"main"</code> for the main database, or <code>"temp"</code>
+   * for the temporary database. It can also be the name used in the ATTACH clause for an attached database.
+   * </p>
+   * <p>
+   *   The database that will hold the backup in the destination file is always named <code>"main"</code>.
    * </p>
    *
-   * @param sourceDbName name of source database (usually "main")
-   * @param destinationDbFile file in which source database will be copied or <strong>null</strong> if you want to back up into in-memory database
-   * @param flags flags for opening connection to destination database. See {@link #openV2(int)} for details
-   * @return an instance of {@link SQLiteBackup}
+   * @param sourceDbName name of the source database in this connection (usually "main")
+   * @param destinationDbFile file to store the backup or <strong>null</strong> if you want to back up into a in-memory database
+   * @param flags flags for opening the connection to the destination database - see {@link #openV2(int)} for details
+   * @return a new instance of {@link SQLiteBackup}
    * @throws SQLiteException if SQLite return an error, or if the call violates the contract of this class
-   * @see <a href=http://www.sqlite.org/c3ref/backup_finish.html#sqlite3backupinit>sqlite3_backup_init</a>
+   * @see <a href="http://www.sqlite.org/c3ref/backup_finish.html#sqlite3backupinit">sqlite3_backup_init</a>
    */
   public SQLiteBackup initializeBackup(String sourceDbName, File destinationDbFile, int flags) throws SQLiteException {
     checkThread();
@@ -876,10 +882,10 @@ public final class SQLiteConnection {
     SWIGTYPE_p_sqlite3 destinationDb = destination.handle();
     SWIGTYPE_p_sqlite3_backup backup = _SQLiteSwigged.sqlite3_backup_init(destinationDb, DEFAULT_DB_NAME, sourceDb, sourceDbName);
     if (backup == null) {
-      int errorCode = destination.getErrorCode();
       try {
-        destination.throwResult(errorCode, "Backup initialization failed");
-        throw new AssertionError("error code is 0");
+        int errorCode = destination.getErrorCode();
+        destination.throwResult(errorCode, "backup initialization");
+        throw new SQLiteException(SQLiteConstants.WRAPPER_WEIRD, "backup failed to start but error code is 0");
       } finally {
         destination.dispose();
       }
@@ -889,26 +895,28 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Initialize a backup of main database of current connection to specialized file.
    * <p>
-   * This is convenience method, equivalent to
-   * <code><strong>initializeBackup</strong>(<strong>"main"</strong>, destinationDbFile, <strong>SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE</strong>)</code>
+   * Initializes backup of the database from this connection to the specified file.
    * </p>
-   * @param destinationDbFile file in which source database will be copied or <strong>null</strong> if you want to back up into in-memory database
+   * <p>
+   * This is a convenience method, equivalent to
+   * <code>initializeBackup("main", destinationDbFile, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE)</code>
+   * </p>
+   *
+   * @param destinationDbFile file to store the backup or <strong>null</strong> if you want to back up into a in-memory database
    * @return an instance of {@link SQLiteBackup}
    * @throws SQLiteException if SQLite return an error, or if the call violates the contract of this class
-   *
    */
   public SQLiteBackup initializeBackup(File destinationDbFile) throws SQLiteException {
     return initializeBackup(DEFAULT_DB_NAME, destinationDbFile, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
   }
 
   /**
-   * Enables or disables SQLite extension loading. By default, extension loading is disabled.
+   * Enables or disables SQLite extension loading for this connection. By default, extension loading is disabled.
    *
    * @param enabled if true, extensions can be loaded via {@link #loadExtension} function
    * @throws SQLiteException if extension loading flag cannot be changed
-   * @see <a href=http://www.sqlite.org/c3ref/enable_load_extension.html>enable_load_extension</a>
+   * @see <a href="http://www.sqlite.org/c3ref/enable_load_extension.html">enable_load_extension</a>
    */
   public void setExtensionLoadingEnabled(boolean enabled) throws SQLiteException {
     checkThread();
@@ -926,7 +934,7 @@ public final class SQLiteConnection {
    * @param extensionFile extension library, not null
    * @param entryPoint entry point function; if null, defaults to "sqlite3_extension_init"
    * @throws SQLiteException if extension can't be loaded
-   * @see <a href=http://www.sqlite.org/c3ref/load_extension.html>load_extension</a>
+   * @see <a href="http://www.sqlite.org/c3ref/load_extension.html">load_extension</a>
    */
   public void loadExtension(File extensionFile, String entryPoint) throws SQLiteException {
     checkThread();
@@ -944,12 +952,13 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Loads an SQLite extension library using default extension entry point. Extension loading must be enabled with {@link #setExtensionLoadingEnabled(boolean)}
+   * Loads an SQLite extension library using default extension entry point.
+   * Extension loading must be enabled with {@link #setExtensionLoadingEnabled(boolean)}
    * prior to calling this method.
    *
    * @param extensionFile extension library, not null
    * @throws SQLiteException if extension can't be loaded
-   * @see <a href=http://www.sqlite.org/c3ref/load_extension.html>load_extension</a>
+   * @see <a href="http://www.sqlite.org/c3ref/load_extension.html">load_extension</a>
    */
   public void loadExtension(File extensionFile) throws SQLiteException {
     loadExtension(extensionFile, null);
