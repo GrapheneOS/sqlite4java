@@ -115,6 +115,22 @@ public class SQLiteStatementTests extends SQLiteConnectionFixture {
     }
   }
 
+  public void testBindParameterNames() throws SQLiteException {
+    SQLiteConnection connection = fileDb().open().exec("create table x (x, y)");
+    SQLiteStatement st = connection.prepare("insert into x values (:val1, :val2)");
+    try {
+      st.bind(":val1", "abc");
+    } catch (SQLiteException e) {
+      fail("can not bound to :val1");
+    }
+    try {
+      st.bind(":val3", "missing parameter");
+      fail("attempt to bound unexpected parameter");
+    } catch (SQLiteException e) {
+      // norm
+    }
+  }
+
   public void testBadColumnUse() throws SQLiteException {
     SQLiteConnection connection = fileDb().open().exec("create table x (x, y)");
     connection.exec("insert into x values (2, '3');");
