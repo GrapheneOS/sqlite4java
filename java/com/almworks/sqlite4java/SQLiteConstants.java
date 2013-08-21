@@ -119,6 +119,19 @@ public interface SQLiteConstants {
   int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
   int SQLITE_OPEN_WAL = 0x00080000;
 
+  // SQLITE_LIMIT_* identify class of constructs to be size limited
+  int SQLITE_LIMIT_LENGTH = 0;
+  int SQLITE_LIMIT_SQL_LENGTH = 1;
+  int SQLITE_LIMIT_COLUMN = 2;
+  int SQLITE_LIMIT_EXPR_DEPTH = 3;
+  int SQLITE_LIMIT_COMPOUND_SELECT = 4;
+  int SQLITE_LIMIT_VDBE_OP = 5;
+  int SQLITE_LIMIT_FUNCTION_ARG = 6;
+  int SQLITE_LIMIT_ATTACHED = 7;
+  int SQLITE_LIMIT_LIKE_PATTERN_LENGTH = 8;
+  int SQLITE_LIMIT_VARIABLE_NUMBER = 9;
+  int SQLITE_LIMIT_TRIGGER_DEPTH = 10;
+
   /**
    * Something strange happened.
    */

@@ -98,6 +98,7 @@ int sqlite3_blob_close(sqlite3_blob *);
 int sqlite3_blob_bytes(sqlite3_blob *);
 int sqlite3_stmt_readonly(sqlite3_stmt *);
 int sqlite3_blob_reopen(sqlite3_blob *, sqlite3_int64);
+int sqlite3_limit(sqlite3*, int, int);
 sqlite3_backup *sqlite3_backup_init(sqlite3 *, const char *, sqlite3 *, const char *);
 int sqlite3_backup_step(sqlite3_backup *p, int nPage);
 int sqlite3_backup_finish(sqlite3_backup *p);

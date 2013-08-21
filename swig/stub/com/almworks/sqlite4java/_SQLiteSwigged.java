@@ -222,6 +222,10 @@ class _SQLiteSwigged {
     return _SQLiteSwiggedJNI.sqlite3_blob_reopen(SWIGTYPE_p_sqlite3_blob.getCPtr(arg0), arg1);
   }
 
+  public static int sqlite3_limit(SWIGTYPE_p_sqlite3 arg0, int id, int newVal) {
+    return _SQLiteSwiggedJNI.sqlite3_limit(SWIGTYPE_p_sqlite3.getCPtr(arg0), id, newVal);
+  }
+
   public static SWIGTYPE_p_sqlite3_backup sqlite3_backup_init(SWIGTYPE_p_sqlite3 arg0, String arg1, SWIGTYPE_p_sqlite3 arg2, String arg3) {
     long cPtr = _SQLiteSwiggedJNI.sqlite3_backup_init(SWIGTYPE_p_sqlite3.getCPtr(arg0), arg1, SWIGTYPE_p_sqlite3.getCPtr(arg2), arg3);
     return (cPtr == 0) ? null : new SWIGTYPE_p_sqlite3_backup(cPtr, false);

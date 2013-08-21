@@ -62,6 +62,7 @@ class _SQLiteSwiggedJNI {
   public final static native int sqlite3_blob_bytes(long jarg1);
   public final static native int sqlite3_stmt_readonly(long jarg1);
   public final static native int sqlite3_blob_reopen(long jarg1, long jarg2);
+  public final static native int sqlite3_limit(long jarg1, int jarg2, int jarg3);
   public final static native long sqlite3_backup_init(long jarg1, String jarg2, long jarg3, String jarg4);
   public final static native int sqlite3_backup_step(long jarg1, int jarg2);
   public final static native int sqlite3_backup_finish(long jarg1);
