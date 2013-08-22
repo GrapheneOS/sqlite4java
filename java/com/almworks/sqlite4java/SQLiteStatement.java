@@ -531,6 +531,18 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Wraps <code>getBindParameterIndex</code> method
+   * @throws SQLiteException if parameter with specified name was not found
+   */
+  private int getValidBindParameterIndex(String name) throws SQLiteException {
+    int index = getBindParameterIndex(name);
+    if (index == 0) {
+      throw new SQLiteException(WRAPPER_INVALID_ARG_1, "failed to find parameter with specified name (" + name + ")");
+    }
+    return index;
+  }
+
+  /**
    * Binds SQL parameter to a value of type double.
    *
    * @param index the index of the boundable parameter, starting with 1
@@ -547,6 +559,21 @@ public final class SQLiteStatement {
     myController.throwResult(rc, "bind(double)", this);
     myHasBindings = true;
     return this;
+  }
+
+  /**
+   * Binds SQL parameter to a value of type double.
+   *
+   * @param name the string representation of the boundable parameter
+   * @param value non-null double value
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_double</a>
+   */
+  public SQLiteStatement bind(String name, double value) throws SQLiteException {
+    return bind(getValidBindParameterIndex(name), value);
   }
 
   /**
@@ -569,6 +596,21 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Binds SQL parameter to a value of type int.
+   *
+   * @param name the string representation of the boundable parameter
+   * @param value non-null int value
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_int</a>
+   */
+  public SQLiteStatement bind(String name, int value) throws SQLiteException {
+    return bind(getValidBindParameterIndex(name), value);
+  }
+
+  /**
    * Binds SQL parameter to a value of type long.
    *
    * @param index the index of the boundable parameter, starting with 1
@@ -585,6 +627,21 @@ public final class SQLiteStatement {
     myController.throwResult(rc, "bind(long)", this);
     myHasBindings = true;
     return this;
+  }
+
+  /**
+   * Binds SQL parameter to a value of type long.
+   *
+   * @param name the string representation of the boundable parameter
+   * @param value non-null long value
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_int64</a>
+   */
+  public SQLiteStatement bind(String name, long value) throws SQLiteException {
+    return bind(getValidBindParameterIndex(name), value);
   }
 
   /**
@@ -615,6 +672,21 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Binds SQL parameter to a value of type String.
+   *
+   * @param name the string representation of the boundable parameter
+   * @param value String value, if null then {@link #bindNull} will be called
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_text</a>
+   */
+  public SQLiteStatement bind(String name, String value) throws SQLiteException {
+    return bind(getValidBindParameterIndex(name), value);
+  }
+
+  /**
    * Binds SQL parameter to a BLOB value, represented by a byte array.
    *
    * @param index the index of the boundable parameter, starting with 1
@@ -625,6 +697,21 @@ public final class SQLiteStatement {
    */
   public SQLiteStatement bind(int index, byte[] value) throws SQLiteException {
     return value == null ? bindNull(index) : bind(index, value, 0, value.length);
+  }
+
+  /**
+   * Binds SQL parameter to a BLOB value, represented by a byte array.
+   *
+   * @param name the string representation of the boundable parameter
+   * @param value an array of bytes to be used as the blob value; if null, {@link #bindNull} is called
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
+  public SQLiteStatement bind(String name, byte[] value) throws SQLiteException {
+    return bind(getValidBindParameterIndex(name), value);
   }
 
   /**
@@ -656,6 +743,23 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Binds SQL parameter to a BLOB value, represented by a range within byte array.
+   *
+   * @param name the string representation of the boundable parameter
+   * @param value  an array of bytes; if null, {@link #bindNull} is called
+   * @param offset position in the byte array to start reading value from
+   * @param length number of bytes to read from value
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
+  public SQLiteStatement bind(String name, byte[] value, int offset, int length) throws SQLiteException {
+    return bind(getValidBindParameterIndex(name), value, offset, length);
+  }
+
+  /**
    * Binds SQL parameter to a BLOB value, consiting of a given number of zero bytes.
    *
    * @param index  the index of the boundable parameter, starting with 1
@@ -680,6 +784,21 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Binds SQL parameter to a BLOB value, consiting of a given number of zero bytes.
+   *
+   * @param name the string representation of the boundable parameter
+   * @param length number of zero bytes to use as a parameter
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_zeroblob</a>
+   */
+  public SQLiteStatement bindZeroBlob(String name, int length) throws SQLiteException {
+    return bindZeroBlob(getValidBindParameterIndex(name), length);
+  }
+
+  /**
    * Binds SQL parameter to a NULL value.
    *
    * @param index the index of the boundable parameter, starting with 1
@@ -698,6 +817,20 @@ public final class SQLiteStatement {
   }
 
   /**
+   * Binds SQL parameter to a NULL value.
+   *
+   * @param name the string representation of the boundable parameter
+   * @return this object
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_null</a>
+   */
+  public SQLiteStatement bindNull(String name) throws SQLiteException {
+    return bindNull(getValidBindParameterIndex(name));
+  }
+
+  /**
    * Binds SQL parameter to a BLOB value, represented by a stream. The stream can further be used to write into,
    * before the first call to {@link #step}.
    * <p/>
@@ -712,6 +845,25 @@ public final class SQLiteStatement {
    */
   public OutputStream bindStream(int index) throws SQLiteException {
     return bindStream(index, 0);
+  }
+
+  /**
+   * Binds SQL parameter to a BLOB value, represented by a stream. The stream can further be used to write into,
+   * before the first call to {@link #step}.
+   * <p/>
+   * After the application is done writing to the parameter stream, it should be closed.
+   * <p/>
+   * If statement is executed before the stream is closed, the value will not be set for the parameter.
+   *
+   * @param name the string representation of the boundable parameter
+   * @return stream to receive data for the BLOB parameter
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
+  public OutputStream bindStream(String name) throws SQLiteException {
+    return bindStream(getValidBindParameterIndex(name), 0);
   }
 
   /**
@@ -745,6 +897,26 @@ public final class SQLiteStatement {
     } catch (IOException e) {
       throw new SQLiteException(WRAPPER_WEIRD, "cannot allocate buffer", e);
     }
+  }
+
+  /**
+   * Binds SQL parameter to a BLOB value, represented by a stream. The stream can further be used to write into,
+   * before the first call to {@link #step}.
+   * <p/>
+   * After the application is done writing to the parameter stream, it should be closed.
+   * <p/>
+   * If statement is executed before the stream is closed, the value will not be set for the parameter.
+   *
+   * @param name the string representation of the boundable parameter
+   * @param bufferSize the number of bytes to be allocated for the buffer (the buffer will grow as needed)
+   * @return stream to receive data for the BLOB parameter
+   * @throws SQLiteException if SQLite returns an error,
+   *         or if parameter with specified name was not found,
+   *         or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/bind_blob.html">sqlite3_bind_blob</a>
+   */
+  public OutputStream bindStream(String name, int bufferSize) throws SQLiteException {
+    return bindStream(getValidBindParameterIndex(name), bufferSize);
   }
 
   /**
