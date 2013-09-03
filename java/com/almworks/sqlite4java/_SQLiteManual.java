@@ -44,6 +44,10 @@ final class _SQLiteManual {
     return _SQLiteManualJNI.sqlite3_exec(SWIGTYPE_p_sqlite3.getCPtr(db), sql, outError);
   }
 
+  public static int sqlite3_table_column_metadata(SWIGTYPE_p_sqlite3 db, String dbName, String tableName, String columnName, String[] dataType, String[] collSeq, int[] notNull, int[] primaryKey, int[] autoinc) {
+    return _SQLiteManualJNI.sqlite3_table_column_metadata(SWIGTYPE_p_sqlite3.getCPtr(db), dbName, tableName, columnName, dataType, collSeq, notNull, primaryKey, autoinc);
+  }
+
   public static int sqlite3_bind_text(SWIGTYPE_p_sqlite3_stmt stmt, int index, String value) {
     return _SQLiteManualJNI.sqlite3_bind_text(SWIGTYPE_p_sqlite3_stmt.getCPtr(stmt), index, value);
   }
