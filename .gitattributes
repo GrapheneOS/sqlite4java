@@ -27,6 +27,7 @@ java/com/almworks/sqlite4java/SQLParts.java -text
 java/com/almworks/sqlite4java/SQLiteBackup.java -text
 java/com/almworks/sqlite4java/SQLiteBlob.java -text
 java/com/almworks/sqlite4java/SQLiteBusyException.java -text
+java/com/almworks/sqlite4java/SQLiteColumnMetadata.java -text
 java/com/almworks/sqlite4java/SQLiteConnection.java -text
 java/com/almworks/sqlite4java/SQLiteController.java -text
 java/com/almworks/sqlite4java/SQLiteException.java -text
