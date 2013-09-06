@@ -109,7 +109,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
 }
 
 JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1table_1column_1metadata(JNIEnv *jenv, jclass jcls,
-  jlong jdb, jstring jDbName, jstring jTableName, jstring jColumnName, jobjectArray jDataType, jobjectArray jCollSeq, jintArray jNotNull, jintArray jPrimaryKey, jintArray jAutoinc)
+  jlong jdb, jstring jDbName, jstring jTableName, jstring jColumnName, jobjectArray jOut12, jintArray jOut345)
 {
   sqlite3* db = 0;
   const char *dbName = 0;
@@ -130,16 +130,13 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   if (!jdb) return WRAPPER_INVALID_ARG_1;
   if (!jTableName) return WRAPPER_INVALID_ARG_3;
   if (!jColumnName) return WRAPPER_INVALID_ARG_4;
-  if (!jDataType) return WRAPPER_INVALID_ARG_5;
-  if (!jCollSeq) return WRAPPER_INVALID_ARG_6;
-  if (!jNotNull) return WRAPPER_INVALID_ARG_7;
-  if (!jPrimaryKey) return WRAPPER_INVALID_ARG_8;
-  if (!jAutoinc) return WRAPPER_INVALID_ARG_9;
-  if (1 != (*jenv)->GetArrayLength(jenv, jDataType) ||
-      1 != (*jenv)->GetArrayLength(jenv, jCollSeq) ||
-      1 != (*jenv)->GetArrayLength(jenv, jNotNull) ||
-      1 != (*jenv)->GetArrayLength(jenv, jPrimaryKey) ||
-      1 != (*jenv)->GetArrayLength(jenv, jAutoinc)) return WRAPPER_WEIRD_2;
+  if (!jOut12) return WRAPPER_INVALID_ARG_5;
+  if (!jOut345) return WRAPPER_INVALID_ARG_6;
+  if (2 != (*jenv)->GetArrayLength(jenv, jOut12) ||
+      3 != (*jenv)->GetArrayLength(jenv, jOut345))
+  {
+    return WRAPPER_WEIRD_2;
+  }
 
   db = *(sqlite3**)&jdb;
   dbName = jDbName ? (*jenv)->GetStringUTFChars(jenv, jDbName, 0) : 0;
@@ -156,23 +153,23 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   if (tableName) (*jenv)->ReleaseStringUTFChars(jenv, jTableName, tableName);
   if (columnName) (*jenv)->ReleaseStringUTFChars(jenv, jColumnName, columnName);
 
-  if (!dataType || !collSeq || !notNull || !primaryKey || !autoinc) {
+  if (!dataType || !collSeq) {
     if (!db) return WRAPPER_WEIRD;
     err = sqlite3_errcode(db);
     if (err == SQLITE_NOMEM) return err;
+  } else {
+    result = (*jenv)->NewStringUTF(jenv, dataType);
+    if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
+    (*jenv)->SetObjectArrayElement(jenv, jOut12, 0, result);
+
+    result = (*jenv)->NewStringUTF(jenv, collSeq);
+    if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
+    (*jenv)->SetObjectArrayElement(jenv, jOut12, 1, result);
+
+    (*jenv)->SetIntArrayRegion(jenv, jOut345, 0, 1, &notNull);
+    (*jenv)->SetIntArrayRegion(jenv, jOut345, 1, 1, &primaryKey);
+    (*jenv)->SetIntArrayRegion(jenv, jOut345, 2, 1, &autoinc);
   }
-
-  result = (*jenv)->NewStringUTF(jenv, dataType);
-  if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
-  (*jenv)->SetObjectArrayElement(jenv, jDataType, 0, result);
-
-  result = (*jenv)->NewStringUTF(jenv, collSeq);
-  if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
-  (*jenv)->SetObjectArrayElement(jenv, jCollSeq, 0, result);
-
-  (*jenv)->SetIntArrayRegion(jenv, jNotNull, 0, 1, &notNull);
-  (*jenv)->SetIntArrayRegion(jenv, jPrimaryKey, 0, 1, &primaryKey);
-  (*jenv)->SetIntArrayRegion(jenv, jAutoinc, 0, 1, &autoinc);
 
   return rc;
 }

@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import static com.almworks.sqlite4java.SQLiteConstants.*;
+import com.almworks.sqlite4java.SQLiteColumnMetadata;
 
 /**
  * SQLiteConnection is a single connection to sqlite database. It wraps the <strong><code>sqlite3*</code></strong>
@@ -459,20 +460,15 @@ public final class SQLiteConnection {
    * @param dbName Database name or NULL
    * @param tableName Table name
    * @param columnName Column name
-   * @param dataType OUTPUT: Declared data type
-   * @param collSeq OUTPUT: Collation sequence name
-   * @param notNull OUTPUT: True if NOT NULL constraint exists
-   * @param primaryKey OUTPUT: True if column part of PK
-   * @param autoinc OUTPUT: True if column is auto-increment
-   * @return error code if specified table is actually a view, or if error occurs during this process, or if the requested table or column cannot be found error code is returned
-   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   * @return SQLiteColumnMetadata column metadata
+   * @throws SQLiteException if specified table is actually a view, or if error occurs during this process, or if the requested table or column cannot be found, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/table_column_metadata.html">sqlite3_table_column_metadata</a>
    */
-  public int getTableColumnMetadata(String dbName, String tableName, String columnName, String[] dataType, String[] collSeq, int[] notNull, int[] primaryKey, int[] autoinc) throws SQLiteException {
+  public SQLiteColumnMetadata getTableColumnMetadata(String dbName, String tableName, String columnName) throws SQLiteException {
     checkThread();
     if (Internal.isFineLogging())
       Internal.logFine(this, "calling sqlite3_table_column_metadata [" + dbName + "," + tableName + "," + columnName + "]");
-    return _SQLiteManual.sqlite3_table_column_metadata(handle(), dbName, tableName, columnName, dataType, collSeq, notNull, primaryKey, autoinc);
+    return mySQLiteManual.sqlite3_table_column_metadata(handle(), dbName, tableName, columnName);
   }
 
   /**
