@@ -99,9 +99,9 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
       SQLiteColumnMetadata metadata = db.getTableColumnMetadata(dbName, tableName, columnName);
       assertEquals("INTEGER", metadata.getDataType());
       assertEquals("BINARY", metadata.getCollSeq());
-      assertEquals(0, metadata.getNotNull());
-      assertEquals(1, metadata.getPrimaryKey());
-      assertEquals(0, metadata.getAutoinc());
+      assertEquals(false, metadata.getNotNull());
+      assertEquals(true, metadata.getPrimaryKey());
+      assertEquals(false, metadata.getAutoinc());
     } catch (SQLiteException e) {
       fail("failed to get table column metadata");
     }

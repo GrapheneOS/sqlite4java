@@ -25,9 +25,9 @@ final class _SQLiteManual {
    * These arrays are used for return values. SQLiteConnection facade must ensure the methods are called
    * from the same thread, so these values are confined.
    */
-  private final int[] myInt = {0,0,0};
+  private final int[] myInt = {0, 0, 0};
   private final long[] myLong = {0};
-  private final String[] myString = {null,null};
+  private final String[] myString = {null, null};
   private final byte[][] myByteArray = {null};
   private final Object[] myObject = {null, null};
 
@@ -47,10 +47,18 @@ final class _SQLiteManual {
   }
 
   public SQLiteColumnMetadata sqlite3_table_column_metadata(SWIGTYPE_p_sqlite3 db, String dbName, String tableName, String columnName) throws SQLiteException {
-    /*clean up*/ myString[0] = null; myString[1] = null; myInt[0] = 0; myInt[1] = 0; myInt[2] = 0;
+    myString[0] = null;
+    myString[1] = null;
+    myInt[0] = 0;
+    myInt[1] = 0;
+    myInt[2] = 0;
     int res = _SQLiteManualJNI.sqlite3_table_column_metadata(SWIGTYPE_p_sqlite3.getCPtr(db), dbName, tableName, columnName, myString, myInt);
-    SQLiteColumnMetadata columnMetadata = new SQLiteColumnMetadata(myString[0], myString[1], myInt[0], myInt[1], myInt[2]);
-    /*clean up*/ myString[0] = null; myString[1] = null; myInt[0] = 0; myInt[1] = 0; myInt[2] = 0;
+    SQLiteColumnMetadata columnMetadata = new SQLiteColumnMetadata(myString[0], myString[1], myInt[0] == 1, myInt[1] == 1, myInt[2] == 1);
+    myString[0] = null;
+    myString[1] = null;
+    myInt[0] = 0;
+    myInt[1] = 0;
+    myInt[2] = 0;
     if (res != SQLiteConstants.SQLITE_OK)
       throw new SQLiteException(res, "failed calling sqlite3_table_column_metadata()");
     return columnMetadata;

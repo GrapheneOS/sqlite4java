@@ -119,9 +119,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   const char* dataType = 0;
   const char* collSeq = 0;
 
-  int notNull = 0;
-  int primaryKey = 0;
-  int autoinc = 0;
+  int flags[3] = {0}; // notNull, primaryKey, autoinc
 
   jstring result = 0;
   int err = 0;
@@ -132,8 +130,8 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   if (!jColumnName) return WRAPPER_INVALID_ARG_4;
   if (!jOut12) return WRAPPER_INVALID_ARG_5;
   if (!jOut345) return WRAPPER_INVALID_ARG_6;
-  if (2 != (*jenv)->GetArrayLength(jenv, jOut12) ||
-      3 != (*jenv)->GetArrayLength(jenv, jOut345))
+  if (2 > (*jenv)->GetArrayLength(jenv, jOut12) ||
+      3 > (*jenv)->GetArrayLength(jenv, jOut345))
   {
     return WRAPPER_WEIRD_2;
   }
@@ -146,7 +144,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   if (!tableName || !columnName || (!dbName && jDbName)) {
     rc = WRAPPER_CANNOT_TRANSFORM_STRING;
   } else {
-    rc = sqlite3_table_column_metadata(db, dbName, tableName, columnName, &dataType, &collSeq, &notNull, &primaryKey, &autoinc);
+    rc = sqlite3_table_column_metadata(db, dbName, tableName, columnName, &dataType, &collSeq, &flags[0], &flags[1], &flags[2]);
   }
 
   if (dbName) (*jenv)->ReleaseStringUTFChars(jenv, jDbName, dbName);
@@ -166,9 +164,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
     if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
     (*jenv)->SetObjectArrayElement(jenv, jOut12, 1, result);
 
-    (*jenv)->SetIntArrayRegion(jenv, jOut345, 0, 1, &notNull);
-    (*jenv)->SetIntArrayRegion(jenv, jOut345, 1, 1, &primaryKey);
-    (*jenv)->SetIntArrayRegion(jenv, jOut345, 2, 1, &autoinc);
+    (*jenv)->SetIntArrayRegion(jenv, jOut345, 0, 3, flags);
   }
 
   return rc;
