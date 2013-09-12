@@ -108,6 +108,67 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   return rc;
 }
 
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1table_1column_1metadata(JNIEnv *jenv, jclass jcls,
+  jlong jdb, jstring jDbName, jstring jTableName, jstring jColumnName, jobjectArray jOut12, jintArray jOut345)
+{
+  sqlite3* db = 0;
+  const char *dbName = 0;
+  const char *tableName = 0;
+  const char *columnName = 0;
+
+  const char* dataType = 0;
+  const char* collSeq = 0;
+
+  int flags[3] = {0, 0, 0}; // notNull, primaryKey, autoinc
+
+  jstring result = 0;
+  int err = 0;
+  int rc = 0;
+
+  if (!jdb) return WRAPPER_INVALID_ARG_1;
+  if (!jTableName) return WRAPPER_INVALID_ARG_3;
+  if (!jColumnName) return WRAPPER_INVALID_ARG_4;
+  if (!jOut12) return WRAPPER_INVALID_ARG_5;
+  if (!jOut345) return WRAPPER_INVALID_ARG_6;
+  if (2 > (*jenv)->GetArrayLength(jenv, jOut12) ||
+      3 > (*jenv)->GetArrayLength(jenv, jOut345))
+  {
+    return WRAPPER_WEIRD_2;
+  }
+
+  db = *(sqlite3**)&jdb;
+  dbName = jDbName ? (*jenv)->GetStringUTFChars(jenv, jDbName, 0) : 0;
+  tableName = (*jenv)->GetStringUTFChars(jenv, jTableName, 0);
+  columnName = (*jenv)->GetStringUTFChars(jenv, jColumnName, 0);
+
+  if (!tableName || !columnName || (!dbName && jDbName)) {
+    rc = WRAPPER_CANNOT_TRANSFORM_STRING;
+  } else {
+    rc = sqlite3_table_column_metadata(db, dbName, tableName, columnName, &dataType, &collSeq, &flags[0], &flags[1], &flags[2]);
+  }
+
+  if (dbName) (*jenv)->ReleaseStringUTFChars(jenv, jDbName, dbName);
+  if (tableName) (*jenv)->ReleaseStringUTFChars(jenv, jTableName, tableName);
+  if (columnName) (*jenv)->ReleaseStringUTFChars(jenv, jColumnName, columnName);
+
+  if (!dataType || !collSeq) {
+    if (!db) return WRAPPER_WEIRD;
+    err = sqlite3_errcode(db);
+    if (err == SQLITE_NOMEM) return err;
+  } else {
+    result = (*jenv)->NewStringUTF(jenv, dataType);
+    if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
+    (*jenv)->SetObjectArrayElement(jenv, jOut12, 0, result);
+
+    result = (*jenv)->NewStringUTF(jenv, collSeq);
+    if (!result) return WRAPPER_CANNOT_ALLOCATE_STRING;
+    (*jenv)->SetObjectArrayElement(jenv, jOut12, 1, result);
+
+    (*jenv)->SetIntArrayRegion(jenv, jOut345, 0, 3, flags);
+  }
+
+  return rc;
+}
 
 JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1prepare_1v2(JNIEnv *jenv, jclass jcls,
   jlong jdb, jstring jsql, jlongArray jresult)

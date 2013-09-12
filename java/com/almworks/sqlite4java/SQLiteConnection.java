@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import static com.almworks.sqlite4java.SQLiteConstants.*;
+import com.almworks.sqlite4java.SQLiteColumnMetadata;
 
 /**
  * SQLiteConnection is a single connection to sqlite database. It wraps the <strong><code>sqlite3*</code></strong>
@@ -451,6 +452,23 @@ public final class SQLiteConnection {
       ph.reset();
     }
     return this;
+  }
+
+  /**
+   * Return meta information about a specific column of a database table.
+   *
+   * @param dbName Database name or NULL
+   * @param tableName Table name
+   * @param columnName Column name
+   * @return SQLiteColumnMetadata column metadata
+   * @throws SQLiteException if specified table is actually a view, or if error occurs during this process, or if the requested table or column cannot be found, or if the call violates the contract of this class
+   * @see <a href="http://www.sqlite.org/c3ref/table_column_metadata.html">sqlite3_table_column_metadata</a>
+   */
+  public SQLiteColumnMetadata getTableColumnMetadata(String dbName, String tableName, String columnName) throws SQLiteException {
+    checkThread();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "calling sqlite3_table_column_metadata [" + dbName + "," + tableName + "," + columnName + "]");
+    return mySQLiteManual.sqlite3_table_column_metadata(handle(), dbName, tableName, columnName);
   }
 
   /**

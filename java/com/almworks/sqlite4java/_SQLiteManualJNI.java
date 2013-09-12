@@ -37,6 +37,22 @@ final class _SQLiteManualJNI {
 
   /**
    * @param db handle
+   * @param dbName database name
+   * @param tableName table name
+   * @param columnName column name
+   * @param out12 array of:
+   *              dataType (data type) and 
+   *              collSeq (collation sequence)
+   * @param out345 array of:
+   *               notNull (True if NOT NULL constraint exists), 
+   *               primaryKey (True if column part of PK),
+   *               autoinc (True if column is auto-increment)
+   * @return result code
+   */
+  public final static native int sqlite3_table_column_metadata(long db, String dbName, String tableName, String columnName, String[] out12, int[] out345);
+
+  /**
+   * @param db handle
    * @param sql sql statement
    * @param ppStmt long[1] container for statement handle
    * @return result code

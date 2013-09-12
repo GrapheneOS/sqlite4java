@@ -87,6 +87,26 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     }
   }
 
+  public void testGetTableColumnMetadata() throws SQLiteException {
+    SQLiteConnection db = fileDb();
+    db.open();
+    db.exec("create table xxx (x INTEGER PRIMARY KEY)");
+
+    try {
+      String dbName = null;
+      String tableName = "xxx";
+      String columnName = "x";
+      SQLiteColumnMetadata metadata = db.getTableColumnMetadata(dbName, tableName, columnName);
+      assertEquals("INTEGER", metadata.getDataType());
+      assertEquals("BINARY", metadata.getCollSeq());
+      assertEquals(false, metadata.isNotNull());
+      assertEquals(true, metadata.isPrimaryKey());
+      assertEquals(false, metadata.isAutoinc());
+    } catch (SQLiteException e) {
+      fail("failed to get table column metadata");
+    }
+  }
+
   public void testSetAndGetLimit() throws SQLiteException {
     SQLiteConnection db = fileDb();
     db.open();
