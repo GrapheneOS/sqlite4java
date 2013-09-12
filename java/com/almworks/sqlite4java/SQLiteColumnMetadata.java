@@ -21,9 +21,9 @@ package com.almworks.sqlite4java;
  *
  * <ul><li>Declared datatype ({@code String})</li>
  * <li>Collation sequence name ({@code String})</li>
- * <li>Flag that is true if NOT NULL constraint exists ({@code int})</li>
- * <li>Flag that is true if column is a part of primary key ({@code int})</li>
- * <li>Flag that is true if column is auto-increment ({@code int})</li></ul>
+ * <li>Flag that is true if NOT NULL constraint exists ({@code boolean})</li>
+ * <li>Flag that is true if column is a part of primary key ({@code boolean})</li>
+ * <li>Flag that is true if column is auto-increment ({@code boolean})</li></ul>
  *
  * You get instances of SQLiteColumnMetadata via {@link SQLiteConnection#getTableColumnMetadata} method.
  *
@@ -63,21 +63,21 @@ public final class SQLiteColumnMetadata {
   /**
    * @return True if NOT NULL constraint exists
    */
-  public boolean getNotNull() {
+  public boolean isNotNull() {
     return myNotNull;
   }
 
   /**
    * @return True if column part of primary key
    */
-  public boolean getPrimaryKey() {
+  public boolean isPrimaryKey() {
     return myPrimaryKey;
   }
 
   /**
    * @return True if column is auto-increment
    */
-  public boolean getAutoinc() {
+  public boolean isAutoinc() {
     return myAutoinc;
   }
 }

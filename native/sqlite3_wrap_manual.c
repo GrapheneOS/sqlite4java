@@ -119,7 +119,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   const char* dataType = 0;
   const char* collSeq = 0;
 
-  int flags[3] = {0}; // notNull, primaryKey, autoinc
+  int flags[3] = {0, 0, 0}; // notNull, primaryKey, autoinc
 
   jstring result = 0;
   int err = 0;
