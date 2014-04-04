@@ -43,6 +43,9 @@ public class Suite extends TestCase {
     String url = resource.toExternalForm();
     if (!url.startsWith("file:/")) throw new AssertionError(url);
     url = url.substring(6);
+    if (!System.getProperty("os.name").startsWith("windows")) {
+      url = "/" + url;
+    }
     String name = "/" + Suite.class.getSimpleName() + ".class";
     if (!url.endsWith(name)) throw new AssertionError(url);
     url = url.substring(0, url.length() - name.length());
