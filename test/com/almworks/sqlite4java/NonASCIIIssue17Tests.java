@@ -6,6 +6,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static com.almworks.sqlite4java.SQLiteTestFixture.createRandom;
 
 public class NonASCIIIssue17Tests {
   private static final String C01 = "0000" + (char)55360 + (char)56384;
@@ -29,7 +33,6 @@ public class NonASCIIIssue17Tests {
   }
 
   @Test
-  // Works
   public void testBind() throws SQLiteException {
     String v = "select ?;";
     SQLiteStatement st = cnx.prepare(v);
@@ -38,17 +41,26 @@ public class NonASCIIIssue17Tests {
   }
 
   @Test
-  // Fails
+  public void testConcatSimple() throws SQLiteException {
+    String v = "select '" + C01 + "';";
+    SQLiteStatement st = cnx.prepare(v);
+    run(st, C01);
+    System.out.println(C01);
+  }
+
+  @Test
   public void testConcat() throws SQLiteException {
-    Random RAND = new Random();
-    int attempts = 10000;
+    Random RAND = createRandom();
+    Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.OFF);
+
+    int attempts = 50000;
     for (int i = 0; i < attempts; i++) {
-      int val = 1 + RAND.nextInt(0xd7ff);
+      int val = 1 + RAND.nextInt(0xd800);
       if (val >= 0xd800) val += 0x800;
       if (val == '\'') continue;
       String s = "000" + (char) val;
       try {
-        SQLiteStatement st = cnx.prepare("select '" + s + "';");
+        SQLiteStatement st = cnx.prepare("select '" + s + "';", false);
         run(st, s);
       } catch (SQLiteException ex) {
         System.out.printf("code char = %d\n", val);
@@ -62,13 +74,12 @@ public class NonASCIIIssue17Tests {
 
       String s = "000" + (char) (valTop) + (char) (valLow);
       try {
-        SQLiteStatement st = cnx.prepare("select '" + s + "';");
+        SQLiteStatement st = cnx.prepare("select '" + s + "';", false);
         run(st, s);
       } catch (SQLiteException ex) {
         System.out.printf("code chars: %d %d\n", valTop, valLow);
         throw ex;
       }
     }
-    System.out.println("ee");
   }
 }

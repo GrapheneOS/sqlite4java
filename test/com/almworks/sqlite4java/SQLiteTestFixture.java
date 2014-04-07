@@ -18,6 +18,7 @@ public abstract class SQLiteTestFixture extends TestCase {
   private int myLastResult;
   private SWIGTYPE_p_sqlite3 myLastDb;
   private final boolean myAutoLoad;
+  public static final String SEED = "com.almworks.sqlite4java.seed";
 
   static {
     installFormatter(Logger.getLogger("com.almworks.sqlite4java"), new DecentFormatter(), Level.FINE);
@@ -69,6 +70,22 @@ public abstract class SQLiteTestFixture extends TestCase {
         deleteRecursively(dir, 100);
       }
     }
+  }
+
+  /**
+   * Add {@code -Dcom.almworks.sqlite4java.seed=12312423455}
+   * to system properties to reproduce the test
+   * */
+  public static Random createRandom() {
+    long seed;
+    try {
+      seed = Long.getLong(SEED);
+      System.out.println("Using seed from settings: " + seed);
+    } catch (NullPointerException _) {
+      seed = System.currentTimeMillis();
+      System.out.println("-Dcom.almworks.sqlite4java.seed=" + seed);
+    }
+    return new Random(seed);
   }
 
   private int deleteRecursively(File dir, int safe) {

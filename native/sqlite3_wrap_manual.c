@@ -176,7 +176,6 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   sqlite3* db = 0;
   const jchar *sql = 0;
   sqlite3_stmt* stmt = 0;
-  const void *tail = 0;
   int rc = 0;
   jlong r = 0;
 
@@ -184,13 +183,16 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   if (!jsql) return WRAPPER_INVALID_ARG_2;
   if (!jresult) return WRAPPER_INVALID_ARG_3;
   db = *(sqlite3**)&jdb;
-  sql = (*jenv)->GetStringCritical(jenv, jsql, 0);
+
   int length = (*jenv)->GetStringLength(jenv, jsql) * sizeof(jchar);
+  if (length > 0) {
+    sql = (*jenv)->GetStringCritical(jenv, jsql, 0);
+  } else {
+    sql = (const jchar*)"";
+  }
 
   if (!sql) return WRAPPER_CANNOT_TRANSFORM_STRING;
   stmt = (sqlite3_stmt*)0;
-  tail = 0;
-
   rc = sqlite3_prepare16_v2(db, sql, length, &stmt, NULL);
 
   if (length > 0) {
