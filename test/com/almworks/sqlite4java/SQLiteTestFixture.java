@@ -14,11 +14,11 @@ import java.util.logging.*;
 public abstract class SQLiteTestFixture extends TestCase {
   private final _SQLiteManual sqliteManual = new _SQLiteManual();
 
+  private static final String SEED = "com.almworks.sqlite4java.seed";
   private File myTempDir;
   private int myLastResult;
   private SWIGTYPE_p_sqlite3 myLastDb;
   private final boolean myAutoLoad;
-  public static final String SEED = "com.almworks.sqlite4java.seed";
 
   static {
     installFormatter(Logger.getLogger("com.almworks.sqlite4java"), new DecentFormatter(), Level.FINE);
@@ -77,13 +77,14 @@ public abstract class SQLiteTestFixture extends TestCase {
    * to system properties to reproduce the test
    * */
   public static Random createRandom() {
+    String seedStr = System.getProperty(SEED);
     long seed;
-    try {
-      seed = Long.getLong(SEED);
+    if (seedStr != null) {
+      seed = Long.parseLong(seedStr);
       System.out.println("Using seed from settings: " + seed);
-    } catch (NullPointerException _) {
+    } else {
       seed = System.currentTimeMillis();
-      System.out.println("-Dcom.almworks.sqlite4java.seed=" + seed);
+      System.out.printf("Use -Dcom.almworks.sqlite4java.seed=%d to reproduce the test\n", seed);
     }
     return new Random(seed);
   }

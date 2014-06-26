@@ -185,20 +185,13 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   db = *(sqlite3**)&jdb;
 
   int length = (*jenv)->GetStringLength(jenv, jsql) * sizeof(jchar);
-  if (length > 0) {
-    sql = (*jenv)->GetStringCritical(jenv, jsql, 0);
-  } else {
-    sql = (const jchar*)"";
-  }
+  sql = (*jenv)->GetStringCritical(jenv, jsql, 0);
 
   if (!sql) return WRAPPER_CANNOT_TRANSFORM_STRING;
   stmt = (sqlite3_stmt*)0;
-  rc = sqlite3_prepare16_v2(db, sql, length, &stmt, NULL);
+  rc = sqlite3_prepare16_v2(db, sql, length, &stmt, 0);
 
-  if (length > 0) {
-    (*jenv)->ReleaseStringCritical(jenv, jsql, sql);
-  }
-
+  (*jenv)->ReleaseStringCritical(jenv, jsql, sql);
   if (stmt) {
     *((sqlite3_stmt**)&r) = stmt;
     (*jenv)->SetLongArrayRegion(jenv, jresult, 0, 1, &r);

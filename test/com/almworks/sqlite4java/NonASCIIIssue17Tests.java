@@ -45,7 +45,6 @@ public class NonASCIIIssue17Tests {
     String v = "select '" + C01 + "';";
     SQLiteStatement st = cnx.prepare(v);
     run(st, C01);
-    System.out.println(C01);
   }
 
   @Test
@@ -59,12 +58,14 @@ public class NonASCIIIssue17Tests {
       if (val >= 0xd800) val += 0x800;
       if (val == '\'') continue;
       String s = "000" + (char) val;
+      SQLiteStatement st = cnx.prepare("select '" + s + "';", false);
       try {
-        SQLiteStatement st = cnx.prepare("select '" + s + "';", false);
         run(st, s);
       } catch (SQLiteException ex) {
         System.out.printf("code char = %d\n", val);
         throw ex;
+      } finally {
+        st.dispose();
       }
     }
 
@@ -73,12 +74,14 @@ public class NonASCIIIssue17Tests {
       int valLow = 0xdc00 + RAND.nextInt(0x0400);
 
       String s = "000" + (char) (valTop) + (char) (valLow);
+      SQLiteStatement st = cnx.prepare("select '" + s + "';", false);
       try {
-        SQLiteStatement st = cnx.prepare("select '" + s + "';", false);
         run(st, s);
       } catch (SQLiteException ex) {
         System.out.printf("code chars: %d %d\n", valTop, valLow);
         throw ex;
+      } finally {
+        st.dispose();
       }
     }
   }
