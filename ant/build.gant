@@ -12,6 +12,7 @@ ant.property(file: "global.properties")
 final String mod = rel('..')
 final String build = rel("../build")
 final String buildClasses = "$build/classes"
+final String javaClasses = "$mod/java"
 final String javolution = rel('../lib/javolution.jar')
 final String junit = rel('../lib/junit.jar')
 
@@ -250,6 +251,18 @@ target(name: 'java.jar') {
       attribute(name: "Implementation-Version", value: "${version}")
     }
   }
+
+  ant.jar(destfile: "$build/jar/${antProp('sourcesjarname')}", basedir: "$javaClasses") {
+    manifest {
+      attribute(name: "Specification-Title", value: "sqlite4java-sources")
+      attribute(name: "Specification-Version", value: "${version}")
+      attribute(name: "Specification-Vendor", value: "ALM Works")
+      attribute(name: "Implementation-Title", value: "sqlite4java-sources")
+      attribute(name: "Implementation-URL", value: "http://code.google.com/p/sqlite4java")
+      attribute(name: "Implementation-Vendor", value: "ALM Works")
+      attribute(name: "Implementation-Version", value: "${version}")
+    }
+  }
 }
 
 target('dist': 'create distributable artifacts') {
@@ -416,7 +429,26 @@ target(name: 'android') {
   ant.mkdir(dir: "$target/project")
   ant.mkdir(dir: "$target/project/jni")
   ant.copy(file: "Android.mk.template", tofile: "$target/project/jni/Android.mk")
+  ant.copy(file: "Application.mk.template", tofile: "$target/project/jni/Application.mk")
   ant.exec(dir: "$target/project", command: "$ndkHome/ndk-build")
-  ant.mkdir(dir: "$build/dist")
-  ant.copy(file: "$target/project/libs/armeabi/libsqlite4java-android-armv7.so", todir: "$build/dist")
+
+  def libs = "$target/project/libs"
+  def nameTmp = "libsqlite4java-android"
+
+  // oldDir, newDir, newNameTmp
+  def archTypes = [
+    ["armeabi"    , "armeabi", "armv5tejl"],
+    ["armeabi-v7a", "armeabi", "armv7"],
+    ["x86"        , "x86"    , "i686"]]
+
+  archTypes.each() { String oldDir, String newDir, String newNameTmp ->
+    def newName = "${nameTmp}-${newNameTmp}.so"
+
+    def oldFile = "$libs/$oldDir/${nameTmp}.so"
+    def newFile = "$libs/$newDir/${newName}"
+    def newFile2 = "$build/dist/${newName}"
+    ant.move(file: oldFile, tofile: newFile)
+    ant.copy(file: newFile, tofile: newFile2)
+  }
+  ant.delete(dir: "$libs/armeabi-v7a")
 }
