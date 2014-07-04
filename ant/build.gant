@@ -22,6 +22,8 @@ final platforms = []
 
 final libname = { String platform, String buildtype -> antProp('lib.prefix') + antProp('libname') + "-$platform" + ("debug".equals(buildtype) ? "-d" : "") + antProp('lib.suffix') }
 
+final def env = System.getenv()
+
 target('debug': 'build only debug binaries') {
   buildtypes.remove("release")
 }
@@ -29,9 +31,17 @@ target('release': 'build only release binaries') {
   buildtypes.remove("debug")
 }
 
-final checkProp = {
-  if (!antProp(it)) { ant.fail(message: "no $it") } else {
-    ant.echo(message: it + "=" + antProp(it))
+final def checkProp = { String property, String ... environmentVariables = null ->
+  environmentVariables.each { String variable ->
+    if (!antProp(property) && env[variable] != null) {
+      ant.property(name: property, value: env[variable])
+    }
+  }
+
+  if (!antProp(property)) {
+    ant.fail(message: "no $property") }
+  else {
+    ant.echo(message: property + "=" + antProp(property))
   }
 }
 
@@ -95,11 +105,7 @@ target(name: 'init') {
   ant.echo(message: "os=${os}")
   ant.echo(message: "arch=${antProp('os.arch')}")
   List files = []
-//  files << "${os}-${antProp('os.arch')}-${buildType}.properties"
-//  files << "${os}-${antProp('os.arch')}.properties"
-//  files << "${os}-${buildType}.properties"
   files << "${os}.properties"
-//  files << "${buildType}.properties"
   files << "default.properties"
   files.each {
     if (new File(rel(it)).isFile()) {
@@ -110,8 +116,8 @@ target(name: 'init') {
     }
   }
 
-  checkProp("jdk.home")
-  checkProp("swig.home")
+  checkProp("jdk.home", "JAVA_HOME", "JDK_HOME")
+  checkProp("swig.home", "SWIG_HOME")
   if (os == "windows") checkProp("wsdk.home")
 
   Arrays.asList(antProp("platforms").split("\\s*,\\s*")).each { platforms << it.trim() }
@@ -419,7 +425,7 @@ target(name: 'collect') {
 
 target(name: 'android') {
   depends(['init', 'lib.swig'])
-  checkProp("ndk.home")
+  checkProp("ndk.home", "NDK_HOME")
   def ndkHome = antProp("ndk.home")
   def target = "$build/android"
   ant.delete(dir: target)
@@ -435,14 +441,13 @@ target(name: 'android') {
   def libs = "$target/project/libs"
   def nameTmp = "libsqlite4java-android"
 
-  // oldDir, newDir, newNameTmp
   def archTypes = [
     ["armeabi"    , "armeabi", "armv5tejl"],
-    ["armeabi-v7a", "armeabi", "armv7"],
+    ["armeabi-v7a", "armeabi-v7a", "armv7l"],
     ["x86"        , "x86"    , "i686"]]
 
-  archTypes.each() { String oldDir, String newDir, String newNameTmp ->
-    def newName = "${nameTmp}-${newNameTmp}.so"
+  archTypes.each() { String oldDir, String newDir, String architecture ->
+    def newName = "${nameTmp}-${architecture}.so"
 
     def oldFile = "$libs/$oldDir/${nameTmp}.so"
     def newFile = "$libs/$newDir/${newName}"
@@ -450,5 +455,4 @@ target(name: 'android') {
     ant.move(file: oldFile, tofile: newFile)
     ant.copy(file: newFile, tofile: newFile2)
   }
-  ant.delete(dir: "$libs/armeabi-v7a")
 }
