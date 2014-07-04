@@ -442,15 +442,15 @@ target(name: 'android') {
   def nameTmp = "libsqlite4java-android"
 
   def archTypes = [
-    ["armeabi"    , "armeabi", "armv5tejl"],
-    ["armeabi-v7a", "armeabi-v7a", "armv7l"],
-    ["x86"        , "x86"    , "i686"]]
+    ["armeabi",     "armv5tejl"],
+    ["armeabi-v7a", "armv7l"],
+    ["x86"    ,     "i686"]]
 
-  archTypes.each() { String oldDir, String newDir, String architecture ->
+  archTypes.each() { String dir, String architecture ->
     def newName = "${nameTmp}-${architecture}.so"
 
-    def oldFile = "$libs/$oldDir/${nameTmp}.so"
-    def newFile = "$libs/$newDir/${newName}"
+    def oldFile = "$libs/$dir/${nameTmp}.so"
+    def newFile = "$libs/$dir/${newName}"
     def newFile2 = "$build/dist/${newName}"
     ant.move(file: oldFile, tofile: newFile)
     ant.copy(file: newFile, tofile: newFile2)
