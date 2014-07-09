@@ -39,8 +39,8 @@ final def checkProp = { String property, String ... environmentVariables = null 
   }
 
   if (!antProp(property)) {
-    ant.fail(message: "no $property") }
-  else {
+    ant.fail(message: "no $property")
+  } else {
     ant.echo(message: property + "=" + antProp(property))
   }
 }
@@ -105,7 +105,11 @@ target(name: 'init') {
   ant.echo(message: "os=${os}")
   ant.echo(message: "arch=${antProp('os.arch')}")
   List files = []
+//  files << "${os}-${antProp('os.arch')}-${buildType}.properties"
+//  files << "${os}-${antProp('os.arch')}.properties"
+//  files << "${os}-${buildType}.properties"
   files << "${os}.properties"
+//  files << "${buildType}.properties"
   files << "default.properties"
   files.each {
     if (new File(rel(it)).isFile()) {
