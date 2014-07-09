@@ -1,4 +1,5 @@
 * text=auto !eol
+ant/Application.mk.template -text
 ant/build.gant -text
 ant/build.xml -text
 ant/default.properties -text
@@ -71,6 +72,7 @@ test/com/almworks/sqlite4java/IncrementalBlobIOAnalysis.java -text
 test/com/almworks/sqlite4java/IncrementalIODemo.java -text
 test/com/almworks/sqlite4java/LongArrayTests.java -text
 test/com/almworks/sqlite4java/MiscTests.java -text
+test/com/almworks/sqlite4java/NonASCIIIssue17Tests.java -text
 test/com/almworks/sqlite4java/ProfilerTests.java -text
 test/com/almworks/sqlite4java/ProgressHandlerTests.java -text
 test/com/almworks/sqlite4java/RTreeTests.java -text

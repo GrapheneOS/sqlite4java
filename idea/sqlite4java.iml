@@ -16,6 +16,7 @@
     <orderEntry type="library" name="junit" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="groovy-1.6.0" level="application" />
     <orderEntry type="library" scope="RUNTIME" name="gant" level="application" />
+    <orderEntry type="library" name="groovy-2.1.5" level="application" />
   </component>
 </module>
 

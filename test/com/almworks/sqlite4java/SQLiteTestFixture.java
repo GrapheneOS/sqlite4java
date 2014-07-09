@@ -14,6 +14,7 @@ import java.util.logging.*;
 public abstract class SQLiteTestFixture extends TestCase {
   private final _SQLiteManual sqliteManual = new _SQLiteManual();
 
+  private static final String SEED = "com.almworks.sqlite4java.seed";
   private File myTempDir;
   private int myLastResult;
   private SWIGTYPE_p_sqlite3 myLastDb;
@@ -69,6 +70,23 @@ public abstract class SQLiteTestFixture extends TestCase {
         deleteRecursively(dir, 100);
       }
     }
+  }
+
+  /**
+   * Add {@code -Dcom.almworks.sqlite4java.seed=12312423455}
+   * to system properties to reproduce the test
+   * */
+  public static Random createRandom() {
+    String seedStr = System.getProperty(SEED);
+    long seed;
+    if (seedStr != null) {
+      seed = Long.parseLong(seedStr);
+      System.out.println("Using seed from settings: " + seed);
+    } else {
+      seed = System.currentTimeMillis();
+      System.out.printf("Use -Dcom.almworks.sqlite4java.seed=%d to reproduce the test\n", seed);
+    }
+    return new Random(seed);
   }
 
   private int deleteRecursively(File dir, int safe) {
