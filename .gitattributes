@@ -6,6 +6,7 @@ ant/default.properties -text
 ant/global.properties -text
 ant/integrate.xml -text
 ant/linux.properties -text
+ant/mac-10.9.properties -text
 ant/mac.properties -text
 ant/windows.properties -text
 idea/sqlite4java.iml -text
