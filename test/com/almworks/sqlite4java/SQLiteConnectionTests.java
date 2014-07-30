@@ -176,11 +176,9 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
         assertTrue("can't make file readonly", dataBaseFile.setReadOnly());
       }
 
-      if (readonlyOpen) {
-        con = new SQLiteConnection(dataBaseFile).openReadonly();
-      } else {
-        con = new SQLiteConnection(dataBaseFile).open();
-      }
+      con = new SQLiteConnection(dataBaseFile).openV2(
+        readonlyOpen ?
+        SQLiteConstants.SQLITE_OPEN_READONLY : SQLiteConstants.SQLITE_OPEN_READWRITE);
 
       boolean isReadonly = readonlyFile || readonlyOpen;
       assertEquals(isReadonly, con.isReadOnly(null));

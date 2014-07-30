@@ -359,6 +359,7 @@ public final class SQLiteConnection {
    *
    * @param dbName Database name or NULL
    * @return {@code true} if this connection is readonly, otherwise {@code false}
+   * @throws SQLiteException if the requested database name cannot be found
    * @see <a href="http://www.sqlite.org/c3ref/db_readonly.html">sqlite3_db_readonly</a>
    */
   public boolean isReadOnly(String dbName) throws SQLiteException {
