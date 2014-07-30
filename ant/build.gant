@@ -13,7 +13,6 @@ final String mod = rel('..')
 final String build = rel("../build")
 final String buildClasses = "$build/classes"
 final String javaClasses = "$mod/java"
-final String javolution = rel('../lib/javolution.jar')
 final String junit = rel('../lib/junit.jar')
 
 String os = "unknown"
@@ -235,7 +234,7 @@ target(name: 'java.compile') {
     fileset(dir: "$mod/java")
   }
   ant.mkdir(dir: buildClasses)
-  ant.javac(srcdir: "$build/java", destdir: buildClasses, debug: "on", classpath: javolution,
+  ant.javac(srcdir: "$build/java", destdir: buildClasses, debug: "on",
     target: "1.5", source: "1.5")
 }
 
@@ -289,12 +288,12 @@ target('dist': 'create distributable artifacts') {
 }
 
 target(name: 'test.compile') {
+  depends(['init'])
   ant.echo(message: "[test.compile]")
   ant.mkdir(dir: "$build/testClasses")
   ant.javac(srcdir: "$mod/test", destdir: "$build/testClasses", debug: "on") {
     classpath {
       pathelement(location: "$build/dist/${antProp('jarname')}")
-      pathelement(location: javolution)
       pathelement(location: junit)
     }
   }
@@ -346,7 +345,6 @@ target('test': 'run all tests') {
         classpath {
           pathelement(location: "$build/testClasses")
           pathelement(location: "$build/testRun.$buildtype.$platform/${antProp('jarname')}")
-          pathelement(location: javolution)
           pathelement(location: junit)
         }
         batchtest(todir: resultsDir) {
@@ -457,6 +455,8 @@ target(name: 'android') {
     def newFile = "$libs/$dir/${newName}"
     def newFile2 = "$build/dist/${newName}"
     ant.move(file: oldFile, tofile: newFile)
-    ant.copy(file: newFile, tofile: newFile2)
+  }
+  ant.copy(todir: "$build/dist/android/libs") {
+    fileset(dir:"$target/project/libs")
   }
 }

@@ -852,6 +852,24 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   return rc;
 }
 
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1db_1readonly
+  (JNIEnv *jenv, jclass jcls, jlong jdb, jstring jDbName)
+{
+  const char *dbName = 0;
+	sqlite3* db = 0;
+  int rc = 0;
+	
+	if (!jdb) return WRAPPER_INVALID_ARG_1;
+
+  db = *(sqlite3**)&jdb;
+  dbName = jDbName ? (*jenv)->GetStringUTFChars(jenv, jDbName, 0) : 0;
+	rc = sqlite3_db_readonly(db, dbName);
+	(*jenv)->ReleaseStringUTFChars(jenv, jDbName, dbName);
+
+  return rc;
+}
+  
+
 #ifdef __cplusplus
 }
 #endif

@@ -73,7 +73,7 @@ public class SQLiteValueTests extends SQLiteConnectionFixture {
 
     st = insertNullAndSelect(con);
     assertEquals(0, st.columnInt(0));
-    assertEquals(0, st.columnLong(0));
+    assertEquals(0L, st.columnLong(0));
     assertTrue(st.columnNull(0));
     st.reset();
 
@@ -108,7 +108,7 @@ public class SQLiteValueTests extends SQLiteConnectionFixture {
     con.exec("update x set x = x + 2");
     st = con.prepare("select x from x");
     st.step();
-    assertEquals(Long.MIN_VALUE, st.columnLong(0));
+    assertEquals(Long.MAX_VALUE, st.columnLong(0));
     assertFalse(st.columnNull(0));
     st.reset();
 

@@ -122,4 +122,6 @@ final class _SQLiteManualJNI {
   public final static native int sqlite3_intarray_unbind(long intarray);
 
   public final static native int sqlite3_load_extension(long db, String file, String proc, String[] ppError);
+
+  public final static native int sqlite3_db_readonly(long db, String dbName);
 }

@@ -231,7 +231,7 @@ public final class SQLiteConnection {
 
   /**
    * Allows the size of various constructs for current connection to be limited.
-   * 
+   *
    * @param id identify a class of constructs to be size limited (use constants "SQLITE_LIMIT_*")
    * @param newVal defines the new limit for that construct.
    * @return previous limit for that construct
@@ -245,7 +245,7 @@ public final class SQLiteConnection {
 
   /**
    * Returns limitation for the size of various constructs for current connection.
-   * 
+   *
    * @param id identify a class of constructs to be size limited (use constants "SQLITE_LIMIT_*")
    * @return current limit for that construct
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
@@ -351,6 +351,28 @@ public final class SQLiteConnection {
   public boolean isDisposed() {
     synchronized (myLock) {
       return myDisposed;
+    }
+  }
+
+  /**
+   * Checks if the connection readonly.
+   *
+   * @param dbName Database name or NULL
+   * @return {@code true} if this connection is readonly, otherwise {@code false}
+   * @see <a href="http://www.sqlite.org/c3ref/db_readonly.html">sqlite3_db_readonly</a>
+   */
+  public boolean isReadOnly(String dbName) throws SQLiteException {
+    checkThread();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "calling sqlite3_db_readonly [" + dbName + "]");
+
+    int result = _SQLiteManual.sqlite3_db_readonly(handle(), dbName);
+
+    if (result == -1) {
+      throw new SQLiteException(result, dbName + " is not the name of a database");
+    } else {
+      assert result == 0 || result == 1;
+      return result == 1;
     }
   }
 
