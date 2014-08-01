@@ -252,8 +252,4 @@ final class _SQLiteManual {
     myString[0] = null;
     return r;
   }
-
-  public static int sqlite3_db_readonly(SWIGTYPE_p_sqlite3 db, String dbName) {
-    return _SQLiteManualJNI.sqlite3_db_readonly(SWIGTYPE_p_sqlite3.getCPtr(db), dbName);
-  }
 }

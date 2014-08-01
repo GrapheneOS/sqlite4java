@@ -356,9 +356,12 @@ public final class SQLiteConnection {
 
   /**
    * Checks if the connection readonly.
+   * Connection could be readonly if it was opened through {@link #openReadonly()} or
+   * through {@link #openV2(int)} with {@link SQLiteConstants#SQLITE_OPEN_READONLY} flag.
+   * Or if it was opened on the readonly file.
    *
-   * @param dbName Database name or NULL
-   * @return {@code true} if this connection is readonly, otherwise {@code false}
+   * @param dbName Database name or null
+   * @return {@code true} if this con1nection is readonly, otherwise {@code false}
    * @throws SQLiteException if the requested database name cannot be found
    * @see <a href="http://www.sqlite.org/c3ref/db_readonly.html">sqlite3_db_readonly</a>
    */
@@ -367,14 +370,22 @@ public final class SQLiteConnection {
     if (Internal.isFineLogging())
       Internal.logFine(this, "calling sqlite3_db_readonly [" + dbName + "]");
 
-    int result = _SQLiteManual.sqlite3_db_readonly(handle(), dbName);
+    int result = _SQLiteSwigged.sqlite3_db_readonly(handle(), dbName);
 
     if (result == -1) {
-      throw new SQLiteException(result, dbName + " is not the name of a database");
+      throw new SQLiteException(result, dbName + " is not a valid database name");
     } else {
-      assert result == 0 || result == 1;
+      assert result == 0 || result == 1 : result;
       return result == 1;
     }
+  }
+
+  /**
+   * @return {@code isReadOnly(null)}
+   * @see #isReadOnly(String)
+   */
+  public boolean isReadOnly() throws SQLiteException {
+    return isReadOnly(null);
   }
 
   /**

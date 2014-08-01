@@ -157,7 +157,7 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     db.dispose();
   }
 
-  public void testIsReadOnly2() throws Exception {
+  public void testIsReadOnly() throws Exception {
     for (int i = 0; i < 4; i++) {
       boolean readonlyOpen = (i & 1) != 0;
       boolean readonlyFile = (i & 2) != 0;
