@@ -8,7 +8,7 @@
 
 package com.almworks.sqlite4java;
 
-public class _SQLiteSwiggedJNI {
+class _SQLiteSwiggedJNI {
   public final static native int sqlite3_initialize();
   public final static native int sqlite3_shutdown();
   public final static native int sqlite3_extended_errcode(long jarg1);
