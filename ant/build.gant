@@ -453,7 +453,6 @@ target(name: 'android') {
 
     def oldFile = "$libs/$dir/${nameTmp}.so"
     def newFile = "$libs/$dir/${newName}"
-    def newFile2 = "$build/dist/${newName}"
     ant.move(file: oldFile, tofile: newFile)
   }
   ant.copy(todir: "$build/dist/android/libs") {
