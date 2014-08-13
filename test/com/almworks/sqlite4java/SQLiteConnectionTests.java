@@ -1,5 +1,10 @@
 package com.almworks.sqlite4java;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class SQLiteConnectionTests extends SQLiteConnectionFixture {
   public void testOpenFile() throws SQLiteException {
     SQLiteConnection connection = fileDb();
@@ -150,5 +155,50 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     db.openV2(SQLiteConstants.SQLITE_OPEN_CREATE | SQLiteConstants.SQLITE_OPEN_READWRITE | SQLiteConstants.SQLITE_OPEN_NOMUTEX);
     db.exec("create table x(x)");
     db.dispose();
+  }
+
+  public void testIsReadOnly() throws Exception {
+    for (int i = 0; i < 4; i++) {
+      boolean readonlyOpen = (i & 1) != 0;
+      boolean readonlyFile = (i & 2) != 0;
+
+      // to recreate File
+      setUp();
+      SQLiteConnection con = fileDb().open();
+      con.exec("create table x (x)");
+      long expected = 42;
+      con.exec(String.format("insert into x values (%d)", expected));
+      con.dispose();
+
+      File dataBaseFile = dbFile();
+
+      if (readonlyFile) {
+        assertTrue("can't make file readonly", dataBaseFile.setReadOnly());
+      }
+
+      con = new SQLiteConnection(dataBaseFile).openV2(
+        readonlyOpen ?
+        SQLiteConstants.SQLITE_OPEN_READONLY : SQLiteConstants.SQLITE_OPEN_READWRITE);
+
+      boolean isReadonly = readonlyFile || readonlyOpen;
+      assertEquals(isReadonly, con.isReadOnly(null));
+      assertEquals(isReadonly, con.isReadOnly("main"));
+      try {
+        // writable query
+        con.exec("update x set x=x+1");
+        expected++;
+        if (isReadonly) {
+          throw new Exception("should throw SQLiteException");
+        }
+      } catch (SQLiteException ex) {
+        if (!isReadonly) {
+          throw ex;
+        }
+      }
+
+      SQLiteStatement st = con.prepare("select x from x");
+      st.step();
+      assertEquals(expected, st.columnLong(0));
+    }
   }
 }

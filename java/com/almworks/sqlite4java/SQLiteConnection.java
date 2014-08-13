@@ -231,7 +231,7 @@ public final class SQLiteConnection {
 
   /**
    * Allows the size of various constructs for current connection to be limited.
-   * 
+   *
    * @param id identify a class of constructs to be size limited (use constants "SQLITE_LIMIT_*")
    * @param newVal defines the new limit for that construct.
    * @return previous limit for that construct
@@ -245,7 +245,7 @@ public final class SQLiteConnection {
 
   /**
    * Returns limitation for the size of various constructs for current connection.
-   * 
+   *
    * @param id identify a class of constructs to be size limited (use constants "SQLITE_LIMIT_*")
    * @return current limit for that construct
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
@@ -352,6 +352,40 @@ public final class SQLiteConnection {
     synchronized (myLock) {
       return myDisposed;
     }
+  }
+
+  /**
+   * Checks if the connection readonly.
+   * Connection could be readonly if it was opened through {@link #openReadonly()} or
+   * through {@link #openV2(int)} with {@link SQLiteConstants#SQLITE_OPEN_READONLY} flag.
+   * Or if it was opened on the readonly file.
+   *
+   * @param dbName Database name or null
+   * @return {@code true} if this con1nection is readonly, otherwise {@code false}
+   * @throws SQLiteException if the requested database name cannot be found
+   * @see <a href="http://www.sqlite.org/c3ref/db_readonly.html">sqlite3_db_readonly</a>
+   */
+  public boolean isReadOnly(String dbName) throws SQLiteException {
+    checkThread();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "calling sqlite3_db_readonly [" + dbName + "]");
+
+    int result = _SQLiteSwigged.sqlite3_db_readonly(handle(), dbName);
+
+    if (result == -1) {
+      throw new SQLiteException(result, dbName + " is not a valid database name");
+    } else {
+      assert result == 0 || result == 1 : result;
+      return result == 1;
+    }
+  }
+
+  /**
+   * @return {@code isReadOnly(null)}
+   * @see #isReadOnly(String)
+   */
+  public boolean isReadOnly() throws SQLiteException {
+    return isReadOnly(null);
   }
 
   /**

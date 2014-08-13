@@ -105,3 +105,4 @@ int sqlite3_backup_finish(sqlite3_backup *p);
 int sqlite3_backup_remaining(sqlite3_backup *p);
 int sqlite3_backup_pagecount(sqlite3_backup *p);
 int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+int sqlite3_db_readonly(sqlite3 *db, const char *zDbName);
