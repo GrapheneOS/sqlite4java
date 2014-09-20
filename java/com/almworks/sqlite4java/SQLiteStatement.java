@@ -211,8 +211,7 @@ public final class SQLiteStatement {
     if (myStepped) {
       if (fineLogging)
         Internal.logFine(this, "resetting");
-      int rc = _SQLiteSwigged.sqlite3_reset(handle);
-      myController.throwResult(rc, "reset()", this);
+      _SQLiteSwigged.sqlite3_reset(handle);
     }
     myHasRow = false;
     myStepped = false;
