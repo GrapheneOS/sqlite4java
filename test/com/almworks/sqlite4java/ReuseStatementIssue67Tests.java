@@ -7,7 +7,6 @@ public class ReuseStatementIssue67Tests extends SQLiteConnectionFixture {
   public void testTest() throws SQLiteException {
     Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.OFF);
     SQLiteConnection connection = fileDb().open();
-    connection.exec("drop table if exists TBL");
     connection.exec("create table TBL (id unique, val integer)");
 
     SQLiteStatement st = connection.prepare("insert into TBL values (?,?)", false);
