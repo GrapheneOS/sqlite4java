@@ -77,6 +77,7 @@ test/com/almworks/sqlite4java/NonASCIIIssue17Tests.java -text
 test/com/almworks/sqlite4java/ProfilerTests.java -text
 test/com/almworks/sqlite4java/ProgressHandlerTests.java -text
 test/com/almworks/sqlite4java/RTreeTests.java -text
+test/com/almworks/sqlite4java/ReuseStatementIssue67Tests.java -text
 test/com/almworks/sqlite4java/SQLPartsTests.java -text
 test/com/almworks/sqlite4java/SQLiteBackupTests.java -text
 test/com/almworks/sqlite4java/SQLiteBasicTests.java -text
