@@ -329,6 +329,7 @@ final class Internal {
   private static boolean tryLoadFromPath(String libname, String path, Throwable[] failureReason) {
     String libFile = System.mapLibraryName(libname);
     File lib = new File(new File(path), libFile);
+    logFine(Internal.class, "checking " + lib);
     if (!lib.isFile() || !lib.canRead())
       return false;
     String logname = libname + " from " + lib;
