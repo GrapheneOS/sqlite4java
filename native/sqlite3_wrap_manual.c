@@ -176,13 +176,14 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   sqlite3_stmt* stmt = 0;
   int rc = 0;
   jlong r = 0;
+  int length = 0;
 
   if (!jdb) return WRAPPER_INVALID_ARG_1;
   if (!jsql) return WRAPPER_INVALID_ARG_2;
   if (!jresult) return WRAPPER_INVALID_ARG_3;
   db = *(sqlite3**)&jdb;
 
-  int length = (*jenv)->GetStringLength(jenv, jsql) * sizeof(jchar);
+  length = (*jenv)->GetStringLength(jenv, jsql) * sizeof(jchar);
   sql = (*jenv)->GetStringCritical(jenv, jsql, 0);
 
   if (!sql) return WRAPPER_CANNOT_TRANSFORM_STRING;
@@ -198,6 +199,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   return rc;
 }
 
+/*
 //
 //JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1prepare_1v2_1optimized(JNIEnv *jenv, jclass jcls,
 //  jlong jdb, jbyteArray jsql, jint jsqlLength, jlongArray jresult)
@@ -233,6 +235,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
 //  return rc;
 //}
 //
+*/
 
 JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jstring jvalue)
