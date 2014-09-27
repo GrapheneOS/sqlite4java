@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define WRAPPER_VERSION "0.2"
+#define WRAPPER_VERSION "1.3"
 
 #define WRAPPER_INVALID_ARG_1 (-11)
 #define WRAPPER_INVALID_ARG_2 (-12)

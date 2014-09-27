@@ -335,6 +335,7 @@ target('test': 'run all tests') {
       ant.mkdir(dir: resultsDir)
       ant.copy(file: "$build/dist/${antProp('jarname')}", todir: "$build/testRun.$buildtype.$platform")
       ant.copy(file: "$build/dist/${libname(platform, buildtype)}", todir: "$build/testRun.$buildtype.$platform")
+      ant.echo(message: "Running JUnit with $jvm")
       ant.junit(jvm: jvm, fork: "yes", printsummary: "true", haltonfailure: "true", showoutput: "true") {
         formatter(type: "plain")
         //<!--<jvmarg value="-verbose:jni"/>-->
