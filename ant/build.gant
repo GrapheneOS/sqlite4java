@@ -420,7 +420,9 @@ target(name: 'collect') {
   unpack("$mod/sqlite4java-windows-${version}.zip")
   unpack("$mod/sqlite4java-mac-${version}.zip")
   unpack("$mod/sqlite4java-linux-${version}.zip")
-  ant.copy(file: "$mod/libsqlite4java-android-armv7.so", todir: "$target")
+  ant.copy(todir: "$target") {
+    fileset(dir:"$mod/android");
+  }
 
   ant.mkdir(dir: "$build/deliver")
   ant.delete(file: "$build/deliver/sqlite4java-${version}.zip")
