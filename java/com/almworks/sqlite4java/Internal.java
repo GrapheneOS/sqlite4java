@@ -163,8 +163,6 @@ final class Internal {
     r.add(base + "-" + arch);
     if (arch.equals("x86_64") || arch.equals("x64")) {
       r.add(base + "-amd64");
-    } else if (arch.equals("powerpc")) {
-      r.add(base + "-ppc");
     } else if (arch.equals("x86")) {
       r.add(base + "-i386");
     } else if (arch.equals("i386")) {
