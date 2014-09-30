@@ -421,11 +421,8 @@ target(name: 'collect') {
     ant.unzip(src: name, dest: target, overwrite: "true")
   }
 
-  unpack("$mod/sqlite4java-windows-${version}.zip")
-  unpack("$mod/sqlite4java-mac-${version}.zip")
-  unpack("$mod/sqlite4java-linux-${version}.zip")
-  ant.copy(todir: "$target") {
-    fileset(dir:"$mod/android");
+  ['windows', 'mac', 'linux', 'android'].each() {
+    unpack("$mod/sqlite4java-${it}-${version}.zip")
   }
 
   ant.mkdir(dir: "$build/deliver")
@@ -463,7 +460,12 @@ target(name: 'android') {
     def newFile = "$libs/$dir/${newName}"
     ant.move(file: oldFile, tofile: newFile)
   }
-  ant.copy(todir: "$build/dist/android/libs") {
-    fileset(dir:"$target/project/libs")
+  def androidDir = "$target/android"
+  ant.mkdir(dir: androidDir)
+  ant.copy(todir: "$target/android/libs") {
+    fileset(dir: "$target/project/libs")
   }
+  ant.zip(destfile: "$build/dist/android-${version}.zip",
+      basedir: "$target", includes: "android/**/*.*")
+  ant.delete(dir: androidDir)
 }
