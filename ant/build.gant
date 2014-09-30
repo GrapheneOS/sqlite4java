@@ -215,7 +215,6 @@ target(name: 'lib.link') {
       } else {
         def clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.args.${platform}");
         def soname = (os == "linux") ? "-Wl,-soname=${libname(platform, buildtype)}" : ""
-        println "${antProp('cc')} $clargs ${antProp('cc.link')} $soname -o $out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o"
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs ${antProp('cc.link')} $soname -o $out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o")
       }
     }
