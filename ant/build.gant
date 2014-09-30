@@ -465,7 +465,8 @@ target(name: 'android') {
   ant.copy(todir: "$target/android/libs") {
     fileset(dir: "$target/project/libs")
   }
-  ant.zip(destfile: "$build/dist/android-${version}.zip",
+  ant.zip(destfile: "$target/android-${version}.zip",
       basedir: "$target", includes: "android/**/*.*")
   ant.delete(dir: androidDir)
+  ant.delete(dir: "$target/project")
 }
