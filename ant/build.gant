@@ -16,6 +16,7 @@ final String javaClasses = "$mod/java"
 final String junit = rel('../lib/junit.jar')
 
 String os = "unknown"
+String compilerArgs = ""
 final buildtypes = ["debug", "release"]
 final platforms = []
 
@@ -110,6 +111,10 @@ target(name: 'init') {
       ant.property(name: "sdk.home", value: antProp("xcode.home") + "/SDKs/MacOSX10.5.sdk");
     }
     checkProp("sdk.home")
+
+	def compilerProperty = ("gcc --version".execute().text.contains("clang") ? "clang" : "gcc") + ".cc.options"
+	compilerArgs = antProp(compilerProperty)
+	if (compilerArgs == null) { compilerArgs = "" }
   }
 
   files << "${os}.properties"
@@ -170,9 +175,11 @@ target(name: 'lib.compile') {
         wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3_wrap_manual.o native/sqlite3_wrap_manual.c", "$out/sqlite3_wrap_manual.o", arch, buildtype)
         wsdk("${antProp('cl')} $clargs -Fo$out/intarray.o native/intarray.c", "$out/intarray.o", arch, buildtype)
       } else {
-        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite") + " " + antProp("cc.args.${platform}");
-        ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
-        clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid") + " " + antProp("cc.args.${platform}");
+        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
+        
+		ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
+        clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
+
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c $build/swig/sqlite_wrap.c -o $out/sqlite_wrap.o")
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c native/sqlite3_wrap_manual.c -o $out/sqlite3_wrap_manual.o")
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c native/intarray.c -o $out/intarray.o")
