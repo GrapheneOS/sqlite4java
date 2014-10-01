@@ -221,7 +221,7 @@ target(name: 'lib.link') {
         wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o",
             "$out/${libname(platform, buildtype)}", arch, buildtype)
       } else {
-        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.args.${platform}");
+        def clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
         def soname = (os == "linux") ? "-Wl,-soname=${libname(platform, buildtype)}" : ""
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs ${antProp('cc.link')} $soname -o $out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o")
       }
@@ -324,7 +324,7 @@ target(name: 'extension.sample.compile')  {
       clargs = (arch == 'x86' ? "$clargs /Gd" : clargs)
       wsdk("${antProp('cl')} $clargs native/sqlite_extension_example.c ${antProp('extension.link.args')} /OUT:$build/extension_sample/half.sqlext.${arch}", "$build/extension_sample/half.sqlext.${arch}", arch, buildtype)
     } else {
-      def clargs = antProp("extension.cc.args.${platform}")
+      def clargs = antProp("extension.cc.args.${platform}") + " " + compilerArgs
       ant.exec(dir: mod, command: "${antProp('cc')} $clargs native/sqlite_extension_example.c -o $build/extension_sample/half.sqlext.${platform}")
     }
   }
