@@ -111,10 +111,6 @@ target(name: 'init') {
       ant.property(name: "sdk.home", value: antProp("xcode.home") + "/SDKs/MacOSX10.5.sdk");
     }
     checkProp("sdk.home")
-
-	def compilerProperty = ("gcc --version".execute().text.contains("clang") ? "clang" : "gcc") + ".cc.options"
-	compilerArgs = antProp(compilerProperty)
-	if (compilerArgs == null) { compilerArgs = "" }
   }
 
   files << "${os}.properties"
@@ -131,6 +127,11 @@ target(name: 'init') {
   checkProp("jdk.home", "JAVA_HOME", "JDK_HOME")
   checkProp("swig.home", "SWIG_HOME")
   if (os == "windows") checkProp("wsdk.home")
+  if (os == "mac") {
+    def compilerProperty = ("gcc --version".execute().text.contains("clang") ? "clang" : "gcc") + ".cc.options"
+    compilerArgs = antProp(compilerProperty)
+    if (compilerArgs == null) { compilerArgs = "" }
+  }						 
 
   Arrays.asList(antProp("platforms").split("\\s*,\\s*")).each { platforms << it.trim() }
   if (platforms.isEmpty()) ant.fail(message: "no platforms defined");
