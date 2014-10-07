@@ -422,7 +422,7 @@ final def osgi = { curDir, deliverDir ->
 	  fileset (dir: curDir, includes: "*so *dll *dylib")
 	}
   classesDir = "${curDir}/classes"
-	ant.unzip(src: ${antProp('srczipname')}, dest: classesDir, overwrite: "true")
+	ant.unzip(src: "${curDir}/${antProp('srczipname')}", dest: classesDir, overwrite: "true")
 
 	osgiName = "com.almworks.sqlite4java-1.0.${version}.jar"
   ant.jar(destfile: osgiName) {
