@@ -416,7 +416,7 @@ target(name: 'integrate') {
   depends(['clean', 'release', 'all'])
 }
 
-final void osgi = { curDir, deliverDir ->
+final def osgi = { curDir, deliverDir ->
 //	natives = ['libsqlite4java-linux-amd64.so', 'libsqlite4java-linux-i386.so', 'libsqlite4java-osx.dylib', 'sqlite4java-win32-x64.dll', 'sqlite4java-win32-x86.dll']
 	ant.copy(todir: "${curDir}/native") {
 	  fileset (dir: curDir, includes: "*so *dll *dylib")
@@ -474,7 +474,7 @@ target(name: 'collect') {
   ant.mkdir(dir: deliverDir)
   ant.delete(file: "${deliverDir}/sqlite4java-${version}.zip")
   ant.zip(destfile: "${deliverDir}/sqlite4java-${version}.zip", basedir: "$build", includes: "sqlite4java-${version}/* android/**")
-	osgi("$mod", deliverDir)
+  osgi(mod, deliverDir)
 }
 
 target(name: 'android') {
