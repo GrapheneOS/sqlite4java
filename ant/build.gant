@@ -416,18 +416,19 @@ target(name: 'integrate') {
   depends(['clean', 'release', 'all'])
 }
 
-final def osgi = { curDir, deliverDir ->
+final def osgi = { curDir, deliverDir, targetDir ->
 //	natives = ['libsqlite4java-linux-amd64.so', 'libsqlite4java-linux-i386.so', 'libsqlite4java-osx.dylib', 'sqlite4java-win32-x64.dll', 'sqlite4java-win32-x86.dll']
 	ant.copy(todir: "${curDir}/native") {
 	  fileset (dir: curDir, includes: "*so *dll *dylib")
 	}
   classesDir = "${curDir}/classes"
-	ant.unzip(src: "${curDir}/${antProp('srczipname')}", dest: classesDir, overwrite: "true")
-
+	ant.mkdir(dir: classesDir)		  
+	ant.unzip(src: "${targetDir}/${antProp('srczipname')}", dest: classesDir, overwrite: "true")
+	
 	osgiName = "com.almworks.sqlite4java-1.0.${version}.jar"
-  ant.jar(destfile: osgiName) {
+  ant.jar(destfile: "${deliverDir}/${osgiName}") {
 		fileset(dir: "${curDir}", includes: "native/**")
-		fileset(dir: "${deliverDir}/${classesDir}")
+		fileset(dir: "${classesDir}")
     manifest {
       attribute(name: "Main-Class", value: "com.almworks.sqlite4java.SQLite")
       attribute(name: "Specification-Title", value: "sqlite4java")
@@ -437,7 +438,7 @@ final def osgi = { curDir, deliverDir ->
       attribute(name: "Implementation-URL", value: "http://code.google.com/p/sqlite4java")
       attribute(name: "Implementation-Vendor", value: "ALM Works")
       attribute(name: "Implementation-Version", value: "${version}")
-
+			
       attribute(name:"Bundle-ManifestVersion", value:"2")
       attribute(name:"Bundle-Name", value:"sqlite4java")
       attribute(name:"Bundle-SymbolicName", value:"com.almworks.sqlite4java")
@@ -446,10 +447,10 @@ final def osgi = { curDir, deliverDir ->
       attribute(name:"Export-Package", value:"com.almworks.sqlite4java;version=\"1.0.${version}\"")
       attribute(name:"Bundle-NativeCode", value:
 							"META-INF/native/sqlite4java-win32-x64.dll;     osname=win32; processor=x64," +
-              "META-INF/native/sqlite4java-win32-x86.dll;     osname=win32; processor=x86," +
-              "META-INF/native/libsqlite4java-linux-amd64.so; osname=Linux; processor=x64," +
-              "META-INF/native/libsqlite4java-linux-i386.so;  osname=Linux; processor=x86," +
-              "META-INF/native/libsqlite4java-osx.dylib;      osname=Mac OS X,")
+							"META-INF/native/sqlite4java-win32-x86.dll;     osname=win32; processor=x86," +
+							"META-INF/native/libsqlite4java-linux-amd64.so; osname=Linux; processor=x64," +
+							"META-INF/native/libsqlite4java-linux-i386.so;  osname=Linux; processor=x86," +
+							"META-INF/native/libsqlite4java-osx.dylib;      osname=Mac OS X,")
     }
   }
 }
@@ -465,16 +466,16 @@ target(name: 'collect') {
     if (!f.isFile()) { ant.fail(message: "cannot find ${f.getCanonicalPath()}"); return; }
     ant.unzip(src: name, dest: target, overwrite: "true")
   }
-
+ 
   ['windows', 'mac', 'linux', 'android'].each() {
     unpack("$mod/sqlite4java-${it}-${version}.zip")
   }
-
+ 
   deliverDir = "$build/deliver"
   ant.mkdir(dir: deliverDir)
   ant.delete(file: "${deliverDir}/sqlite4java-${version}.zip")
   ant.zip(destfile: "${deliverDir}/sqlite4java-${version}.zip", basedir: "$build", includes: "sqlite4java-${version}/* android/**")
-  osgi(mod, deliverDir)
+  osgi(mod, deliverDir, target)
 }
 
 target(name: 'android') {
