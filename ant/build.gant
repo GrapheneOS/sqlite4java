@@ -437,6 +437,37 @@ target(name: 'collect') {
   ant.zip(destfile: "$build/deliver/sqlite4java-${version}.zip", basedir: "$build", includes: "sqlite4java-${version}/*")
 }
 
+target(name: 'osgi') {
+  depends(['java.compile'])
+
+
+  ant.jar(destfile: "$build/jar/${antProp('jarname')}", basedir: "$buildClasses") {
+    manifest {
+      attribute(name: "Main-Class", value: "com.almworks.sqlite4java.SQLite")
+      attribute(name: "Specification-Title", value: "sqlite4java")
+      attribute(name: "Specification-Version", value: "${version}")
+      attribute(name: "Specification-Vendor", value: "ALM Works")
+      attribute(name: "Implementation-Title", value: "sqlite4java")
+      attribute(name: "Implementation-URL", value: "http://code.google.com/p/sqlite4java")
+      attribute(name: "Implementation-Vendor", value: "ALM Works")
+      attribute(name: "Implementation-Version", value: "${version}")
+
+      attribute(name:"Bundle-ManifestVersion", value:"2")
+      attribute(name:"Bundle-Name", value:"sqlite4java")
+      attribute(name:"Bundle-SymbolicName", value:"com.almworks.sqlite4java")
+      attribute(name:"Bundle-Version", value:"1.0.0")
+      attribute(name:"Bundle-RequiredExecutionEnvironment", value:"JavaSE-1.6")
+      attribute(name:"Export-Package", value:"com.almworks.sqlite4java;version=\"1.0.${version}\"")
+      attribute(name:"Bundle-NativeCode", value:
+          "META-INF/native/sqlite4java-win32-x64.dll;     osname=win64; processor=x64," +
+          "META-INF/native/sqlite4java-win32-x86.dll;     osname=win32; processor=x86," +
+          "META-INF/native/libsqlite4java-linux-amd64.so; osname=Linux; processor=x64," +
+          "META-INF/native/libsqlite4java-linux-i386.so;  osname=Linux; processor=x86," +
+          "META-INF/native/libsqlite4java-osx.dylib;      osname=Mac OS X,")
+    }
+  }
+}
+
 target(name: 'android') {
   depends(['init', 'lib.swig'])
   checkProp("ndk.home", "NDK_HOME")
@@ -472,7 +503,7 @@ target(name: 'android') {
   ant.copy(todir: "$target/android/libs") {
     fileset(dir: "$target/project/libs")
   }
-  def zipName = "$target/android-${version}.zip"
+  def zipName = "$target/sqlite4java-android-${version}.zip"
   ant.zip(destfile: zipName,
       basedir: "$target", includes: "android/**/*.*")
   ant.copy(file: zipName, todir: "$build/dist")
