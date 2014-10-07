@@ -173,9 +173,6 @@ final class Internal {
       }
       r.add(base + "-arm");
     }
-    if ("osx".equals(os)) {
-      r.add(base + "-10.5");
-    }
     r.add(base);
     r.add(BASE_LIBRARY_NAME);
     return r;
