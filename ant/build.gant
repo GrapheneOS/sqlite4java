@@ -416,32 +416,18 @@ target(name: 'integrate') {
   depends(['clean', 'release', 'all'])
 }
 
-target(name: 'collect') {
-  depends(['init'])
-  if (version == "0") { ant.fail(message: "cannot collect artifacts without version"); return; }
-  def target = "$build/sqlite4java-${version}"
-  ant.delete(dir: target)
-  ant.mkdir(dir: target)
-  final unpack = { String name ->
-    def f = new File(name)
-    if (!f.isFile()) { ant.fail(message: "cannot find ${f.getCanonicalPath()}"); return; }
-    ant.unzip(src: name, dest: target, overwrite: "true")
-  }
+final void osgi = { curDir, deliverDir ->
+//	natives = ['libsqlite4java-linux-amd64.so', 'libsqlite4java-linux-i386.so', 'libsqlite4java-osx.dylib', 'sqlite4java-win32-x64.dll', 'sqlite4java-win32-x86.dll']
+	ant.copy(todir: "${curDir}/native") {
+	  fileset (dir: curDir, includes: "*so *dll *dylib")
+	}
+  classesDir = "${curDir}/classes"
+	ant.unzip(src: ${antProp('srczipname')}, dest: classesDir, overwrite: "true")
 
-  ['windows', 'mac', 'linux', 'android'].each() {
-    unpack("$mod/sqlite4java-${it}-${version}.zip")
-  }
-
-  ant.mkdir(dir: "$build/deliver")
-  ant.delete(file: "$build/deliver/sqlite4java-${version}.zip")
-  ant.zip(destfile: "$build/deliver/sqlite4java-${version}.zip", basedir: "$build", includes: "sqlite4java-${version}/*")
-}
-
-target(name: 'osgi') {
-  depends(['java.compile'])
-
-
-  ant.jar(destfile: "$build/jar/${antProp('jarname')}", basedir: "$buildClasses") {
+	osgiName = "com.almworks.sqlite4java-1.0.${version}.jar"
+  ant.jar(destfile: osgiName) {
+		fileset(dir: "${curDir}", includes: "native/**")
+		fileset(dir: "${deliverDir}/${classesDir}")
     manifest {
       attribute(name: "Main-Class", value: "com.almworks.sqlite4java.SQLite")
       attribute(name: "Specification-Title", value: "sqlite4java")
@@ -459,13 +445,36 @@ target(name: 'osgi') {
       attribute(name:"Bundle-RequiredExecutionEnvironment", value:"JavaSE-1.6")
       attribute(name:"Export-Package", value:"com.almworks.sqlite4java;version=\"1.0.${version}\"")
       attribute(name:"Bundle-NativeCode", value:
-          "META-INF/native/sqlite4java-win32-x64.dll;     osname=win64; processor=x64," +
-          "META-INF/native/sqlite4java-win32-x86.dll;     osname=win32; processor=x86," +
-          "META-INF/native/libsqlite4java-linux-amd64.so; osname=Linux; processor=x64," +
-          "META-INF/native/libsqlite4java-linux-i386.so;  osname=Linux; processor=x86," +
-          "META-INF/native/libsqlite4java-osx.dylib;      osname=Mac OS X,")
+							"META-INF/native/sqlite4java-win32-x64.dll;     osname=win32; processor=x64," +
+              "META-INF/native/sqlite4java-win32-x86.dll;     osname=win32; processor=x86," +
+              "META-INF/native/libsqlite4java-linux-amd64.so; osname=Linux; processor=x64," +
+              "META-INF/native/libsqlite4java-linux-i386.so;  osname=Linux; processor=x86," +
+              "META-INF/native/libsqlite4java-osx.dylib;      osname=Mac OS X,")
     }
   }
+}
+
+target(name: 'collect') {
+  depends(['init'])
+  if (version == "0") { ant.fail(message: "cannot collect artifacts without version"); return; }
+  def target = "$build/sqlite4java-${version}"
+  ant.delete(dir: target)
+  ant.mkdir(dir: target)
+  final unpack = { String name ->
+    def f = new File(name)
+    if (!f.isFile()) { ant.fail(message: "cannot find ${f.getCanonicalPath()}"); return; }
+    ant.unzip(src: name, dest: target, overwrite: "true")
+  }
+
+  ['windows', 'mac', 'linux', 'android'].each() {
+    unpack("$mod/sqlite4java-${it}-${version}.zip")
+  }
+
+  deliverDir = "$build/deliver"
+  ant.mkdir(dir: deliverDir)
+  ant.delete(file: "${deliverDir}/sqlite4java-${version}.zip")
+  ant.zip(destfile: "${deliverDir}/sqlite4java-${version}.zip", basedir: "$build", includes: "sqlite4java-${version}/* android/**")
+	osgi("$mod", deliverDir)
 }
 
 target(name: 'android') {
