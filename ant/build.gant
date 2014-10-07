@@ -177,8 +177,7 @@ target(name: 'lib.compile') {
         wsdk("${antProp('cl')} $clargs -Fo$out/intarray.o native/intarray.c", "$out/intarray.o", arch, buildtype)
       } else {
         def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
-        
-		ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
+        ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
         clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
 
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c $build/swig/sqlite_wrap.c -o $out/sqlite_wrap.o")
