@@ -131,7 +131,7 @@ target(name: 'init') {
     def compilerProperty = ("gcc --version".execute().text.contains("clang") ? "clang" : "gcc") + ".cc.options"
     compilerArgs = antProp(compilerProperty)
     if (compilerArgs == null) { compilerArgs = "" }
-  }						 
+  }
 
   Arrays.asList(antProp("platforms").split("\\s*,\\s*")).each { platforms << it.trim() }
   if (platforms.isEmpty()) ant.fail(message: "no platforms defined");
@@ -418,17 +418,17 @@ target(name: 'integrate') {
 
 final def osgi = { curDir, deliverDir, targetDir ->
 //	natives = ['libsqlite4java-linux-amd64.so', 'libsqlite4java-linux-i386.so', 'libsqlite4java-osx.dylib', 'sqlite4java-win32-x64.dll', 'sqlite4java-win32-x86.dll']
-	ant.copy(todir: "${curDir}/native") {
-	  fileset (dir: curDir, includes: "*so *dll *dylib")
-	}
+  ant.copy(todir: "${targetDir}/native") {
+    fileset (dir: targetDir, includes: "*so *dll *dylib")
+  }
   classesDir = "${curDir}/classes"
-	ant.mkdir(dir: classesDir)		  
-	ant.unzip(src: "${targetDir}/${antProp('srczipname')}", dest: classesDir, overwrite: "true")
-	
-	osgiName = "com.almworks.sqlite4java-1.0.${version}.jar"
+  ant.mkdir(dir: classesDir)
+  ant.unzip(src: "${targetDir}/${antProp('jarname')}", dest: classesDir, overwrite: "true")
+
+  osgiName = "com.almworks.sqlite4java-1.0.${version}.jar"
   ant.jar(destfile: "${deliverDir}/${osgiName}") {
-		fileset(dir: "${curDir}", includes: "native/**")
-		fileset(dir: "${classesDir}")
+    fileset(dir: "${targetDir}", includes: "native/**")
+    fileset(dir: "${classesDir}")
     manifest {
       attribute(name: "Main-Class", value: "com.almworks.sqlite4java.SQLite")
       attribute(name: "Specification-Title", value: "sqlite4java")
@@ -438,7 +438,7 @@ final def osgi = { curDir, deliverDir, targetDir ->
       attribute(name: "Implementation-URL", value: "http://code.google.com/p/sqlite4java")
       attribute(name: "Implementation-Vendor", value: "ALM Works")
       attribute(name: "Implementation-Version", value: "${version}")
-			
+
       attribute(name:"Bundle-ManifestVersion", value:"2")
       attribute(name:"Bundle-Name", value:"sqlite4java")
       attribute(name:"Bundle-SymbolicName", value:"com.almworks.sqlite4java")
@@ -466,11 +466,11 @@ target(name: 'collect') {
     if (!f.isFile()) { ant.fail(message: "cannot find ${f.getCanonicalPath()}"); return; }
     ant.unzip(src: name, dest: target, overwrite: "true")
   }
- 
+
   ['windows', 'mac', 'linux', 'android'].each() {
     unpack("$mod/sqlite4java-${it}-${version}.zip")
   }
- 
+
   deliverDir = "$build/deliver"
   ant.mkdir(dir: deliverDir)
   ant.delete(file: "${deliverDir}/sqlite4java-${version}.zip")
