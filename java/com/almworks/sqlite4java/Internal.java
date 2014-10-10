@@ -323,6 +323,9 @@ final class Internal {
 
   private static boolean tryLoadFromPath(String libname, String path, Throwable[] failureReason) {
     String libFile = System.mapLibraryName(libname);
+    if (getOs().equals("osx") && libFile.endsWith(".jnilib")) {
+      libFile = libFile.substring(0, libFile.length() - "jnilib".length()) + "dylib";
+    }
     File lib = new File(new File(path), libFile);
     logFine(Internal.class, "checking " + lib);
     if (!lib.isFile() || !lib.canRead())
