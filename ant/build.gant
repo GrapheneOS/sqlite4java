@@ -6,6 +6,7 @@ final String baseDir = {
 final rel = {String file -> "$baseDir/$file" }
 
 final String antProp(String it) { ant.project.properties[it] as String }
+final getBooleanProperty = {String param -> (ant.project.properties[param] in ["", "true"])}
 
 ant.property(file: "global.properties")
 
@@ -334,7 +335,7 @@ target('test': 'run all tests') {
   ant.echo(message: "[test]")
   platforms.each { String platform ->
     buildtypes.each { String buildtype ->
-      if (antProp("skip.test.$platform")) return;
+      if (getBooleanProperty("skip.test.$platform")) return;
       checkProp("jre.$platform", "JAVA_HOME", "JDK_HOME")
       def jvm = antProp("jre.$platform")
       if (!jvm) ant.fail(message: "cannot run tests - jre.$platform is not defined")
