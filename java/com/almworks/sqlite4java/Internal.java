@@ -107,14 +107,14 @@ final class Internal {
     if (forcedPath != null) {
       // if forced path is specified with sqlite4java.library.path, load binaries only from there
       for (String name : names) {
-        loaded = tryLoadFromPath(name, forcedPath, failureReason);
+        loaded = tryLoadFromPath(name, os, forcedPath, failureReason);
         if (loaded) break;
       }
     } else {
       if (defaultPath != null) {
         // if we found .JAR in non-system path, try load binaries from there first
         for (String name : names) {
-          loaded = tryLoadFromPath(name, defaultPath, failureReason);
+          loaded = tryLoadFromPath(name, os, defaultPath, failureReason);
           if (loaded) break;
         }
       }
@@ -126,7 +126,7 @@ final class Internal {
         }
       }
     }
-    
+
     if (loaded) {
       String msg = getLibraryVersionMessage();
       Internal.logInfo(Internal.class, msg);
@@ -321,10 +321,14 @@ final class Internal {
     return f + 1 < t && name.charAt(f) == '-' ? name.substring(f, t) : null;
   }
 
-  private static boolean tryLoadFromPath(String libname, String path, Throwable[] failureReason) {
+  private static boolean tryLoadFromPath(String libname, String os, String path, Throwable[] failureReason) {
     String libFile = System.mapLibraryName(libname);
-    if (getOs().equals("osx") && libFile.endsWith(".jnilib")) {
-      libFile = libFile.substring(0, libFile.length() - "jnilib".length()) + "dylib";
+    if (os.equals("osx")) {
+      String oldSuffix = ".jnilib";
+      if (libFile.endsWith(oldSuffix)) {
+        String newSuffix = ".dylib";
+        libFile = libFile.substring(0, libFile.length() - oldSuffix.length()) + newSuffix;
+      }
     }
     File lib = new File(new File(path), libFile);
     logFine(Internal.class, "checking " + lib);
