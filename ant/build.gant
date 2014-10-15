@@ -451,7 +451,7 @@ final def osgi = { curDir, deliverDir, targetDir ->
               "native/sqlite4java-win32-x86.dll; osname=win32; processor=x86," +
               "native/libsqlite4java-linux-amd64.so; osname=Linux; processor=x64," +
               "native/libsqlite4java-linux-i386.so; osname=Linux; processor=x86," +
-              "native/libsqlite4java-osx.dylib; osname=Mac OS X,")
+              "native/libsqlite4java-osx.dylib; osname=Mac OS X; processor=x86_64")
     }
   }
 }
