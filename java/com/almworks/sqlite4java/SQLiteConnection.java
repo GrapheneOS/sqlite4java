@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import static com.almworks.sqlite4java.SQLiteConstants.*;
-import com.almworks.sqlite4java.SQLiteColumnMetadata;
 
 /**
  * SQLiteConnection is a single connection to sqlite database. It wraps the <strong><code>sqlite3*</code></strong>
@@ -436,6 +435,7 @@ public final class SQLiteConnection {
     finalizeStatements();
     finalizeBlobs();
     finalizeBuffers();
+    finalizeArrays();
     finalizeProgressHandler(handle);
     int rc = _SQLiteSwigged.sqlite3_close(handle);
     // rc may be SQLiteConstants.Result.SQLITE_BUSY if statements are open
@@ -1162,6 +1162,21 @@ public final class SQLiteConnection {
       }
       myStatements.clear();
       myStatementCache.clear();
+    }
+  }
+
+  private void finalizeArrays() {
+    boolean alienThread = myConfinement != Thread.currentThread();
+    if (!alienThread) {
+      for (Map.Entry<String, SWIGTYPE_p_intarray> entry : myLongArrays.entrySet()) {
+        String name = entry.getKey();
+        SWIGTYPE_p_intarray array = entry.getValue();
+
+        int rc = _SQLiteManual.sqlite3_intarray_destroy(array);
+        if (rc != SQLITE_OK) {
+          Internal.logWarn(this, "error [" + rc + "] finalizing array " + name);
+        }
+      }
     }
   }
 
