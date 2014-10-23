@@ -20,10 +20,7 @@ import javolution.util.stripped.FastMap;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 
 import static com.almworks.sqlite4java.SQLiteConstants.*;
@@ -1168,14 +1165,30 @@ public final class SQLiteConnection {
   private void finalizeArrays() {
     boolean alienThread = myConfinement != Thread.currentThread();
     if (!alienThread) {
-      for (Map.Entry<String, SWIGTYPE_p_intarray> entry : myLongArrays.entrySet()) {
-        String name = entry.getKey();
-        SWIGTYPE_p_intarray array = entry.getValue();
-
-        int rc = _SQLiteManual.sqlite3_intarray_destroy(array);
-        if (rc != SQLITE_OK) {
-          Internal.logWarn(this, "error [" + rc + "] finalizing array " + name);
+      Internal.logFine(this, "finalizing arrays");
+      if (!myLongArrays.isEmpty()) {
+        int size = myLongArrays.size();
+        List<SWIGTYPE_p_intarray> handles = new ArrayList<SWIGTYPE_p_intarray>(size);
+        List<String> names = new ArrayList<String>(size);
+        synchronized (myLock) {
+          handles.addAll(myLongArrays.values());
+          names.addAll(myLongArrays.keySet());
         }
+        assert handles.size() == names.size();
+        for (int i = 0; i < handles.size(); i++) {
+          finalizeArrayHandle(handles.get(i), names.get(i));
+        }
+      }
+    }
+    synchronized (myLock) {
+      if (!myLongArrays.isEmpty()) {
+        int count = myLongArrays.size();
+        if (alienThread) {
+          Internal.logWarn(this, "cannot finalize " + count + " arrays from alien thread");
+        } else {
+          Internal.recoverableError(this, count + " arrays are not finalized", false);
+        }
+        myLongArrays.clear();
       }
     }
   }
@@ -1234,9 +1247,13 @@ public final class SQLiteConnection {
     Internal.logFine(array, "finalizing");
     SWIGTYPE_p_intarray handle = array.arrayHandle();
     String tableName = array.getName();
+    finalizeArrayHandle(handle, tableName);
+  }
+
+  private void finalizeArrayHandle(SWIGTYPE_p_intarray handle, String name) {
     int rc = _SQLiteManual.sqlite3_intarray_destroy(handle);
     if (rc != SQLITE_OK) {
-      Internal.logWarn(this, "error [" + rc + "] finalizing array " + tableName);
+      Internal.logWarn(this, "error [" + rc + "] finalizing array " + name);
     }
   }
 
