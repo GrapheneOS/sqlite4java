@@ -1166,17 +1166,16 @@ public final class SQLiteConnection {
     boolean alienThread = myConfinement != Thread.currentThread();
     if (!alienThread) {
       Internal.logFine(this, "finalizing arrays");
-      if (!myLongArrays.isEmpty()) {
-        int size = myLongArrays.size();
-        List<SWIGTYPE_p_intarray> handles = new ArrayList<SWIGTYPE_p_intarray>(size);
-        List<String> names = new ArrayList<String>(size);
+      FastMap<String, SWIGTYPE_p_intarray> fastMap;
+      while (true) {
         synchronized (myLock) {
-          handles.addAll(myLongArrays.values());
-          names.addAll(myLongArrays.keySet());
+          if (myLongArrays.isEmpty())
+            break;
+          fastMap = new FastMap<String, SWIGTYPE_p_intarray>(myLongArrays);
+          myLongArrays.clear();
         }
-        assert handles.size() == names.size();
-        for (int i = 0; i < handles.size(); i++) {
-          finalizeArrayHandle(handles.get(i), names.get(i));
+        for (Map.Entry<String, SWIGTYPE_p_intarray> entry : fastMap.entrySet()) {
+          finalizeArrayHandle(entry.getValue(), entry.getKey());
         }
       }
     }
