@@ -447,9 +447,9 @@ final def osgi = { curDir, deliverDir, targetDir ->
       attribute(name:"Bundle-RequiredExecutionEnvironment", value:"JavaSE-1.6")
       attribute(name:"Export-Package", value:"com.almworks.sqlite4java;version=\"1.0.${version}\"")
       attribute(name:"Bundle-NativeCode", value:
-          "native/sqlite4java-win32-x64.dll; osname=win32; processor=x64," +
+          "native/sqlite4java-win32-x64.dll; osname=win32; processor=x86_64," +
               "native/sqlite4java-win32-x86.dll; osname=win32; processor=x86," +
-              "native/libsqlite4java-linux-amd64.so; osname=linux; processor=x64," +
+              "native/libsqlite4java-linux-amd64.so; osname=linux; processor=x86_64," +
               "native/libsqlite4java-linux-i386.so; osname=linux; processor=x86," +
               "native/libsqlite4java-osx.dylib; osname=macosx; processor=x86_64," +
               "native/libsqlite4java-osx.dylib; osname=macosx; processor=x86,")
