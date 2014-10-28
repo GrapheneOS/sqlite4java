@@ -21,7 +21,7 @@ public class ProgressHandlerTests extends SQLiteConnectionFixture {
     st.reset();
 
 
-    interruptLater(st, 1000);
+    interruptLater(st, 500);
 
     start = System.currentTimeMillis();
     try {
