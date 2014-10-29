@@ -20,8 +20,8 @@ public class ProgressHandlerTests extends SQLiteConnectionFixture {
     }
     st.reset();
 
-
-    interruptLater(st, 300);
+    int DELAY = 500;
+    interruptLater(st, DELAY);
 
     start = System.currentTimeMillis();
     try {
@@ -30,8 +30,8 @@ public class ProgressHandlerTests extends SQLiteConnectionFixture {
     } catch (SQLiteInterruptedException e) {
       // normal
       time = System.currentTimeMillis() - start;
-      assertTrue("[" + time + "]", 500 < time);
-      if (time > 2000) {
+      assertTrue("[" + time + "]", time > DELAY / 2);
+      if (time > DELAY * 2) {
         Internal.logWarn(this, "cancel took " + time + "ms");
       }
     }
