@@ -226,11 +226,11 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Allows the size of various constructs for current connection to be limited.
+   * Allows the size of various constructs for the current connection to be limited.
    *
-   * @param id identify a class of constructs to be size limited (use constants "SQLITE_LIMIT_*")
-   * @param newVal defines the new limit for that construct.
-   * @return previous limit for that construct
+   * @param id identifies the class of the constructs to be limited (use {@code SQLITE_LIMIT_*} constants from {@link SQLiteConstants}).
+   * @param newVal the new limit
+   * @return previous limit
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/limit.html">sqlite3_limit</a>
    */
@@ -240,10 +240,10 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Returns limitation for the size of various constructs for current connection.
+   * Returns the current limit for the size of a various constructs for the current connection.
    *
-   * @param id identify a class of constructs to be size limited (use constants "SQLITE_LIMIT_*")
-   * @return current limit for that construct
+   * @param id identifies the class of the constructs to be limited (use {@code SQLITE_LIMIT_*} constants from {@link SQLiteConstants}).
+   * @return current limit
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/limit.html">sqlite3_limit</a>
    */
@@ -351,13 +351,17 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Checks if the connection readonly.
-   * Connection could be readonly if it was opened through {@link #openReadonly()} or
-   * through {@link #openV2(int)} with {@link SQLiteConstants#SQLITE_OPEN_READONLY} flag.
-   * Or if it was opened on the readonly file.
+   * <p>Checks if a database accessed through this connection is read-only.</p>
    *
-   * @param dbName Database name or null
-   * @return {@code true} if this con1nection is readonly, otherwise {@code false}
+   * <p>A database can be read-only if:</p>
+   * <ul>
+   *   <li>it was opened with read-only flag (using {@link #openReadonly()} or
+   * {@link #openV2(int)} with {@link SQLiteConstants#SQLITE_OPEN_READONLY}), or</li>
+   *   <li>if the file or file system is read-only.</li>
+   * </ul>
+   *
+   * @param dbName database name, or null for the main database
+   * @return {@code true} if the specified database is read-only
    * @throws SQLiteException if the requested database name cannot be found
    * @see <a href="http://www.sqlite.org/c3ref/db_readonly.html">sqlite3_db_readonly</a>
    */
@@ -377,8 +381,21 @@ public final class SQLiteConnection {
   }
 
   /**
-   * @return {@code isReadOnly(null)}
+   * <p>Checks if this connection is read-only. This is a convenience method for calling </p>
+   * <p>A database can be read-only if:</p>
+   * <ul>
+   *   <li>it was opened with read-only flag (using {@link #openReadonly()} or
+   * {@link #openV2(int)} with {@link SQLiteConstants#SQLITE_OPEN_READONLY}), or</li>
+   *   <li>if the file or file system is read-only.</li>
+   * </ul>
+   *
+   * <p>This is a convenience method that calls {@link #isReadOnly(String)} with {@code null} parameter,
+   * checking the status of the main database of this connection.</p>
+   *
+   * @return {@code true} if the specified database is read-only
+   * @throws SQLiteException if the requested database name cannot be found
    * @see #isReadOnly(String)
+   * @see <a href="http://www.sqlite.org/c3ref/db_readonly.html">sqlite3_db_readonly</a>
    */
   public boolean isReadOnly() throws SQLiteException {
     return isReadOnly(null);
@@ -486,11 +503,11 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Return meta information about a specific column of a database table.
+   * Returns meta information about a specific column of a database table.
    *
-   * @param dbName Database name or NULL
-   * @param tableName Table name
-   * @param columnName Column name
+   * @param dbName database name or {@code null}
+   * @param tableName table name
+   * @param columnName column name
    * @return SQLiteColumnMetadata column metadata
    * @throws SQLiteException if specified table is actually a view, or if error occurs during this process, or if the requested table or column cannot be found, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/table_column_metadata.html">sqlite3_table_column_metadata</a>

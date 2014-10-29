@@ -519,7 +519,7 @@ public final class SQLiteStatement {
   /**
    * Returns the index of a bind parameter with a given name, as defined in the SQL.
    *
-   * @param name the name of a named bindable parameter, e.g. "?PARAM1"
+   * @param name parameter name
    * @return the index of the parameter in the SQL, or 0 if no such parameter found
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/bind_parameter_index.html">sqlite3_bind_parameter_index</a>
@@ -563,7 +563,7 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a value of type double.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @param value non-null double value
    * @return this object
    * @throws SQLiteException if SQLite returns an error,
@@ -597,7 +597,7 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a value of type int.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @param value non-null int value
    * @return this object
    * @throws SQLiteException if SQLite returns an error,
@@ -631,7 +631,7 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a value of type long.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @param value non-null long value
    * @return this object
    * @throws SQLiteException if SQLite returns an error,
@@ -673,7 +673,7 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a value of type String.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @param value String value, if null then {@link #bindNull} will be called
    * @return this object
    * @throws SQLiteException if SQLite returns an error,
@@ -701,7 +701,7 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a BLOB value, represented by a byte array.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @param value an array of bytes to be used as the blob value; if null, {@link #bindNull} is called
    * @return this object
    * @throws SQLiteException if SQLite returns an error,
@@ -744,7 +744,7 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a BLOB value, represented by a range within byte array.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @param value  an array of bytes; if null, {@link #bindNull} is called
    * @param offset position in the byte array to start reading value from
    * @param length number of bytes to read from value
@@ -785,7 +785,7 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a BLOB value, consiting of a given number of zero bytes.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @param length number of zero bytes to use as a parameter
    * @return this object
    * @throws SQLiteException if SQLite returns an error,
@@ -818,7 +818,7 @@ public final class SQLiteStatement {
   /**
    * Binds SQL parameter to a NULL value.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @return this object
    * @throws SQLiteException if SQLite returns an error,
    *         or if parameter with specified name was not found,
@@ -854,7 +854,7 @@ public final class SQLiteStatement {
    * <p/>
    * If statement is executed before the stream is closed, the value will not be set for the parameter.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @return stream to receive data for the BLOB parameter
    * @throws SQLiteException if SQLite returns an error,
    *         or if parameter with specified name was not found,
@@ -906,7 +906,7 @@ public final class SQLiteStatement {
    * <p/>
    * If statement is executed before the stream is closed, the value will not be set for the parameter.
    *
-   * @param name the string representation of the boundable parameter
+   * @param name parameter name
    * @param bufferSize the number of bytes to be allocated for the buffer (the buffer will grow as needed)
    * @return stream to receive data for the BLOB parameter
    * @throws SQLiteException if SQLite returns an error,

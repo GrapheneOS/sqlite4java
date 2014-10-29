@@ -17,13 +17,14 @@
 package com.almworks.sqlite4java;
 
 /**
- * SQLiteColumnMetadata wraps table column metadata represented by:
- *
- * <ul><li>Declared datatype ({@code String})</li>
- * <li>Collation sequence name ({@code String})</li>
- * <li>Flag that is true if NOT NULL constraint exists ({@code boolean})</li>
- * <li>Flag that is true if column is a part of primary key ({@code boolean})</li>
- * <li>Flag that is true if column is auto-increment ({@code boolean})</li></ul>
+ * <p>{@code SQLiteColumnMetadata} contains information about a table column:</p>
+ * <ul>
+ *   <li>Declared datatype;</li>
+ *   <li>Collation sequence name;</li>
+ *   <li>Flag that is true if NOT NULL constraint exists;</li>
+ *   <li>Flag that is true if column is a part of primary key;</li>
+ *   <li>Flag that is true if column is auto-increment.</li>
+ * </ul>
  *
  * You get instances of SQLiteColumnMetadata via {@link SQLiteConnection#getTableColumnMetadata} method.
  *
@@ -31,12 +32,11 @@ package com.almworks.sqlite4java;
  * @see <a href="http://www.sqlite.org/c3ref/table_column_metadata.html">sqlite3_table_column_metadata</a>
  */
 public final class SQLiteColumnMetadata {
-
-  private final String myDataType; // Declared data type
-  private final String myCollSeq; // Collation sequence name
-  private final boolean myNotNull; // True if NOT NULL constraint exists
-  private final boolean myPrimaryKey; // True if column part of PK
-  private final boolean myAutoinc; // True if column is auto-increment
+  private final String myDataType;
+  private final String myCollSeq;
+  private final boolean myNotNull;
+  private final boolean myPrimaryKey;
+  private final boolean myAutoinc;
 
   SQLiteColumnMetadata(String dataType, String collSeq, boolean notNull, boolean primaryKey, boolean autoinc) {
     myDataType = dataType;
