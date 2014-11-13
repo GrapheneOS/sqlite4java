@@ -164,9 +164,9 @@ final class Internal {
     if (arch.equals("x86_64") || arch.equals("x64")) {
       r.add(base + "-amd64");
     } else if (arch.equals("x86")) {
-      r.add(base + "-x86");
-    } else if (arch.equals("i386")) {
       r.add(base + "-i386");
+    } else if (arch.equals("i386")) {
+      r.add(base + "-x86");
     } else if (arch.startsWith("arm") && arch.length() > 3) {
       if (arch.length() > 5 && arch.startsWith("armv") && Character.isDigit(arch.charAt(4))) {
         r.add(base + "-" + arch.substring(0, 5));
