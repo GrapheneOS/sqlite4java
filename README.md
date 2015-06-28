@@ -1,4 +1,4 @@
-**Download latest version:**
+# Download latest version:
 
   * [sqlite4java-392](https://d1.almworks.com/.files/sqlite4java/sqlite4java-392.zip) with **SQLite 3.8.7**, Windows/Linux/Mac OS X/Android binaries
   * [OSGi bundle 1.0.392](https://d1.almworks.com/.files/sqlite4java/com.almworks.sqlite4java-1.0.392.jar) with sqlite4java-392
@@ -13,7 +13,7 @@ Files for previous versions are available in the Downloads section.
 
 sqlite4java is a minimalistic Java wrapper for SQLite. [SQLite](http://sqlite.org) is a free, compact, robust, embeddable SQL database engine. **sqlite4java** is built with the purpose to provide high-performance, low-garbage interface to SQLite for desktop Java applications.
 
-sqlite4java is not a JDBC driver. Access to the database is made through the custom interfaces of `com.almworks.sqlite4java` package. Tighter integration with SQLite offers better performance and features not available through JDBC interfaces.
+sqlite4java is **not a JDBC driver**. Access to the database is made through the custom interfaces of `com.almworks.sqlite4java` package. Tighter integration with SQLite offers better performance and features not available through JDBC interfaces.
 
 sqlite4java is built for use on Windows, Linux, Mac OS X and Android, although you can try to compile it on other platforms. Required JRE version is 1.5. SQLite is pre-compiled and distributed along with the Java classes as dynamic JNI libraries.
 
@@ -33,7 +33,7 @@ sqlite4java is a stable library that we (ALM Works) use in our production applic
 
 # Features
 
-  * **Thin JNI-based wrapper** for <a href='http://sqlite.org/c3ref/funclist.html'>SQLite C Interface</a>. Most of SQLite's user functions (not extender functions) are either already provided by the library or can be easily added.
+  * **Thin JNI-based wrapper** for [SQLite C Interface](http://sqlite.org/c3ref/funclist.html). Most of SQLite's user functions (not extender functions) are either already provided by the library or can be easily added.
   * **Single-threaded model** - each SQLite connection is confined to a single thread, all calls must come from that thread. Application may open several connections to the same database from different threads. Along with the Serializable isolation level from SQLite, this feature facilitates writing very clean and predictable code.
   * **Bulk retrieval** from SELECT statements, greatly improving speed and garbage rate via minimizing the number of JNI calls to `step()` and `column...()` methods. See  [SQLiteStatement.loadInts()](http://almworks.com/sqlite4java/javadoc/index.html) for example.
   * **Interruptible statements** support allows to cancel a long-running query or update. See [SQLiteConnection.interrupt()](http://almworks.com/sqlite4java/javadoc/index.html).
