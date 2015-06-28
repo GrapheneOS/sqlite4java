@@ -5,19 +5,24 @@
 
 Files for previous versions are available in the Downloads section.
 
+## Useful links:
+
+* [Javadocs](http://almworks.com/sqlite4java/javadoc/index.html)
+* [SQLite](http://sqlite.org)
+* [Google Group - sqlite4java](https://groups.google.com/forum/#!forum/sqlite4java)
 
 ---
 
 
 # About sqlite4java
 
-sqlite4java is a minimalistic Java wrapper for SQLite. [SQLite](http://sqlite.org) is a free, compact, robust, embeddable SQL database engine. **sqlite4java** is built with the purpose to provide high-performance, low-garbage interface to SQLite for desktop Java applications.
+Sqlite4java is a minimalistic, open-source Java wrapper for SQLite. [SQLite](http://sqlite.org) is a free, compact, robust, embeddable SQL database engine. **sqlite4java** is built with the purpose to provide high-performance, low-garbage interface to SQLite for desktop Java applications.
 
-sqlite4java is **not a JDBC driver**. Access to the database is made through the custom interfaces of `com.almworks.sqlite4java` package. Tighter integration with SQLite offers better performance and features not available through JDBC interfaces.
+Sqlite4java is **not a JDBC driver**. Access to the database is made through the custom interfaces of `com.almworks.sqlite4java` package. Tighter integration with SQLite offers better performance and features not available through JDBC interfaces.
 
-sqlite4java is built for use on Windows, Linux, Mac OS X and Android, although you can try to compile it on other platforms. Required JRE version is 1.5. SQLite is pre-compiled and distributed along with the Java classes as dynamic JNI libraries.
+Sqlite4java is built for use on Windows, Linux, Mac OS X and Android, although you can try to compile it on other platforms. Required JRE version is 1.5. SQLite is pre-compiled and distributed along with the Java classes as dynamic JNI libraries.
 
-sqlite4java is a stable library that we (ALM Works) use in our production applications. The API may not support some of the SQLite functions, but most functionality is covered. Feel free to request improvements or suggest patches.
+Sqlite4java is a stable library that we (ALM Works) use in our production applications. The API may not support some of the SQLite functions, but most functionality is covered. Feel free to request improvements or suggest patches.
 
   * [Getting Started](https://bitbucket.org/almworks/sqlite4java/wiki/GettingStarted)
   * [Comparison to Other Java Wrappers for SQLite](https://bitbucket.org/almworks/sqlite4java/wiki/ComparisonToOtherWrappers)
@@ -50,3 +55,9 @@ sqlite4java is a stable library that we (ALM Works) use in our production applic
 **sqlite4java** is licensed under Apache License 2.0. 
 
 Contact info@almworks.com if you'd like to have it licensed under different terms.
+
+
+# Contributors
+
+* [ALM Works](http://almworks.com) team
+* Ivan Voronov
