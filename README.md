@@ -40,7 +40,7 @@ sqlite4java is a stable library that we (ALM Works) use in our production applic
   * **Long array binding** allows to represent a `long[]` Java array as an SQL table. Table lookup is optimized if you specify that the array is sorted and/or has unique values. See [SQLiteLongArray](http://almworks.com/sqlite4java/javadoc/index.html).
   * **Incremental BLOB I/O** maps to `sqlite3_blob...` methods, which provide means to read/write portions of a large BLOB. See [SQLiteBlob](http://almworks.com/sqlite4java/javadoc/index.html).
   * **BLOBs as streams** - you can bind parameter as an `OutputStream` and read column value as `InputStream`. See [SQLiteStatement.bindStream()](http://almworks.com/sqlite4java/javadoc/index.html) for example.
-  * **Job queue implementation** lets you queue database jobs in a multi-threaded application, to be executed one-by-one in a dedicated database thread. See [JobQueue](JobQueue.md).
+  * **Job queue implementation** lets you queue database jobs in a multi-threaded application, to be executed one-by-one in a dedicated database thread. See [JobQueue](https://bitbucket.org/almworks/sqlite4java/wiki/JobQueue).
   * **SQL Profiler** collects statistics on the executed SQL.
   * **Backup API** support lets you use SQLite's hot backup feature. See [SQLiteConnection.initializeBackup()](http://almworks.com/sqlite4java/javadoc/index.html).
 
