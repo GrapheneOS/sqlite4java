@@ -19,10 +19,10 @@ sqlite4java is built for use on Windows, Linux, Mac OS X and Android, although y
 
 sqlite4java is a stable library that we (ALM Works) use in our production applications. The API may not support some of the SQLite functions, but most functionality is covered. Feel free to request improvements or suggest patches.
 
-  * [Getting Started](GettingStarted.md)
-  * [Comparison to Other Java Wrappers for SQLite](ComparisonToOtherWrappers.md)
+  * [Getting Started](https://bitbucket.org/almworks/sqlite4java/wiki/GettingStarted)
+  * [Comparison to Other Java Wrappers for SQLite](https://bitbucket.org/almworks/sqlite4java/wiki/ComparisonToOtherWrappers)
   * [Javadoc](http://almworks.com/sqlite4java/javadoc/index.html)
-  * [Using in a Maven 2 project](UsingWithMaven.md)
+  * [Using in a Maven 2 project](https://bitbucket.org/almworks/sqlite4java/wiki/UsingWithMaven)
 
 # Supported Platforms
 
@@ -47,4 +47,6 @@ sqlite4java is a stable library that we (ALM Works) use in our production applic
 
 # License
 
-**sqlite4java** is licensed under Apache License 2.0. Contact info@almworks.com if you'd like to have it licensed under different terms.
+**sqlite4java** is licensed under Apache License 2.0. 
+
+Contact info@almworks.com if you'd like to have it licensed under different terms.
