@@ -10,6 +10,10 @@ final getBooleanProperty = {String param -> (ant.project.properties[param] in ["
 
 ant.property(file: "global.properties")
 
+if(antProp("propertyFile")) {
+	ant.property(file: antProp("propertyFile"))
+}
+
 final String mod = rel('..')
 final String build = rel("../build")
 final String buildClasses = "$build/classes"
@@ -108,6 +112,8 @@ target(name: 'init') {
   List files = []
 
   if (os == "mac") {
+		sdkHome = antProp("sdk.home")
+		ant.echo(message: "sdk.home=${sdkHome}") 
     if (!antProp("sdk.home") && antProp("xcode.home")) {
       ant.property(name: "sdk.home", value: antProp("xcode.home") + "/SDKs/MacOSX10.5.sdk");
     }
@@ -247,7 +253,7 @@ target(name: 'java.compile') {
   }
   ant.mkdir(dir: buildClasses)
   ant.javac(srcdir: "$build/java", destdir: buildClasses, debug: "on",
-      target: "1.5", source: "1.5")
+      target: "1.7", source: "1.7")
 }
 
 target(name: 'java.jar') {
@@ -444,7 +450,7 @@ final def osgi = { curDir, deliverDir, targetDir ->
       attribute(name:"Bundle-Name", value:"sqlite4java")
       attribute(name:"Bundle-SymbolicName", value:"com.almworks.sqlite4java")
       attribute(name:"Bundle-Version", value:"1.0.0")
-      attribute(name:"Bundle-RequiredExecutionEnvironment", value:"JavaSE-1.6")
+      attribute(name:"Bundle-RequiredExecutionEnvironment", value:"JavaSE-1.7")
       attribute(name:"Export-Package", value:"com.almworks.sqlite4java;version=\"1.0.${version}\"")
       attribute(name:"Bundle-NativeCode", value:
           "native/sqlite4java-win32-x64.dll; osname=win32; processor=x86_64," +
