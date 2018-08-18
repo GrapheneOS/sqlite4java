@@ -225,7 +225,7 @@
     <excludeFromCompile>
       <directory url="file://$PROJECT_DIR$/../native" includeSubdirectories="true" />
       <directory url="file://$PROJECT_DIR$/../swig" includeSubdirectories="false" />
-      <directory url="file://$PROJECT_DIR$/../sqlite" includeSubdirectories="true" />
+      <directory url="file://$PROJECT_DIR$/../sqlite-old" includeSubdirectories="true" />
     </excludeFromCompile>
     <resourceExtensions>
       <entry name=".+\.(properties|xml|html|dtd|tld)" />
