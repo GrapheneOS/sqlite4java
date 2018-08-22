@@ -11,7 +11,7 @@ final getBooleanProperty = {String param -> (ant.project.properties[param] in ["
 ant.property(file: "global.properties")
 
 if(antProp("propertyFile")) {
-	ant.property(file: antProp("propertyFile"))
+  ant.property(file: antProp("propertyFile"))
 }
 
 final String mod = rel('..')
@@ -112,8 +112,6 @@ target(name: 'init') {
   List files = []
 
   if (os == "mac") {
-		sdkHome = antProp("sdk.home")
-		ant.echo(message: "sdk.home=${sdkHome}") 
     if (!antProp("sdk.home") && antProp("xcode.home")) {
       ant.property(name: "sdk.home", value: antProp("xcode.home") + "/SDKs/MacOSX10.5.sdk");
     }
