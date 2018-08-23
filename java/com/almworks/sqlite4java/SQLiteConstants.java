@@ -160,6 +160,9 @@ public interface SQLiteConstants {
   int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
   int SQLITE_OPEN_WAL = 0x00080000;
 
+  //Flags intended for "prepFlags" parameter of the sqlite3_prepare_v3(). More may exist in future sqlite versions.
+  int SQLITE_PREPARE_PERSISTENT = 0x01;
+
   // SQLITE_LIMIT_* identify class of constructs to be size limited
   int SQLITE_LIMIT_LENGTH = 0;
   int SQLITE_LIMIT_SQL_LENGTH = 1;

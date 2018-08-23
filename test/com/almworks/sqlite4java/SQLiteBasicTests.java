@@ -60,40 +60,14 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     assertResult(SQLITE_READONLY);
   }
 
+
   public void testPrepareBindStepResetFinalize() {
-    String name = tempName("db");
-    open(name, RW);
-    assertDb();
-
-    exec("create table x (x)");
-    assertOk();
-
-    SWIGTYPE_p_sqlite3_stmt stmt = prepare("insert into x values (?)");
-    assertOk();
-    assertNotNull(stmt);
-
-    exec("begin immediate");
-    assertOk();
-
-    for (int i = 0; i < 10; i++) {
-      bindLong(stmt, 1, i);
-      assertOk();
-
-      step(stmt);
-      assertResult(SQLITE_DONE);
-
-      reset(stmt);
-      assertOk();
-    }
-
-    exec("commit");
-    assertOk();
-
-    finalize(stmt);
-    assertOk();
-
-    close();
+    testPrepareBindStepResetFinalize(false);
   }
+
+  //public void testPreparedV3BindStepResetFinalize() {
+  //  testPrepareBindStepResetFinalize(true);
+  //}
 
   public void testUnparseableSql() {
     open(":memory:", SQLITE_OPEN_READWRITE);
@@ -166,6 +140,43 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
           i2 = v2.offsetByCodePoints(i2, 1);
       }
     }
+  }
+
+  private void testPrepareBindStepResetFinalize(boolean useV3) {
+    String statement = "insert into x values (?)";
+    String name = tempName("db");
+    open(name, RW);
+    assertDb();
+
+    exec("create table x (x)");
+    assertOk();
+
+    SWIGTYPE_p_sqlite3_stmt stmt = useV3 ? prepareV3(statement, SQLITE_PREPARE_PERSISTENT) : prepare(statement);
+
+    assertOk();
+    assertNotNull(stmt);
+
+    exec("begin immediate");
+    assertOk();
+
+    for (int i = 0; i < 10; i++) {
+      bindLong(stmt, 1, i);
+      assertOk();
+
+      step(stmt);
+      assertResult(SQLITE_DONE);
+
+      reset(stmt);
+      assertOk();
+    }
+
+    exec("commit");
+    assertOk();
+
+    finalize(stmt);
+    assertOk();
+
+    close();
   }
 
   private void write(String s, String f) {
