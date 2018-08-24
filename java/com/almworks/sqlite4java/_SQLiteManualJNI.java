@@ -66,7 +66,7 @@ final class _SQLiteManualJNI {
    * @param prepFlags
    * @return result code
    */
-  public final static native int sqlite3_prepare_v3(long db, String sql, long[] ppStmt, int prepFlags);
+  public final static native int sqlite3_prepare_v3(long db, String sql, int prepFlags, long[] ppStmt);
 
   /**
    * @param stmt prepared statement

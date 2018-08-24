@@ -114,7 +114,7 @@ final class _SQLiteManual {
   public SWIGTYPE_p_sqlite3_stmt sqlite3_prepare_v3(SWIGTYPE_p_sqlite3 db, String sql, int prepFlags) {
     myLastReturnCode = 0;
     myLong[0] = 0;
-    myLastReturnCode = _SQLiteManualJNI.sqlite3_prepare_v3(SWIGTYPE_p_sqlite3.getCPtr(db), sql, myLong, prepFlags);
+    myLastReturnCode = _SQLiteManualJNI.sqlite3_prepare_v3(SWIGTYPE_p_sqlite3.getCPtr(db), sql, prepFlags, myLong);
     long ptr = myLong[0];
     myLong[0] = 0;
     return ptr == 0 ? null : new SWIGTYPE_p_sqlite3_stmt(ptr, true);

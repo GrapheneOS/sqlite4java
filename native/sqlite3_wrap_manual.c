@@ -237,6 +237,38 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
 //
 */
 
+JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1prepare_1v3(JNIEnv *jenv, jclass jcls,
+  jlong jdb, jstring jsql, jint jprepFlags, jlongArray jresult)
+{
+    sqlite3* db = 0;
+    const jchar *sql = 0;
+    sqlite3_stmt* stmt = 0;
+    int rc = 0;
+    jlong r = 0;
+    int length = 0;
+    unsigned int prepFlags = (unsigned)jprepFlags;
+
+    if (!jdb) return WRAPPER_INVALID_ARG_1;
+    if (!jsql) return WRAPPER_INVALID_ARG_2;
+    if (!jresult) return WRAPPER_INVALID_ARG_3;
+    db = *(sqlite3**)&jdb;
+
+    length = (*jenv)->GetStringLength(jenv, jsql) * sizeof(jchar);
+    sql = (*jenv)->GetStringCritical(jenv, jsql, 0);
+
+    if (!sql) return WRAPPER_CANNOT_TRANSFORM_STRING;
+    stmt = (sqlite3_stmt*)0;
+    rc = sqlite3_prepare16_v3(db, sql, length, prepFlags, &stmt, 0);
+
+    (*jenv)->ReleaseStringCritical(jenv, jsql, sql);
+    if (stmt) {
+      *((sqlite3_stmt**)&r) = stmt;
+      (*jenv)->SetLongArrayRegion(jenv, jresult, 0, 1, &r);
+    }
+
+    return rc;
+}
+
 JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1bind_1text(JNIEnv *jenv, jclass jcls,
   jlong jstmt, jint jindex, jstring jvalue)
 {
