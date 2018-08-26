@@ -380,6 +380,14 @@ public final class SQLiteConnection {
     }
   }
 
+  public int dbCacheFlush() throws SQLiteException {
+    checkThread();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "calling sqlite3_db_cacheflush()");
+
+    return _SQLiteSwigged.sqlite3_db_cacheflush(handle());
+  }
+
   /**
    * <p>Checks if this connection is read-only. This is a convenience method for calling </p>
    * <p>A database can be read-only if:</p>
@@ -536,11 +544,13 @@ public final class SQLiteConnection {
    *
    * @param sql    the SQL statement, not null
    * @param cached if true, the statement handle will be cached by the connection
+   * @param prepFlags The prepFlags parameter to pass to sqlite3_prepare_v3(). If prepFlags is 0, then
+   *                  sqlite3_prepare_v3() works exactly as sqlite3_prepare_v2().
    * @return an instance of {@link SQLiteStatement}
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/prepare.html">sqlite3_prepare_v2</a>
    */
-  public SQLiteStatement prepare(SQLParts sql, boolean cached) throws SQLiteException {
+  public SQLiteStatement prepare(SQLParts sql, boolean cached, int prepFlags) throws SQLiteException {
     checkThread();
     SQLiteProfiler profiler = myProfiler;
     if (Internal.isFineLogging())
@@ -574,7 +584,7 @@ public final class SQLiteConnection {
       String sqlString = sql.toString();
       if (sqlString.trim().length() == 0)
         throw new SQLiteException(WRAPPER_USER_ERROR, "empty SQL");
-      stmt = mySQLiteManual.sqlite3_prepare_v2(handle, sqlString);
+      stmt = mySQLiteManual.sqlite3_prepare_v3(handle, sqlString, prepFlags);
       int rc = mySQLiteManual.getLastReturnCode();
       if (profiler != null) profiler.reportPrepare(sqlString, from, System.nanoTime(), rc);
       throwResult(rc, "prepare()", sql);
@@ -611,7 +621,7 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean)}
+   * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean, int)}
    * for details.
    *
    * @param sql an SQL statement, not null
@@ -623,7 +633,19 @@ public final class SQLiteConnection {
   }
 
   /**
-   * Convenience method that prepares a statement for the given String-based SQL. See {@link #prepare(SQLParts, boolean)}
+   * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean, int)}
+   * for details. This variant allows prepFlags to be passed as a parameter.
+   *
+   * @param sql an SQL statement, not null
+   * @return an instance of {@link SQLiteStatement}
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteStatement prepare(String sql, int prepFlags) throws SQLiteException {
+    return prepare(sql, true, prepFlags);
+  }
+
+  /**
+   * Convenience method that prepares a statement for the given String-based SQL. See {@link #prepare(SQLParts, boolean, int)}
    * for details.
    *
    * @param sql    the SQL statement, not null
@@ -632,11 +654,24 @@ public final class SQLiteConnection {
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    */
   public SQLiteStatement prepare(String sql, boolean cached) throws SQLiteException {
-    return prepare(new SQLParts(sql), cached);
+    return prepare(new SQLParts(sql), cached, 0);
   }
 
   /**
-   * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean)}
+   * Convenience method that prepares a statement for the given String-based SQL. See {@link #prepare(SQLParts, boolean, int)}
+   * for details. This variant allows prepFlags to be passed as a parameter.
+   *
+   * @param sql    the SQL statement, not null
+   * @param cached if true, the statement handle will be cached by the connection
+   * @return an instance of {@link SQLiteStatement}
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteStatement prepare(String sql, boolean cached, int prepFlags) throws SQLiteException {
+    return prepare(new SQLParts(sql), cached, prepFlags);
+  }
+
+  /**
+   * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean, int)}
    * for details.
    *
    * @param sql the SQL statement, not null
@@ -644,7 +679,20 @@ public final class SQLiteConnection {
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    */
   public SQLiteStatement prepare(SQLParts sql) throws SQLiteException {
-    return prepare(sql, true);
+    return prepare(sql, true, 0);
+  }
+
+  /**
+   * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean, int)}
+   * for details. This variant allows prepFlags to be passed as a parameter.
+   *
+   * @param sql the SQL statement, not null
+   * @param prepFlags The prepFlags parameter use in sqlite3_prepare_v3()
+   * @return an instance of {@link SQLiteStatement}
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteStatement prepare(SQLParts sql, int prepFlags) throws SQLiteException {
+    return prepare(sql, true, prepFlags);
   }
 
   /**

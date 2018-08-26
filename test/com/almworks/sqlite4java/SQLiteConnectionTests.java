@@ -157,6 +157,15 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
     db.dispose();
   }
 
+  public void testPrepareV3() throws SQLiteException {
+    SQLiteConnection con = fileDb().open();
+    con.exec("create table x(x)");
+    SQLiteStatement stmt = con.prepare("insert into x values(?)", SQLiteConstants.SQLITE_PREPARE_PERSISTENT);
+    stmt.bind(1, "42");
+    stmt.step();
+    con.dispose();
+  }
+
   public void testIsReadOnly() throws Exception {
     for (int i = 0; i < 4; i++) {
       boolean readonlyOpen = (i & 1) != 0;
@@ -201,4 +210,31 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
       assertEquals(expected, st.columnLong(0));
     }
   }
+
+  /**
+   * Test sqlite3_db_cachefulst(). This is an attempt to produce a state where the flush occurs
+   * during a write-transaction with dirty pages and an exclusive lock. Producing this state
+   * predictably does not seem possible since it relies predicting the pager's exact caching behavior.
+   * Therefore on both calls, SQLITE_OK and SQLITE_BUSY are assumed to be valid results.
+   *
+   * @throws Exception
+   */
+  public void testDbFlush() throws Exception {
+    int result;
+    setUp();
+    SQLiteConnection con = fileDb().open();
+
+    con.exec("create table x (x integer)");
+
+    con.exec("begin exclusive transaction");
+    result = con.dbCacheFlush();
+    assertTrue("result of cacheFlush was not SQLITE_OK or SQLITE_BUSY: " + result , (result == SQLiteConstants.SQLITE_OK || result == SQLiteConstants.SQLITE_BUSY));
+    con.exec("insert into x values(42)");
+    con.exec("update x set x=x-1 where x=42");
+    result = con.dbCacheFlush();
+    assertTrue("result of cacheFlush was not SQLITE_OK or SQLITE_BUSY: " + result, (result == SQLiteConstants.SQLITE_OK || result == SQLiteConstants.SQLITE_BUSY));
+    con.exec("commit");
+    con.dispose();
+  }
+
 }
