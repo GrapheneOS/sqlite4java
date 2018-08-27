@@ -62,11 +62,11 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
 
 
   public void testPrepareBindStepResetFinalize() throws Exception {
-    testPrepareBindStepResetFinalize(false);
+    testPrepareBindStepResetFinalize(0);
   }
 
   public void testPreparedV3BindStepResetFinalize() throws Exception {
-    testPrepareBindStepResetFinalize(true);
+    testPrepareBindStepResetFinalize(SQLiteConstants.SQLITE_PREPARE_PERSISTENT);
   }
 
   public void testUnparseableSql() {
@@ -142,7 +142,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     }
   }
 
-  private void testPrepareBindStepResetFinalize(boolean useV3) throws Exception {
+  private void testPrepareBindStepResetFinalize(int prepFlags) throws Exception {
       String statement = "insert into x values (?)";
       String name = tempName("db");
       open(name, RW);
@@ -151,7 +151,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
       exec("create table x (x)");
       assertOk();
 
-      SWIGTYPE_p_sqlite3_stmt stmt = useV3 ? prepareV3(statement, SQLITE_PREPARE_PERSISTENT) : prepare(statement);
+      SWIGTYPE_p_sqlite3_stmt stmt = prepareV3(statement, prepFlags);
 
       assertOk();
       assertNotNull(stmt);

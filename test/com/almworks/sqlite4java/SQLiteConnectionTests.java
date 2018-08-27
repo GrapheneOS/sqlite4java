@@ -212,7 +212,7 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
   }
 
   /**
-   * Test sqlite3_db_cachefulst(). This is an attempt to produce a state where the flush occurs
+   * Test sqlite3_db_cacheflush(). This is an attempt to produce a state where the flush occurs
    * during a write-transaction with dirty pages and an exclusive lock. Producing this state
    * predictably does not seem possible since it relies predicting the pager's exact caching behavior.
    * Therefore on both calls, SQLITE_OK and SQLITE_BUSY are assumed to be valid results.
