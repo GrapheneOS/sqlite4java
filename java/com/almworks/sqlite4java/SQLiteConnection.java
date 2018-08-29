@@ -380,12 +380,37 @@ public final class SQLiteConnection {
     }
   }
 
-  public int dbCacheFlush() throws SQLiteException {
+  /**
+   * <p>Attempts to flush dirty pages in the pager-cache. Dirty pages may exist
+   * during a write-transaction. This method may need to acquire extra database
+   * locks before it can flush the dirty pages.</p>
+   *
+   * @throws SQLiteException If method cannot acquire extra database locks or if
+   * checkThread() throws an exception.
+   */
+  public void flush() throws SQLiteException {
     checkThread();
     if (Internal.isFineLogging())
-      Internal.logFine(this, "calling sqlite3_db_cacheflush()");
+      Internal.logFine(this, "calling sqlite3_db_cacheflush() via flush()");
 
-    return _SQLiteSwigged.sqlite3_db_cacheflush(handle());
+    int result = _SQLiteSwigged.sqlite3_db_cacheflush(handle());
+    throwResult(result, "flush()");
+  }
+
+  /**
+   * <p>Attempts to flush dirty pages in the pager-cache. Dirty pages may exist
+   * during a write-transaction. This method may attempt to acquire extra database
+   * locks before it can flush the dirty pages. This method cannot guarantee the
+   * lock will be acquired, and therefore cannot guarantee the dirty pages will be flushed.</p>
+   *
+   * @throws SQLiteException If checkThread() throws exception.
+   */
+  public void safeFlush() throws SQLiteException {
+    checkThread();
+    if (Internal.isFineLogging())
+      Internal.logFine(this, "calling sqlite3_db_cacheflush() via safeFlush()");
+
+     _SQLiteSwigged.sqlite3_db_cacheflush(handle());
   }
 
   /**
@@ -544,11 +569,14 @@ public final class SQLiteConnection {
    *
    * @param sql    the SQL statement, not null
    * @param cached if true, the statement handle will be cached by the connection
-   * @param prepFlags The prepFlags parameter to pass to sqlite3_prepare_v3(). If prepFlags is 0, then
-   *                  sqlite3_prepare_v3() works exactly as sqlite3_prepare_v2().
+   * @param prepFlags The prepFlags parameter to pass to sqlite3_prepare_v3() and can either be SQLITE_PREPARE_PERSISTENT or
+   *                  0. If it is 0, prepare behaves exactly as sqlite3_prepare_v2(). For information on SQLITE_PREPARE_PERSISTENT,
+   *                  visit hyperlink below.
+   *
    * @return an instance of {@link SQLiteStatement}
    * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
    * @see <a href="http://www.sqlite.org/c3ref/prepare.html">sqlite3_prepare_v2</a>
+   * @see <a href="https://www.sqlite.org/c3ref/c_prepare_persistent.html">SQLITE_PREPARE_PERSISTENT</a>
    */
   public SQLiteStatement prepare(SQLParts sql, boolean cached, int prepFlags) throws SQLiteException {
     checkThread();
@@ -683,6 +711,19 @@ public final class SQLiteConnection {
   }
 
   /**
+   * Convenience method that prepares a statement for the given SQL. See {@link #prepare(SQLParts, boolean)}
+   * for details.
+   *
+   * @param sql the SQL statement, not null
+   * @param cached if true, the statement handle will be cached by the connection
+   * @return an instance of {@link SQLiteStatement}
+   * @throws SQLiteException if SQLite returns an error, or if the call violates the contract of this class
+   */
+  public SQLiteStatement prepare(SQLParts sql, boolean cached) throws SQLiteException {
+    return prepare(sql, cached, 0);
+  }
+
+  /**
    * Convenience method that prepares a cached statement for the given SQL. See {@link #prepare(SQLParts, boolean, int)}
    * for details. This variant allows prepFlags to be passed as a parameter.
    *
@@ -694,6 +735,7 @@ public final class SQLiteConnection {
   public SQLiteStatement prepare(SQLParts sql, int prepFlags) throws SQLiteException {
     return prepare(sql, true, prepFlags);
   }
+
 
   /**
    * Opens a BLOB for reading or writing. This method returns an instance of {@link SQLiteBlob}, which can

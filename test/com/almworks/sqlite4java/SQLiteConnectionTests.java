@@ -219,22 +219,24 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
    *
    * @throws Exception
    */
-  public void testDbFlush() throws Exception {
-    int result;
+  public void testFlush() throws Exception {
     setUp();
     SQLiteConnection con = fileDb().open();
 
     con.exec("create table x (x integer)");
-
     con.exec("begin exclusive transaction");
-    result = con.dbCacheFlush();
-    assertTrue("result of cacheFlush was not SQLITE_OK or SQLITE_BUSY: " + result , (result == SQLiteConstants.SQLITE_OK || result == SQLiteConstants.SQLITE_BUSY));
-    con.exec("insert into x values(42)");
-    con.exec("update x set x=x-1 where x=42");
-    result = con.dbCacheFlush();
-    assertTrue("result of cacheFlush was not SQLITE_OK or SQLITE_BUSY: " + result, (result == SQLiteConstants.SQLITE_OK || result == SQLiteConstants.SQLITE_BUSY));
-    con.exec("commit");
-    con.dispose();
+
+    try {
+      con.flush();
+      con.exec("insert into x values(42)");
+      con.exec("update x set x=x-1 where x=42");
+      con.flush();
+    } catch (SQLiteBusyException e) {
+      Internal.logInfo(this,"flush on datatase returned SQLITE_BUSY");
+    } finally {
+      con.exec("commit");
+      con.dispose();
+    }
   }
 
 }
