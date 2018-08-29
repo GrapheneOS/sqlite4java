@@ -60,13 +60,65 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     assertResult(SQLITE_READONLY);
   }
 
+  public void testPrepareBindStepResetFinalize() {
+    String name = tempName("db");
+    open(name, RW);
+    assertDb();
 
-  public void testPrepareBindStepResetFinalize() throws Exception {
-    testPrepareBindStepResetFinalize(0);
+    exec("create table x (x)");
+    assertOk();
+
+    SWIGTYPE_p_sqlite3_stmt stmt = prepare("insert into x values (?)");
+    assertOk();
+    assertNotNull(stmt);
+
+    exec("begin immediate");
+    assertOk();
+
+    for (int i = 0; i < 10; i++) {
+      bindLong(stmt, 1, i);
+      assertOk();
+
+      step(stmt);
+      assertResult(SQLITE_DONE);
+
+      reset(stmt);
+      assertOk();
+    }
+
+    exec("commit");
+    assertOk();
+
+    finalize(stmt);
+    assertOk();
+
+    close();
   }
 
-  public void testPreparedV3BindStepResetFinalize() throws Exception {
-    testPrepareBindStepResetFinalize(SQLiteConstants.SQLITE_PREPARE_PERSISTENT);
+  public void testPrepareWithParam() {
+    String name = tempName("db");
+    open(name, RW);
+    assertDb();
+
+    exec("create table x (x)");
+    assertOk();
+
+    SWIGTYPE_p_sqlite3_stmt stmt1 = prepare("insert into x values (?)", SQLiteConstants.SQLITE_PREPARE_PERSISTENT);
+    assertOk();
+    bindLong(stmt1, 42, 1);
+    step(stmt1);
+    finalize(stmt1);
+    assertOk();
+
+    SWIGTYPE_p_sqlite3_stmt stmt2 = prepare("select * from x where x=42", SQLiteConstants.SQLITE_PREPARE_PERSISTENT);
+    assertOk();
+    assertNotNull(stmt2);
+    bindLong(stmt2, 42, 1);
+    step(stmt2);
+    finalize(stmt2);
+    assertOk();
+
+    close();
   }
 
   public void testUnparseableSql() {
@@ -107,7 +159,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
   public void testTextBindAndColumn() {
     String name = tempName("db");
     open(name, RW);
-//    exec("PRAGMA encoding = \"UTF-16\";"); 
+//    exec("PRAGMA encoding = \"UTF-16\";");
     exec("create table x (x)");
     SWIGTYPE_p_sqlite3_stmt stmt = prepare("insert into x (x) values (?)");
     String v = garbageString(100000);
@@ -141,43 +193,6 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
       }
     }
   }
-
-  private void testPrepareBindStepResetFinalize(int prepFlags) throws Exception {
-      String statement = "insert into x values (?)";
-      String name = tempName("db");
-      open(name, RW);
-      assertDb();
-
-      exec("create table x (x)");
-      assertOk();
-
-      SWIGTYPE_p_sqlite3_stmt stmt = prepareV3(statement, prepFlags);
-
-      assertOk();
-      assertNotNull(stmt);
-
-      exec("begin immediate");
-      assertOk();
-
-      for (int i = 0; i < 10; i++) {
-        bindLong(stmt, 1, i);
-        assertOk();
-
-        step(stmt);
-        assertResult(SQLITE_DONE);
-
-        reset(stmt);
-        assertOk();
-      }
-
-      exec("commit");
-      assertOk();
-
-      finalize(stmt);
-      assertOk();
-
-      close();
- }
 
   private void write(String s, String f) {
     try {
