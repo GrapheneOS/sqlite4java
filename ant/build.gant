@@ -10,7 +10,7 @@ final getBooleanProperty = {String param -> (ant.project.properties[param] in ["
 
 ant.property(file: "global.properties")
 
-if(antProp("propertyFile")) {
+if (antProp("propertyFile")) {
   ant.property(file: antProp("propertyFile"))
 }
 

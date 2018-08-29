@@ -1,6 +1,5 @@
 /.idea
 /build
 idea/*.iws
-idea/*.ipr
-idea/*.iml
+idea/*
 idea/sqlite4java/sqlite4java.sdf
