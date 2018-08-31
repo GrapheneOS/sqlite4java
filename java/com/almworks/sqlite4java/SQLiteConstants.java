@@ -163,6 +163,9 @@ public interface SQLiteConstants {
   //Flags intended for "prepFlags" parameter of the sqlite3_prepare_v3(). More may exist in future sqlite versions.
   int SQLITE_PREPARE_PERSISTENT = 0x01;
 
+  long SQLITE_WIN32_DATA_DIRECTORY_TYPE = 1;
+  long SQLITE_WIN32_TEMP_DIRECTORY_TYPE = 2;
+
   // SQLITE_LIMIT_* identify class of constructs to be size limited
   int SQLITE_LIMIT_LENGTH = 0;
   int SQLITE_LIMIT_SQL_LENGTH = 1;

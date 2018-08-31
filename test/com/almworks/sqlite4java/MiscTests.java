@@ -57,4 +57,14 @@ public class MiscTests extends SQLiteTestFixture {
     url = "jar:file:" + jar + "!/sqlite/Internal.class";
     assertEquals("-0.1999-SNAPSHOT", Internal.getVersionSuffix(url));
   }
+
+  public void testSetDirectory() throws SQLiteException {
+    String osName = System.getProperty("os.name");
+    if (osName.contains("win")) {
+      SQLite.setDirectory(SQLiteConstants.SQLITE_WIN32_DATA_DIRECTORY_TYPE, "test1");
+      SQLite.setDirectory(SQLiteConstants.SQLITE_WIN32_DATA_DIRECTORY_TYPE, null);
+      SQLite.setDirectory(SQLiteConstants.SQLITE_WIN32_TEMP_DIRECTORY_TYPE, "test2");
+      SQLite.setDirectory(SQLiteConstants.SQLITE_WIN32_TEMP_DIRECTORY_TYPE, null);
+    }
+  }
 }

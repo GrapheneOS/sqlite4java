@@ -266,6 +266,33 @@ public final class SQLite {
   }
 
   /**
+   * <strong>Only for Windows.</strong> Set the value associated with the
+   * <a href="https://www.sqlite.org/c3ref/temp_directory.html">sqlite3_temp_directory</a> or
+   * <a href="https://www.sqlite.org/c3ref/data_directory.html">sqlite3_data_directory</a> variables to
+   * to zValue depending on the value of the type parameter.
+   *
+   * @param type Indicator of which variable to set. Can either be SQLITE_WIN32_DATA_DIRECTORY_TYPE
+   *             or SQLITE_WIN32_TEMP_DIRECTORY_TYPE.
+   * @param zValue The value to set one of the two variables to. If zValue is null, then the previous value
+   *               will be freed using sqlite3_free(). A non-null value will be copied into new memory
+   *               obtained from sqlite3_malloc().
+   * @throws SQLiteException If native library cannot be loaded, or if call returns an error.
+   */
+  public static void setDirectory(long type, String zValue) throws SQLiteException {
+    loadLibrary();
+    int rc = _SQLiteManualJNI.sqlite3_win32_set_directory(type, zValue);
+    if (rc != SQLiteConstants.SQLITE_OK) {
+      String errorMessage;
+      if (rc == SQLiteConstants.SQLITE_NOMEM) {
+        errorMessage = "Memory Could not be Allocated";
+      } else {
+        errorMessage = "Error attempting to set win32 directory";
+      }
+      throw new SQLiteException(rc, errorMessage);
+    }
+  }
+
+  /**
    * Gets the version of sqlite4java library. The library version equals to the svn version of the sources
    * it's built from (trunk code only). If the version ends in '+', then the library has been built from
    * dirty (uncommitted) sources.

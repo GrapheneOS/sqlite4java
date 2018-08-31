@@ -261,4 +261,8 @@ final class _SQLiteManual {
     myString[0] = null;
     return r;
   }
+
+  public static int sqlite3_win32_set_directory(long type, String zValue) {
+    return _SQLiteManual.sqlite3_win32_set_directory(type, zValue);
+  }
 }
