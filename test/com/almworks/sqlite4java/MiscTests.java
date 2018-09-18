@@ -59,8 +59,8 @@ public class MiscTests extends SQLiteTestFixture {
   }
 
   public void testSetDirectory() throws SQLiteException {
-    String osName = System.getProperty("os.name");
-    if (osName.contains("win")) {
+    String osname = Internal.getOs();
+    if (osname.equals("win32")) {
       SQLite.setDirectory(SQLiteConstants.SQLITE_WIN32_DATA_DIRECTORY_TYPE, "test1");
       SQLite.setDirectory(SQLiteConstants.SQLITE_WIN32_DATA_DIRECTORY_TYPE, null);
       SQLite.setDirectory(SQLiteConstants.SQLITE_WIN32_TEMP_DIRECTORY_TYPE, "test2");

@@ -216,7 +216,7 @@ final class Internal {
     return arch;
   }
 
-  private static String getOs() {
+  public static String getOs() {
     String osname = System.getProperty("os.name");
     String os;
     if (osname == null) {
