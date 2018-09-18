@@ -505,6 +505,7 @@ target(name: 'android') {
   def archTypes = [
       ["armeabi",     "armv5tejl"],
       ["armeabi-v7a", "armv7l"],
+      ["armeabi-v8a", "armv8l"],
       ["x86"    ,     "i686"]]
 
   archTypes.each() { String dir, String architecture ->

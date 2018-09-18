@@ -132,6 +132,6 @@ final class _SQLiteManualJNI {
 
   public final static native int sqlite3_load_extension(long db, String file, String proc, String[] ppError);
 
-  public final static native int sqlite3_win32_set_directory(long type, String zValue);
+  public final static native int sqlite3_win32_set_directory(int type, String zValue);
 
 }
