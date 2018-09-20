@@ -894,7 +894,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
   const jchar *name = 0;
   unsigned long type = (unsigned long)jtype;
 
-  if (name) {
+  if (zVAlue) {
     name = (*jenv)->GetStringCritical(jenv, zValue, 0);
     rc = sqlite3_win32_set_directory16(type, name);
     (*jenv)->ReleaseStringCritical(jenv, zValue, name);

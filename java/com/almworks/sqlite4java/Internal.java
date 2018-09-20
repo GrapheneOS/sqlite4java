@@ -216,7 +216,7 @@ final class Internal {
     return arch;
   }
 
-  public static String getOs() {
+  private static String getOs() {
     String osname = System.getProperty("os.name");
     String os;
     if (osname == null) {
@@ -239,6 +239,10 @@ final class Internal {
     }
     logFine(Internal.class, "os.name=" + osname + "; os=" + os);
     return os;
+  }
+
+  static boolean isWindows() {
+    return getOs().equals("win32");
   }
 
   private static String getDefaultLibPath(String classUrl) {
