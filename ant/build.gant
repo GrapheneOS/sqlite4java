@@ -19,6 +19,7 @@ final String build = rel("../build")
 final String buildClasses = "$build/classes"
 final String javaClasses = "$mod/java"
 final String junit = rel('../lib/junit.jar')
+final String hamcrest = rel('../lib/hamcrest-core.jar')
 
 String os = "unknown"
 String compilerArgs = ""
@@ -250,7 +251,7 @@ target(name: 'java.compile') {
     fileset(dir: "$mod/java")
   }
   ant.mkdir(dir: buildClasses)
-  ant.javac(srcdir: "$build/java", destdir: buildClasses, debug: "on",
+  ant.javac(fork: "yes", srcdir: "$build/java", destdir: buildClasses, debug: "on",
       target: "1.7", source: "1.7")
 }
 
@@ -307,7 +308,7 @@ target(name: 'test.compile') {
   depends(['init'])
   ant.echo(message: "[test.compile]")
   ant.mkdir(dir: "$build/testClasses")
-  ant.javac(srcdir: "$mod/test", destdir: "$build/testClasses", debug: "on") {
+  ant.javac(fork: "yes", srcdir: "$mod/test", destdir: "$build/testClasses", debug: "on") {
     classpath {
       pathelement(location: "$build/dist/${antProp('jarname')}")
       pathelement(location: junit)
@@ -364,6 +365,7 @@ target('test': 'run all tests') {
           pathelement(location: "$build/testClasses")
           pathelement(location: "$build/testRun.$buildtype.$platform/${antProp('jarname')}")
           pathelement(location: junit)
+          pathelement(location: hamcrest)
         }
         batchtest(todir: resultsDir) {
           fileset(dir: "$mod/test", includes: "**/*Tests.java")

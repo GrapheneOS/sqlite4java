@@ -1,13 +1,9 @@
 package com.almworks.sqlite4java;
 
-//import junit.framework.Assert;
-import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-//import org.junit.runner.RunWith;
-//import org.junit.runners.JUnit4;
 
 import java.util.Random;
 import java.util.logging.Level;
@@ -15,19 +11,17 @@ import java.util.logging.Logger;
 
 import static com.almworks.sqlite4java.SQLiteTestFixture.createRandom;
 
-public class NonASCIIIssue17Tests extends TestCase {
+public class NonASCIIIssue17Tests  {
   private static final String C01 = "0000" + (char)55360 + (char)56384;
   private SQLiteConnection cnx;
 
-  //@After
-  @Override
-  protected void tearDown() {
+  @After
+  public void tearDown() {
     cnx.dispose();
   }
 
-  //@Before
-  @Override
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     cnx = new SQLiteConnection();
     cnx.open();
   }
@@ -38,7 +32,7 @@ public class NonASCIIIssue17Tests extends TestCase {
     Assert.assertEquals(expected, result);
   }
 
-  //@Test
+  @Test
   public void testBind() throws SQLiteException {
     String v = "select ?;";
     SQLiteStatement st = cnx.prepare(v);
@@ -46,14 +40,14 @@ public class NonASCIIIssue17Tests extends TestCase {
     run(st, C01);
   }
 
-  //@Test
+  @Test
   public void testConcatSimple() throws SQLiteException {
     String v = "select '" + C01 + "';";
     SQLiteStatement st = cnx.prepare(v);
     run(st, C01);
   }
 
-  //@Test
+  @Test
   public void testConcat() throws SQLiteException {
     Random RAND = createRandom();
     Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.OFF);
