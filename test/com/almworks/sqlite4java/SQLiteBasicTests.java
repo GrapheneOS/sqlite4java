@@ -110,7 +110,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     finalize(stmt1);
     assertOk();
 
-    SWIGTYPE_p_sqlite3_stmt stmt2 = prepare("select * from x where x=42", SQLiteConstants.SQLITE_PREPARE_PERSISTENT);
+    SWIGTYPE_p_sqlite3_stmt stmt2 = prepare("select * from x where x=42", 33);
     assertOk();
     assertNotNull(stmt2);
     bindLong(stmt2, 42, 1);

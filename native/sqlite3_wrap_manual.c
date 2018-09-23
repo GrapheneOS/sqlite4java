@@ -887,7 +887,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
 
 
 JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1win32_1set_1directory(JNIEnv *jenv, jclass jcls,
-  jlong jtype, jstring zValue)
+  jint jtype, jstring zValue)
 {
 #ifdef SQLITE_OS_WIN
   int rc;
