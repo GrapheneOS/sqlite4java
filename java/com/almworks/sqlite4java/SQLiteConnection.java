@@ -20,6 +20,8 @@ import javolution.util.stripped.FastMap;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -168,6 +170,19 @@ public final class SQLiteConnection {
    */
   private int myOpenFlags;
 
+  public SQLiteConnection(String fileName) {
+    File dbfile = new File(fileName);
+    if (!dbfile.isAbsolute()) {
+      String dataDirectory = SQLite.getDataDirectory();
+      if (dataDirectory != null) {
+        Path path = Paths.get(dataDirectory, fileName);
+        dbfile = path.toFile();
+      }
+    }
+    myFile = dbfile;
+    Internal.logInfo(this, "instantiated [" + myFile + "]");
+  }
+
   /**
    * Creates a connection to the database located in the specified file.
    * Database is not opened by the constructor, and the calling thread is insignificant.
@@ -186,7 +201,7 @@ public final class SQLiteConnection {
    * @see #SQLiteConnection(java.io.File)
    */
   public SQLiteConnection() {
-    this(null);
+    this((File)null);
   }
 
   /**
@@ -401,20 +416,13 @@ public final class SQLiteConnection {
   /**
    * <p>Attempts to flush dirty pages in the pager-cache. Dirty pages may exist
    * during a write-transaction. This method may attempt to acquire extra database
-   * locks before it can flush the dirty pages. This method cannot guarantee the
-   * lock will be acquired, and therefore cannot guarantee the dirty pages will be flushed.</p>
+   * locks before it can flush the dirty pages. On failure, a warning message is logged.</p>
    *
-   * @throws SQLiteException If the call violates the contract of this class.
    * @see <a href="https://www.sqlite.org/c3ref/db_cacheflush.html">sqlite3_db_cacheflush</a>
    */
-  public void safeFlush() throws SQLiteException {
-    checkThread();
-    if (Internal.isFineLogging())
-      Internal.logFine(this, "calling sqlite3_db_cacheflush() via safeFlush()");
-
+  public void safeFlush() {
      try {
-       int result = _SQLiteSwigged.sqlite3_db_cacheflush(handle());
-       throwResult(result, "flush()");
+       flush();
      } catch (SQLiteException e) {
        Internal.logWarn(this, "error during flush() - " + e.getMessage());
      }

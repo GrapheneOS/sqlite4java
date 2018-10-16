@@ -16,9 +16,11 @@
 
 package com.almworks.sqlite4java;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -46,6 +48,7 @@ public final class SQLite {
   private static boolean libraryLoaded = false;
   private static String jarVersion = null;
   private static Boolean threadSafe = null;
+  private static String dataDirectory = null;
 
   /**
    * Native sqlite4java code, including SQLite itself, is compiled in <code>DEBUG</code> and <code>RELEASE</code>
@@ -266,20 +269,52 @@ public final class SQLite {
   }
 
   /**
+   * Sets the data directory for relative files. If set, all database file names with relative paths will be
+   * relative to this path.
+   *
+   * @param dataDirectory if set, all relative paths will be relative to this directory path.
+   */
+  public static synchronized void setDataDirectory(String dataDirectory) {
+    if (dataDirectory != null) {
+      File file = new File(dataDirectory);
+      if (file.isAbsolute()) {
+        SQLite.dataDirectory = dataDirectory;
+      } else {
+        SQLite.dataDirectory = file.getAbsolutePath();
+      }
+    } else {
+      SQLite.dataDirectory = null;
+    }
+  }
+
+  /**
+   * Gets the data directory for temporary files.
+   *
+   * @return the data directory path for database files created using relative paths.
+   */
+  public static synchronized String getDataDirectory() {
+    return dataDirectory;
+  }
+
+  /**
    * <strong>Only for Windows.</strong> Set the value associated with the
    * <a href="https://www.sqlite.org/c3ref/temp_directory.html">sqlite3_temp_directory</a> or
    * <a href="https://www.sqlite.org/c3ref/data_directory.html">sqlite3_data_directory</a> variables to
-   * to path depending on the value of the directoryType parameter.
+   * a path depending on the value of the directoryType parameter.
    *
    * @param directoryType Indicator of which variable to set. Can either be SQLITE_WIN32_DATA_DIRECTORY_TYPE
    * or SQLITE_WIN32_TEMP_DIRECTORY_TYPE.
    * @param path The directory name to set one of the two variables to. If path is null, then the previous
-   * value will be freed from memory.
+   * value will be freed from memory and no longer effective.
    * @throws SQLiteException If native library cannot be loaded, or if call returns an error.
    * @see <a href="https://www.sqlite.org/c3ref/win32_set_directory.html">sqlite3_win32_set_directory</a>
    */
   public static void setDirectory(int directoryType, String path) throws SQLiteException {
+    assert Internal.isWindows();
     loadLibrary();
+    if(directoryType == SQLiteConstants.SQLITE_WIN32_DATA_DIRECTORY_TYPE) {
+      setDataDirectory(path);
+    }
     int rc = _SQLiteManualJNI.sqlite3_win32_set_directory(directoryType, path);
     if (rc != SQLiteConstants.SQLITE_OK) {
       String errorMessage;
