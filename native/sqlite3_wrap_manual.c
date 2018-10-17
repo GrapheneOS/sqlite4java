@@ -896,6 +896,7 @@ JNIEXPORT jint JNICALL Java_com_almworks_sqlite4java__1SQLiteManualJNI_sqlite3_1
 
   if (zValue) {
     name = (*jenv)->GetStringCritical(jenv, zValue, 0);
+    if (!name) return WRAPPER_CANNOT_TRANSFORM_STRING;
     rc = sqlite3_win32_set_directory16(type, name);
     (*jenv)->ReleaseStringCritical(jenv, zValue, name);
   } else {

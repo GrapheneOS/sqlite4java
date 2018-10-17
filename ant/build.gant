@@ -132,7 +132,10 @@ target(name: 'init') {
 
   checkProp("jdk.home", "JAVA_HOME", "JDK_HOME")
   checkProp("swig.home", "SWIG_HOME")
-  if (os == "windows") checkProp("wsdk.home", "WindowsSdkDir")
+  if (os == "windows") { 
+    checkProp("wsdk.home", "WSDK_HOME")
+    checkProp("vs.home", "VS_HOME")
+  }
   if (os == "mac") {
     def compilerProperty = ("gcc --version".execute().text.contains("clang") ? "clang" : "gcc") + ".cc.options"
     compilerArgs = antProp(compilerProperty)
