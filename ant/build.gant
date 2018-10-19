@@ -226,7 +226,9 @@ target(name: 'lib.link') {
       ant.mkdir(dir: out)
       if (os == "windows") {
         def arch = antProp("arch.$platform")
-        wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o",
+        def largs = antProp("${buildtype}.link.args")
+	ant.echo(message: "largs: $largs")
+        wsdk("${antProp('link')} $largs ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o",
             "$out/${libname(platform, buildtype)}", arch, buildtype)
       } else {
         def clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
