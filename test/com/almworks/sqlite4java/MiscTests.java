@@ -3,8 +3,6 @@ package com.almworks.sqlite4java;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Locale;
 
 public class MiscTests extends SQLiteTestFixture {
@@ -74,30 +72,6 @@ public class MiscTests extends SQLiteTestFixture {
         // norm
       }
     }
-  }
-
-  public void testDataDirectory() throws Exception {
-    setUp();
-
-    String dir1 = tempDir().getAbsolutePath();
-    String db1 = "db1";
-    SQLite.setDataDirectory(dir1);
-    SQLiteConnection con1 = new SQLiteConnection(db1);
-    con1.open();
-    Path path1 = Paths.get(dir1, db1);
-    assertTrue(path1.toFile().exists());
-    con1.dispose();
-
-    String dir2 = tempDir().getPath();
-    String db2 = "db2";
-    SQLite.setDataDirectory(dir2);
-    SQLiteConnection con2 = new SQLiteConnection(db2);
-    con2.open();
-    Path path2 = Paths.get(dir2,db2);
-    assertTrue(path2.toFile().exists());
-    con2.dispose();
-
-    SQLite.setDataDirectory(null);
   }
 
 }

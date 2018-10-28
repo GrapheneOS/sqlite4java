@@ -20,8 +20,6 @@ import javolution.util.stripped.FastMap;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -169,19 +167,6 @@ public final class SQLiteConnection {
    * Protected by myLock
    */
   private int myOpenFlags;
-
-  public SQLiteConnection(String fileName) {
-    File dbfile = new File(fileName);
-    if (!dbfile.isAbsolute()) {
-      String dataDirectory = SQLite.getDataDirectory();
-      if (dataDirectory != null) {
-        Path path = Paths.get(dataDirectory, fileName);
-        dbfile = path.toFile();
-      }
-    }
-    myFile = dbfile;
-    Internal.logInfo(this, "instantiated [" + myFile + "]");
-  }
 
   /**
    * Creates a connection to the database located in the specified file.
