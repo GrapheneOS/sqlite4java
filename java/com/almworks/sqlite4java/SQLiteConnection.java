@@ -186,7 +186,7 @@ public final class SQLiteConnection {
    * @see #SQLiteConnection(java.io.File)
    */
   public SQLiteConnection() {
-    this((File)null);
+    this(null);
   }
 
   /**
