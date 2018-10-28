@@ -95,13 +95,14 @@ target(name: 'init') {
     os = "linux"
   }
 
-  def info = "svn info $mod".execute().text
-  def m = info =~ /Revision: (\d+)/
-  if (!m) { ant.echo(message: "WARNING: no version"); }
+
+  def info = "git tag --points-at HEAD".execute().text
+  def m = info =~ /sqlite4java-(\d+)/
+  if (!m) { ant.echo(message: "WARNING: no version") }
   else {
-    version = m[0][1];
-    def status = "svn status $mod".execute().text
-    if (status =~ /(?m)^[^\?]/) {
+    version = m[0][1]
+    def status = "git diff HEAD".execute().text
+    if (status =~ /(?m).+/) {
       ant.echo(message: "WARNING: dirty build")
       version += "+";
     }
