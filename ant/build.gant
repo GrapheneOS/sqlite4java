@@ -95,7 +95,6 @@ target(name: 'init') {
     os = "linux"
   }
 
-
   def info = "git tag --points-at HEAD".execute().text
   def m = info =~ /sqlite4java-(\d+)/
   if (!m) { ant.echo(message: "WARNING: no version") }
@@ -113,13 +112,6 @@ target(name: 'init') {
   ant.echo(message: "arch=${antProp('os.arch')}")
   List files = []
 
-  if (os == "mac") {
-    if (!antProp("sdk.home") && antProp("xcode.home")) {
-      ant.property(name: "sdk.home", value: antProp("xcode.home") + "/SDKs/MacOSX10.5.sdk");
-    }
-    checkProp("sdk.home")
-  }
-
   files << "${os}.properties"
   files << "default.properties"
   files.each {
@@ -129,6 +121,13 @@ target(name: 'init') {
     } else {
       ant.echo(message: "                        " + it)
     }
+  }
+
+  if (os == "mac") {
+    if (!antProp("sdk.home") && antProp("xcode.home")) {
+      ant.property(name: "sdk.home", value: antProp("xcode.home") + "/SDKs/MacOSX.sdk");
+    }
+    checkProp("sdk.home")
   }
 
   checkProp("jdk.home", "JAVA_HOME", "JDK_HOME")
