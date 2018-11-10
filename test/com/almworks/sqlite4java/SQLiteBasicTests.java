@@ -95,6 +95,32 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
     close();
   }
 
+  public void testPrepareWithParam() {
+    String name = tempName("db");
+    open(name, RW);
+    assertDb();
+
+    exec("create table x (x)");
+    assertOk();
+
+    SWIGTYPE_p_sqlite3_stmt stmt1 = prepare("insert into x values (?)", SQLiteConstants.SQLITE_PREPARE_PERSISTENT);
+    assertOk();
+    bindLong(stmt1, 42, 1);
+    step(stmt1);
+    finalize(stmt1);
+    assertOk();
+
+    SWIGTYPE_p_sqlite3_stmt stmt2 = prepare("select * from x where x=42", 33);
+    assertOk();
+    assertNotNull(stmt2);
+    bindLong(stmt2, 42, 1);
+    step(stmt2);
+    finalize(stmt2);
+    assertOk();
+
+    close();
+  }
+
   public void testUnparseableSql() {
     open(":memory:", SQLITE_OPEN_READWRITE);
     SWIGTYPE_p_sqlite3_stmt stmt = prepare("habahaba");
@@ -133,7 +159,7 @@ public class SQLiteBasicTests extends SQLiteTestFixture {
   public void testTextBindAndColumn() {
     String name = tempName("db");
     open(name, RW);
-//    exec("PRAGMA encoding = \"UTF-16\";"); 
+//    exec("PRAGMA encoding = \"UTF-16\";");
     exec("create table x (x)");
     SWIGTYPE_p_sqlite3_stmt stmt = prepare("insert into x (x) values (?)");
     String v = garbageString(100000);

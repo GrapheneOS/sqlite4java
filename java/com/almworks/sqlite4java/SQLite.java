@@ -266,6 +266,34 @@ public final class SQLite {
   }
 
   /**
+   * <strong>Only for Windows.</strong> Set the value associated with the
+   * <a href="https://www.sqlite.org/c3ref/temp_directory.html">sqlite3_temp_directory</a> or
+   * <a href="https://www.sqlite.org/c3ref/data_directory.html">sqlite3_data_directory</a> variables to
+   * a path depending on the value of the directoryType parameter.
+   *
+   * @param directoryType Indicator of which variable to set. Can either be SQLITE_WIN32_DATA_DIRECTORY_TYPE
+   * or SQLITE_WIN32_TEMP_DIRECTORY_TYPE.
+   * @param path The directory name to set one of the two variables to. If path is null, then the previous
+   * value will be freed from memory and no longer effective.
+   * @throws SQLiteException If native library cannot be loaded, or if call returns an error.
+   * @see <a href="https://www.sqlite.org/c3ref/win32_set_directory.html">sqlite3_win32_set_directory</a>
+   */
+  public static void setDirectory(int directoryType, String path) throws SQLiteException {
+    assert Internal.isWindows();
+    loadLibrary();
+    int rc = _SQLiteManualJNI.sqlite3_win32_set_directory(directoryType, path);
+    if (rc != SQLiteConstants.SQLITE_OK) {
+      String errorMessage;
+      if (rc == SQLiteConstants.SQLITE_NOMEM) {
+        errorMessage = "Memory could not be allocated";
+      } else {
+        errorMessage = "Error attempting to set win32 directory";
+      }
+      throw new SQLiteException(rc, errorMessage);
+    }
+  }
+
+  /**
    * Gets the version of sqlite4java library. The library version equals to the svn version of the sources
    * it's built from (trunk code only). If the version ends in '+', then the library has been built from
    * dirty (uncommitted) sources.

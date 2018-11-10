@@ -1,6 +1,6 @@
 package com.almworks.sqlite4java;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,17 +11,17 @@ import java.util.logging.Logger;
 
 import static com.almworks.sqlite4java.SQLiteTestFixture.createRandom;
 
-public class NonASCIIIssue17Tests {
+public class NonASCIIIssue17Tests  {
   private static final String C01 = "0000" + (char)55360 + (char)56384;
   private SQLiteConnection cnx;
 
   @After
-  public void after() {
+  public void tearDown() {
     cnx.dispose();
   }
 
   @Before
-  public void before() throws SQLiteException {
+  public void setUp() throws Exception {
     cnx = new SQLiteConnection();
     cnx.open();
   }

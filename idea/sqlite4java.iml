@@ -7,7 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/../swig/stub" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../test" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/../native" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../sqlite" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../sqlite-old" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../swig" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/../build" />
     </content>
@@ -17,4 +17,3 @@
     <orderEntry type="library" exported="" name="groovy-2.1.7" level="application" />
   </component>
 </module>
-

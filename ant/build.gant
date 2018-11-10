@@ -10,11 +10,16 @@ final getBooleanProperty = {String param -> (ant.project.properties[param] in ["
 
 ant.property(file: "global.properties")
 
+if (antProp("propertyFile")) {
+  ant.property(file: antProp("propertyFile"))
+}
+
 final String mod = rel('..')
 final String build = rel("../build")
 final String buildClasses = "$build/classes"
 final String javaClasses = "$mod/java"
 final String junit = rel('../lib/junit.jar')
+final String hamcrest = rel('../lib/hamcrest-core.jar')
 
 String os = "unknown"
 String compilerArgs = ""
@@ -90,13 +95,13 @@ target(name: 'init') {
     os = "linux"
   }
 
-  def info = "svn info $mod".execute().text
-  def m = info =~ /Revision: (\d+)/
-  if (!m) { ant.echo(message: "WARNING: no version"); }
+  def info = "git tag --points-at HEAD".execute().text
+  def m = info =~ /sqlite4java-(\d+)/
+  if (!m) { ant.echo(message: "WARNING: no version") }
   else {
-    version = m[0][1];
-    def status = "svn status $mod".execute().text
-    if (status =~ /(?m)^[^\?]/) {
+    version = m[0][1]
+    def status = "git diff HEAD".execute().text
+    if (status =~ /(?m).+/) {
       ant.echo(message: "WARNING: dirty build")
       version += "+";
     }
@@ -106,13 +111,6 @@ target(name: 'init') {
   ant.echo(message: "os=${os}")
   ant.echo(message: "arch=${antProp('os.arch')}")
   List files = []
-
-  if (os == "mac") {
-    if (!antProp("sdk.home") && antProp("xcode.home")) {
-      ant.property(name: "sdk.home", value: antProp("xcode.home") + "/SDKs/MacOSX10.5.sdk");
-    }
-    checkProp("sdk.home")
-  }
 
   files << "${os}.properties"
   files << "default.properties"
@@ -125,9 +123,19 @@ target(name: 'init') {
     }
   }
 
+  if (os == "mac") {
+    if (!antProp("sdk.home") && antProp("xcode.home")) {
+      ant.property(name: "sdk.home", value: antProp("xcode.home") + "/SDKs/MacOSX.sdk");
+    }
+    checkProp("sdk.home")
+  }
+
   checkProp("jdk.home", "JAVA_HOME", "JDK_HOME")
   checkProp("swig.home", "SWIG_HOME")
-  if (os == "windows") checkProp("wsdk.home")
+  if (os == "windows") { 
+    checkProp("wsdk.home", "WSDK_HOME")
+    checkProp("vs.home", "VS_HOME")
+  }
   if (os == "mac") {
     def compilerProperty = ("gcc --version".execute().text.contains("clang") ? "clang" : "gcc") + ".cc.options"
     compilerArgs = antProp(compilerProperty)
@@ -143,7 +151,7 @@ target(name: 'init') {
 
 final wsdk = {String arg, String out, String arch, String buildtype ->
   ant.delete(file: out)
-  ant.exec(dir: mod, command: "cmd /C echo $arg | cmd /V:ON /D /K \"${antProp('msenv')}\" /$arch /$buildtype ${antProp('msenv.extra')}")
+  ant.exec(dir: mod, command: "cmd /C echo $arg | cmd /V:ON /D /K \"${antProp('msenv')}\" -arch=$arch ${antProp('msenv.extra')}")
   if (!new File(out).isFile()) {
     ant.fail(message: "cannot make $out")
   }
@@ -151,7 +159,7 @@ final wsdk = {String arg, String out, String arch, String buildtype ->
 
 target(name: 'init.wincompile') {
   depends(['init'])
-  ant.exec(dir: mod, command: "cmd /C echo set | cmd /V:ON /D /K \"${antProp('msenv')}\" /x86 /debug ${antProp('msenv.extra')}")
+  ant.exec(dir: mod, command: "cmd /C echo set | cmd /V:ON /D /K \"${antProp('msenv')}\" -arch=x86 ${antProp('msenv.extra')}")
 }
 
 target(name: 'lib.compile') {
@@ -171,14 +179,14 @@ target(name: 'lib.compile') {
         checkProp("arch.$platform")
         def arch = antProp("arch.$platform")
         def clargs = antProp("${buildtype}.cl.args") + " " + antProp("${buildtype}.cl.sqlite");
-        wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3.o sqlite/sqlite3.c", "$out/sqlite3.o", arch, buildtype)
+        wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3.o $mod/sqlite/sqlite3.c", "$out/sqlite3.o", arch, buildtype)
         clargs = antProp("${buildtype}.cl.args") + " " + antProp("cl.paranoid");
         wsdk("${antProp('cl')} $clargs -Fo$out/sqlite_wrap.o $build/swig/sqlite_wrap.c", "$out/sqlite_wrap.o", arch, buildtype)
-        wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3_wrap_manual.o native/sqlite3_wrap_manual.c", "$out/sqlite3_wrap_manual.o", arch, buildtype)
-        wsdk("${antProp('cl')} $clargs -Fo$out/intarray.o native/intarray.c", "$out/intarray.o", arch, buildtype)
+        wsdk("${antProp('cl')} $clargs -Fo$out/sqlite3_wrap_manual.o $mod/native/sqlite3_wrap_manual.c", "$out/sqlite3_wrap_manual.o", arch, buildtype)
+        wsdk("${antProp('cl')} $clargs -Fo$out/intarray.o $mod/native/intarray.c", "$out/intarray.o", arch, buildtype)
       } else {
         def clargs = antProp("${buildtype}.cc.args") + " " + antProp("${buildtype}.cc.sqlite") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
-        ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c sqlite/sqlite3.c -o $out/sqlite3.o")
+        ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c $mod/sqlite/sqlite3.c -o $out/sqlite3.o")
         clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.paranoid") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
 
         ant.exec(dir: mod, command: "${antProp('cc')} $clargs -c $build/swig/sqlite_wrap.c -o $out/sqlite_wrap.o")
@@ -218,7 +226,8 @@ target(name: 'lib.link') {
       ant.mkdir(dir: out)
       if (os == "windows") {
         def arch = antProp("arch.$platform")
-        wsdk("${antProp('link')} ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o",
+        def largs = antProp("${buildtype}.link.args")
+        wsdk("${antProp('link')} $largs ${antProp('link.args')} /OUT:$out/${libname(platform, buildtype)} $cc/sqlite3.o $cc/sqlite_wrap.o $cc/sqlite3_wrap_manual.o $cc/intarray.o",
             "$out/${libname(platform, buildtype)}", arch, buildtype)
       } else {
         def clargs = antProp("${buildtype}.cc.args") + " " + antProp("cc.args.${platform}") + " " + compilerArgs
@@ -246,8 +255,8 @@ target(name: 'java.compile') {
     fileset(dir: "$mod/java")
   }
   ant.mkdir(dir: buildClasses)
-  ant.javac(srcdir: "$build/java", destdir: buildClasses, debug: "on",
-      target: "1.5", source: "1.5")
+  ant.javac(fork: "yes", srcdir: "$build/java", destdir: buildClasses, debug: "on",
+      target: "1.7", source: "1.7")
 }
 
 target(name: 'java.jar') {
@@ -303,7 +312,7 @@ target(name: 'test.compile') {
   depends(['init'])
   ant.echo(message: "[test.compile]")
   ant.mkdir(dir: "$build/testClasses")
-  ant.javac(srcdir: "$mod/test", destdir: "$build/testClasses", debug: "on") {
+  ant.javac(fork: "yes", srcdir: "$mod/test", destdir: "$build/testClasses", debug: "on") {
     classpath {
       pathelement(location: "$build/dist/${antProp('jarname')}")
       pathelement(location: junit)
@@ -360,6 +369,7 @@ target('test': 'run all tests') {
           pathelement(location: "$build/testClasses")
           pathelement(location: "$build/testRun.$buildtype.$platform/${antProp('jarname')}")
           pathelement(location: junit)
+          pathelement(location: hamcrest)
         }
         batchtest(todir: resultsDir) {
           fileset(dir: "$mod/test", includes: "**/*Tests.java")
@@ -444,7 +454,7 @@ final def osgi = { curDir, deliverDir, targetDir ->
       attribute(name:"Bundle-Name", value:"sqlite4java")
       attribute(name:"Bundle-SymbolicName", value:"com.almworks.sqlite4java")
       attribute(name:"Bundle-Version", value:"1.0.0")
-      attribute(name:"Bundle-RequiredExecutionEnvironment", value:"JavaSE-1.6")
+      attribute(name:"Bundle-RequiredExecutionEnvironment", value:"JavaSE-1.7")
       attribute(name:"Export-Package", value:"com.almworks.sqlite4java;version=\"1.0.${version}\"")
       attribute(name:"Bundle-NativeCode", value:
           "native/sqlite4java-win32-x64.dll; osname=win32; processor=x86_64," +
@@ -501,6 +511,7 @@ target(name: 'android') {
   def archTypes = [
       ["armeabi",     "armv5tejl"],
       ["armeabi-v7a", "armv7l"],
+      ["armeabi-v8a", "armv8l"],
       ["x86"    ,     "i686"]]
 
   archTypes.each() { String dir, String architecture ->

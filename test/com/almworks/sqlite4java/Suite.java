@@ -2,6 +2,9 @@ package com.almworks.sqlite4java;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.AllTests;
+
 
 import java.io.File;
 import java.io.FileFilter;
@@ -10,6 +13,7 @@ import java.net.URL;
 /**
  * @author Igor Sereda
  */
+//@RunWith(AllTests.class)
 public class Suite extends TestCase {
   private static void addTo(TestSuite suite) {
     File dir = getTestDirectory();

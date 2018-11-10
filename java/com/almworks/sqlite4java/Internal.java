@@ -241,6 +241,10 @@ final class Internal {
     return os;
   }
 
+  static boolean isWindows() {
+    return getOs().equals("win32");
+  }
+
   private static String getDefaultLibPath(String classUrl) {
     return getDefaultLibPath(System.getProperty("java.library.path"), classUrl);
   }

@@ -33,3 +33,11 @@
 #define WRAPPER_WEIRD (-99)
 #define WRAPPER_WEIRD_2 (-199)
 
+//Solution (possibly temporary) for checking if Windows.
+//Based on code from sqlite os.h. 
+#ifndef SQLITE_OS_WIN
+#  if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MING32__) || defined(__BORLAND__)
+#    define SQLITE_OS_WIN 1
+#  endif
+#endif
+

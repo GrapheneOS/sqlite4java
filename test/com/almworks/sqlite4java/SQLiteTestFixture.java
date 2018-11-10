@@ -170,6 +170,12 @@ public abstract class SQLiteTestFixture extends TestCase {
     return stmt;
   }
 
+  protected SWIGTYPE_p_sqlite3_stmt prepare(String sql, int prepFlags) {
+    SWIGTYPE_p_sqlite3_stmt stmt = sqliteManual.sqlite3_prepare_v3(myLastDb, sql, prepFlags);
+    myLastResult = sqliteManual.getLastReturnCode();
+    return stmt;
+  }
+
   protected void bindLong(SWIGTYPE_p_sqlite3_stmt stmt, int index, long value) {
     myLastResult = _SQLiteSwigged.sqlite3_bind_int64(stmt, index, value);
   }

@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AntConfiguration">
-    <defaultAnt bundledAnt="true" />
     <buildFile url="file://$PROJECT_DIR$/../ant/build.xml">
-      <additionalClassPath />
-      <antReference projectDefault="true" />
-      <customJdkName value="" />
-      <maximumHeapSize value="128" />
       <maximumStackSize value="32" />
       <properties>
         <property name="jdk.home" value="C:\Dev\jdk16u17" />
@@ -227,11 +222,10 @@
     <option name="USE_PER_PROJECT_SETTINGS" value="true" />
   </component>
   <component name="CompilerConfiguration">
-    <option name="DEFAULT_COMPILER" value="Javac" />
     <excludeFromCompile>
       <directory url="file://$PROJECT_DIR$/../native" includeSubdirectories="true" />
       <directory url="file://$PROJECT_DIR$/../swig" includeSubdirectories="false" />
-      <directory url="file://$PROJECT_DIR$/../sqlite" includeSubdirectories="true" />
+      <directory url="file://$PROJECT_DIR$/../sqlite-old" includeSubdirectories="true" />
     </excludeFromCompile>
     <resourceExtensions>
       <entry name=".+\.(properties|xml|html|dtd|tld)" />
@@ -248,11 +242,6 @@
       <entry name="?*.dtd" />
       <entry name="?*.tld" />
     </wildcardResourcePatterns>
-    <annotationProcessing>
-      <profile default="true" name="Default" enabled="false">
-        <processorPath useClasspath="true" />
-      </profile>
-    </annotationProcessing>
   </component>
   <component name="CopyrightManager" default="">
     <copyright>
@@ -286,28 +275,14 @@
     <option name="ADDITIONAL_OPTIONS_STRING" value="" />
     <option name="MAXIMUM_HEAP_SIZE" value="128" />
   </component>
-  <component name="Encoding" useUTFGuessing="true" native2AsciiForPropertiesFiles="false" />
-  <component name="EntryPointsManager">
-    <entry_points version="2.0" />
-  </component>
   <component name="GantSettings">
     <option name="SDK_HOME" value="C:/Dev/gant-1.6.1" />
   </component>
   <component name="IdProvider" IDEtalkID="9002BA8BC3541C632E0E7EEB5FDAFAC5" />
   <component name="InspectionProjectProfileManager">
-    <profiles>
-      <profile version="1.0" is_locked="false">
-        <option name="myName" value="Project Default" />
-        <option name="myLocal" value="false" />
-        <inspection_tool class="SpellCheckingInspection" enabled="false" level="TYPO" enabled_by_default="false">
-          <option name="processCode" value="true" />
-          <option name="processLiterals" value="true" />
-          <option name="processComments" value="true" />
-        </inspection_tool>
-      </profile>
-    </profiles>
-    <option name="PROJECT_PROFILE" value="Project Default" />
-    <option name="USE_PROJECT_PROFILE" value="true" />
+    <profile version="1.0">
+      <option name="myName" value="Project Default" />
+    </profile>
     <version value="1.0" />
   </component>
   <component name="IntelliCalc">
@@ -452,6 +427,156 @@
         <default-constraints vsize-policy="6" hsize-policy="0" anchor="0" fill="2" />
       </item>
     </group>
+  </component>
+  <component name="ProjectCodeStyleConfiguration">
+    <option name="USE_PER_PROJECT_SETTINGS" value="true" />
+    <code_scheme name="Project" version="173">
+      <option name="USE_SAME_INDENTS" value="true" />
+      <option name="IGNORE_SAME_INDENTS_FOR_LANGUAGES" value="true" />
+      <option name="OTHER_INDENT_OPTIONS">
+        <value>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </value>
+      </option>
+      <option name="BRACE_STYLE" value="5" />
+      <option name="CLASS_BRACE_STYLE" value="5" />
+      <option name="METHOD_BRACE_STYLE" value="5" />
+      <JavaCodeStyleSettings>
+        <option name="FIELD_NAME_PREFIX" value="my" />
+        <option name="JD_PRESERVE_LINE_FEEDS" value="true" />
+      </JavaCodeStyleSettings>
+      <XML>
+        <option name="XML_LEGACY_SETTINGS_IMPORTED" value="true" />
+      </XML>
+      <codeStyleSettings language="CFML">
+        <option name="BRACE_STYLE" value="5" />
+        <option name="METHOD_BRACE_STYLE" value="5" />
+        <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
+        <option name="ALIGN_MULTILINE_FOR" value="false" />
+        <option name="PARENT_SETTINGS_INSTALLED" value="true" />
+      </codeStyleSettings>
+      <codeStyleSettings language="CSS">
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="CoffeeScript">
+        <indentOptions>
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="ECMA Script Level 4">
+        <option name="BRACE_STYLE" value="5" />
+        <option name="CLASS_BRACE_STYLE" value="5" />
+        <option name="METHOD_BRACE_STYLE" value="5" />
+        <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
+        <option name="ALIGN_MULTILINE_FOR" value="false" />
+        <option name="PARENT_SETTINGS_INSTALLED" value="true" />
+      </codeStyleSettings>
+      <codeStyleSettings language="GSP">
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="Gherkin">
+        <indentOptions>
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="Groovy">
+        <option name="BRACE_STYLE" value="5" />
+        <option name="CLASS_BRACE_STYLE" value="5" />
+        <option name="METHOD_BRACE_STYLE" value="5" />
+        <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
+        <option name="ALIGN_MULTILINE_FOR" value="false" />
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="HTML">
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="JAVA">
+        <option name="BRACE_STYLE" value="5" />
+        <option name="CLASS_BRACE_STYLE" value="5" />
+        <option name="METHOD_BRACE_STYLE" value="5" />
+        <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
+        <option name="ALIGN_MULTILINE_FOR" value="false" />
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="JSP">
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="JSPX">
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="JavaScript">
+        <option name="BRACE_STYLE" value="5" />
+        <option name="METHOD_BRACE_STYLE" value="5" />
+        <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
+        <option name="ALIGN_MULTILINE_FOR" value="false" />
+        <option name="PARENT_SETTINGS_INSTALLED" value="true" />
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="PHP">
+        <option name="BRACE_STYLE" value="5" />
+        <option name="CLASS_BRACE_STYLE" value="5" />
+        <option name="METHOD_BRACE_STYLE" value="5" />
+        <option name="PARENT_SETTINGS_INSTALLED" value="true" />
+      </codeStyleSettings>
+      <codeStyleSettings language="SQL">
+        <indentOptions>
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="XML">
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="2" />
+          <option name="TAB_SIZE" value="8" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+        </indentOptions>
+      </codeStyleSettings>
+    </code_scheme>
   </component>
   <component name="ProjectCodeStyleSettingsManager">
     <option name="PER_PROJECT_SETTINGS">
@@ -634,7 +759,7 @@
   <component name="ProjectResources">
     <default-html-doctype>http://www.w3.org/1999/xhtml</default-html-doctype>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" assert-keyword="true" jdk-15="true" project-jdk-name="1.7" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" project-jdk-name="10" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/../build.idea" />
   </component>
   <component name="ResourceManagerContainer">
@@ -665,7 +790,6 @@
       </map>
     </option>
     <option name="myVersion" value="124" />
-    <option name="mySupportsUserInfoFilter" value="true" />
   </component>
   <component name="TL_PLUGIN">
     <option name="myModel">
@@ -677,6 +801,7 @@
   </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="svn" />
+    <mapping directory="$PROJECT_DIR$/.." vcs="Git" />
   </component>
   <component name="WebServicesPlugin" addRequiredLibraries="true" />
   <component name="libraryTable">
@@ -689,4 +814,3 @@
     </library>
   </component>
 </project>
-
