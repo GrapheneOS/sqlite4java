@@ -151,7 +151,7 @@ target(name: 'init') {
 
 final wsdk = {String arg, String out, String arch, String buildtype ->
   ant.delete(file: out)
-  ant.exec(dir: mod, command: "cmd /C echo $arg | cmd /V:ON /D /K ${antProp('msenv')} -arch=$arch ${antProp('msenv.extra')}")
+  ant.exec(dir: mod, command: "cmd /C echo $arg | cmd /V:ON /D /K \"${antProp('msenv')}\" -arch=$arch ${antProp('msenv.extra')}")
   if (!new File(out).isFile()) {
     ant.fail(message: "cannot make $out")
   }
