@@ -92,7 +92,12 @@ target(name: 'init') {
   } else if (osname.contains("win")) {
     os = "windows"
   } else {
-    os = "linux"
+    def platform = antProp("platforms")
+    if (platform && platform.contains("linux-ppc64le")) {
+      os = "linux-ppc64le"
+    } else {
+      os = "linux"
+    }
   }
 
   def info = "git tag --points-at HEAD".execute().text
