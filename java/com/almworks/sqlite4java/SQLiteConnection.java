@@ -1586,7 +1586,11 @@ public final class SQLiteConnection {
   }
 
   private String getSqliteDbName() {
-    return myFile == null ? ":memory:" : myFile.getAbsolutePath();
+    if (SQLite.isSharedCache()) {
+      return "file::memory:?cache=shared";
+    } else {
+      return myFile == null ? ":memory:" : myFile.getAbsolutePath();
+    }
   }
 
   int getStatementCount() {
