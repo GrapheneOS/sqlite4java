@@ -165,7 +165,15 @@ public final class SQLite {
     return r;
   }
 
-  public static boolean isSharedCache() {
+  /**
+   * Checks if SQLite has shared cache mode enabled.
+   *
+   * @return true if shared cached mode is enabled.
+   * @throws SQLiteException if native library cannot be loaded
+   * @see <a href="https://www.sqlite.org/c3ref/enable_shared_cache.html">sqlite3_enable_shared_cache</a>
+   */
+  public static boolean isSharedCache() throws SQLiteException {
+    loadLibrary();
     return sharedCacheEnabled;
   }
 

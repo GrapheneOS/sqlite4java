@@ -169,6 +169,11 @@ public final class SQLiteConnection {
   private int myOpenFlags;
 
   /**
+   * Flag to preserve the cache shared mode when connection was created
+   */
+  private boolean isSharedCache;
+
+  /**
    * Creates a connection to the database located in the specified file.
    * Database is not opened by the constructor, and the calling thread is insignificant.
    *
@@ -176,6 +181,12 @@ public final class SQLiteConnection {
    */
   public SQLiteConnection(File dbfile) {
     myFile = dbfile;
+    isSharedCache = false;
+    try {
+      isSharedCache = SQLite.isSharedCache();
+    } catch (SQLiteException e) {
+      Internal.logWarn(this, "error during SQLite.isSharedCache() - " + e.getMessage());
+    }
     Internal.logInfo(this, "instantiated [" + myFile + "]");
   }
 
@@ -1586,11 +1597,14 @@ public final class SQLiteConnection {
   }
 
   private String getSqliteDbName() {
-    if (SQLite.isSharedCache()) {
-      return "file::memory:?cache=shared";
-    } else {
-      return myFile == null ? ":memory:" : myFile.getAbsolutePath();
+    if (myFile == null) {
+      if (isSharedCache) {
+        return "file::memory:?cache=shared";
+      } else {
+        return ":memory:";
+      }
     }
+    return myFile.getAbsolutePath();
   }
 
   int getStatementCount() {
