@@ -714,7 +714,7 @@ static sqlite3_module intarrayModule = {
   intarrayRollback,            /* xRollback */
   0,                           /* xFindMethod */
   0,                           /* xRename */
-  0, 0, 0
+  0, 0, 0, 0
 };
 
 #endif /* !defined(SQLITE_OMIT_VIRTUALTABLE) */
