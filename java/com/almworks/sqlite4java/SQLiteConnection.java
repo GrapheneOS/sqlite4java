@@ -171,7 +171,7 @@ public final class SQLiteConnection {
   /**
    * Flag to preserve the cache shared mode when connection was created
    */
-  private boolean isSharedCache;
+  private boolean sharedCache;
 
   /**
    * Creates a connection to the database located in the specified file.
@@ -180,13 +180,8 @@ public final class SQLiteConnection {
    * @param dbfile database file, or null to create an in-memory database
    */
   public SQLiteConnection(File dbfile) {
+    this.sharedCache = false;
     myFile = dbfile;
-    isSharedCache = false;
-    try {
-      isSharedCache = SQLite.isSharedCache();
-    } catch (SQLiteException e) {
-      Internal.logWarn(this, "error during SQLite.isSharedCache() - " + e.getMessage());
-    }
     Internal.logInfo(this, "instantiated [" + myFile + "]");
   }
 
@@ -198,6 +193,11 @@ public final class SQLiteConnection {
    */
   public SQLiteConnection() {
     this(null);
+  }
+
+  public SQLiteConnection(boolean sharedCache) {
+    this(null);
+    this.sharedCache = sharedCache;
   }
 
   /**
@@ -1598,7 +1598,7 @@ public final class SQLiteConnection {
 
   private String getSqliteDbName() {
     if (myFile == null) {
-      if (isSharedCache) {
+      if (sharedCache) {
         return "file::memory:?cache=shared";
       } else {
         return ":memory:";

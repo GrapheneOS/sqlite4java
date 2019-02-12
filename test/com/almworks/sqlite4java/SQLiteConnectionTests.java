@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_OPEN_READWRITE;
+import static com.almworks.sqlite4java.SQLiteConstants.SQLITE_OPEN_URI;
+
 public class SQLiteConnectionTests extends SQLiteConnectionFixture {
   public void testOpenFile() throws SQLiteException {
     SQLiteConnection connection = fileDb();
@@ -208,6 +211,35 @@ public class SQLiteConnectionTests extends SQLiteConnectionFixture {
       SQLiteStatement st = con.prepare("select x from x");
       st.step();
       assertEquals(expected, st.columnLong(0));
+    }
+  }
+
+  public void testSharedCacheShouldPass() throws Exception {
+    SQLiteConnection connection1 = new SQLiteConnection(true);
+    connection1.openV2(SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI);
+    connection1.exec("create table test(id varchar primary key, value varchar)");
+    connection1.exec("insert into test(id, value) values('id1', 'value')");
+    SQLiteConnection connection2 = new SQLiteConnection(true);
+    connection2.openV2(SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI);
+    connection2.exec("select * from test");
+    connection1.dispose();
+    connection2.dispose();
+  }
+
+  public void testSharedCacheShouldFail() throws Exception {
+    try {
+      SQLiteConnection connection1 = new SQLiteConnection();
+      connection1.openV2(SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI);
+      connection1.exec("create table test(id varchar primary key, value varchar)");
+      connection1.exec("insert into test(id, value) values('id1', 'value')");
+      SQLiteConnection connection2 = new SQLiteConnection();
+      connection2.openV2(SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI);
+      connection2.exec("select * from test");
+      connection1.dispose();
+      connection2.dispose();
+      throw new Exception("should throw SQLiteException");
+    } catch (SQLiteException e) {
+      //norm
     }
   }
 

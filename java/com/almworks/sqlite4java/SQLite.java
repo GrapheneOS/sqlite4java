@@ -46,7 +46,6 @@ public final class SQLite {
   private static boolean libraryLoaded = false;
   private static String jarVersion = null;
   private static Boolean threadSafe = null;
-  private static boolean sharedCacheEnabled = false;
 
   /**
    * Native sqlite4java code, including SQLite itself, is compiled in <code>DEBUG</code> and <code>RELEASE</code>
@@ -166,18 +165,6 @@ public final class SQLite {
   }
 
   /**
-   * Checks if SQLite has shared cache mode enabled.
-   *
-   * @return true if shared cached mode is enabled.
-   * @throws SQLiteException if native library cannot be loaded
-   * @see <a href="https://www.sqlite.org/c3ref/enable_shared_cache.html">sqlite3_enable_shared_cache</a>
-   */
-  public static boolean isSharedCache() throws SQLiteException {
-    loadLibrary();
-    return sharedCacheEnabled;
-  }
-
-  /**
    * Checks if the given SQL is complete.
    *
    * @param sql the SQL
@@ -276,7 +263,6 @@ public final class SQLite {
     int rc = _SQLiteSwigged.sqlite3_enable_shared_cache(enabled ? 1 : 0);
     if (rc != SQLiteConstants.SQLITE_OK)
       throw new SQLiteException(rc, "SQLite: cannot set shared_cache to " + enabled);
-    sharedCacheEnabled = enabled;
   }
 
   /**
