@@ -60,6 +60,11 @@ public final class SQLiteConnection {
   private final File myFile;
 
   /**
+   * Flag to preserve the cache shared mode when connection was created
+   */
+  private final boolean mySharedCacheMemoryConnection;
+
+  /**
    * An incremental number of the instance, used for debugging purposes.
    */
   private final int myNumber = Internal.nextConnectionNumber();
@@ -168,6 +173,13 @@ public final class SQLiteConnection {
    */
   private int myOpenFlags;
 
+  private SQLiteConnection(File dbfile, boolean sharedCacheMemoryConnection) {
+    assert dbfile == null || !sharedCacheMemoryConnection : dbfile + " " + sharedCacheMemoryConnection;
+    myFile = dbfile;
+    mySharedCacheMemoryConnection = sharedCacheMemoryConnection;
+    Internal.logInfo(this, "instantiated [" + myFile + "]");
+  }
+
   /**
    * Creates a connection to the database located in the specified file.
    * Database is not opened by the constructor, and the calling thread is insignificant.
@@ -175,8 +187,7 @@ public final class SQLiteConnection {
    * @param dbfile database file, or null to create an in-memory database
    */
   public SQLiteConnection(File dbfile) {
-    myFile = dbfile;
-    Internal.logInfo(this, "instantiated [" + myFile + "]");
+    this(dbfile, false);
   }
 
   /**
@@ -186,7 +197,21 @@ public final class SQLiteConnection {
    * @see #SQLiteConnection(java.io.File)
    */
   public SQLiteConnection() {
-    this(null);
+    this(null, false);
+  }
+
+  /**
+   * <p>Creates a connection to an in-memory temporary database, allowing the user to set the "shared cache" flag.
+   * All in-memory databases opened with {@code sharedCache} equal to {@code true} will share the same data.
+   * </p>
+   *
+   * <p>Database is not opened by the constructor, and the calling thread is insignificant.</p>
+   *
+   * @see #SQLiteConnection()
+   * @see <a href="https://www.sqlite.org/sharedcache.html">Shared Cache in SQLite</a>
+   */
+  public SQLiteConnection(boolean sharedCache) {
+    this(null, sharedCache);
   }
 
   /**
@@ -1586,7 +1611,14 @@ public final class SQLiteConnection {
   }
 
   private String getSqliteDbName() {
-    return myFile == null ? ":memory:" : myFile.getAbsolutePath();
+    if (myFile == null) {
+      if (mySharedCacheMemoryConnection) {
+        return "file::memory:?cache=shared";
+      } else {
+        return ":memory:";
+      }
+    }
+    return myFile.getAbsolutePath();
   }
 
   int getStatementCount() {
