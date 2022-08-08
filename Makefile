@@ -2,8 +2,6 @@ VERSION := 1.0.392
 
 CFLAGS := -O2 -fPIC -fno-plt -fstack-clash-protection -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-strict-aliasing -fwrapv -fno-omit-frame-pointer -D_GNU_SOURCE -DNDEBUG -Wall -Wextra -Isqlite \
 	-DSQLITE_ENABLE_COLUMN_METADATA \
-	-DSQLITE_ENABLE_FTS3 \
-	-DSQLITE_ENABLE_FTS3_PARENTHESIS \
 	-DSQLITE_ENABLE_MEMORY_MANAGEMENT \
 	-DSQLITE_THREADSAFE=1 \
 	-DTEMP_STORE=1 \
