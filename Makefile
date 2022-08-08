@@ -7,6 +7,7 @@ CFLAGS := -O2 -fPIC -fno-plt -fstack-clash-protection -fstack-protector-strong -
 	-DSQLITE_ENABLE_MEMORY_MANAGEMENT \
 	-DSQLITE_THREADSAFE=1 \
 	-DTEMP_STORE=1 \
+	-DSQLITE_DQS=0 \
 	-DSQLITE_OMIT_DEPRECATED \
 	-DSQLITE_ENABLE_RTREE=1
 
