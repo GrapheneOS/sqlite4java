@@ -8,6 +8,7 @@ CFLAGS := -O2 -fPIC -fno-plt -fstack-clash-protection -fstack-protector-strong -
 	-DSQLITE_DQS=0 \
 	-DSQLITE_OMIT_DEPRECATED \
 	-DSQLITE_TRUSTED_SCHEMA=0 \
+	-DSQLITE_DEFAULT_DEFENSIVE \
 	-DSQLITE_ENABLE_RTREE=1
 
 LDFLAGS := -shared -fPIC -fno-plt -Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now
