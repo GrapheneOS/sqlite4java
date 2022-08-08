@@ -5,13 +5,9 @@ CFLAGS := -O2 -fPIC -fno-plt -fstack-clash-protection -fstack-protector-strong -
 	-DSQLITE_ENABLE_FTS3 \
 	-DSQLITE_ENABLE_FTS3_PARENTHESIS \
 	-DSQLITE_ENABLE_MEMORY_MANAGEMENT \
-	-DSQLITE_ENABLE_STAT2 \
-	-DHAVE_READLINE=0 \
 	-DSQLITE_THREADSAFE=1 \
-	-DSQLITE_THREAD_OVERRIDE_LOCK=-1 \
 	-DTEMP_STORE=1 \
 	-DSQLITE_OMIT_DEPRECATED \
-	-DSQLITE_OS_UNIX=1 \
 	-DSQLITE_ENABLE_RTREE=1
 
 LDFLAGS := -shared -fPIC -fno-plt -Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now
