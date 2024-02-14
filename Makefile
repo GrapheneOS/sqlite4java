@@ -12,7 +12,7 @@ CFLAGS := -O2 -fPIC -fno-plt -fstack-clash-protection -fstack-protector-strong -
 	-DSQLITE_ENABLE_RTREE=1
 
 LDFLAGS := -shared -fPIC -fno-plt -Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now
-JAVA_HOME := /usr/lib/jvm/java-20-openjdk
+JAVA_HOME := /usr/lib/jvm/java-21-openjdk
 JAVA_CFLAGS := -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
 
 PLATFORM := linux-amd64
